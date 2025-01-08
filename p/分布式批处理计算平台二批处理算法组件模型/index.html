@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="大三实训项目——基于Serverless架构的分布式批处理计算平台的批处理算法组件模型">
+<title>分布式批处理计算平台（二）批处理算法组件模型</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%BA%8C%E6%89%B9%E5%A4%84%E7%90%86%E7%AE%97%E6%B3%95%E7%BB%84%E4%BB%B6%E6%A8%A1%E5%9E%8B/'>
+
+<link rel="stylesheet" href="/scss/style.min.00fdb13873a10c0d571b0a082e72c57836d458957efcda9eaef694985da2c45f.css"><meta property='og:title' content="分布式批处理计算平台（二）批处理算法组件模型">
+<meta property='og:description' content="大三实训项目——基于Serverless架构的分布式批处理计算平台的批处理算法组件模型">
+<meta property='og:url' content='https://Tyritic.github.io/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%BA%8C%E6%89%B9%E5%A4%84%E7%90%86%E7%AE%97%E6%B3%95%E7%BB%84%E4%BB%B6%E6%A8%A1%E5%9E%8B/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='' /><meta property='article:published_time' content='2025-01-07T15:43:24&#43;08:00'/><meta property='article:modified_time' content='2025-01-08T09:26:17&#43;00:00'/>
+<meta name="twitter:title" content="分布式批处理计算平台（二）批处理算法组件模型">
+<meta name="twitter:description" content="大三实训项目——基于Serverless架构的分布式批处理计算平台的批处理算法组件模型">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu175142567987987056.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">永远不要低估一颗冠军的心。</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#批处理算法组件的设计动机">批处理算法组件的设计动机</a></li>
+    <li><a href="#批处理算法组件的模型结构">批处理算法组件的模型结构</a></li>
+    <li><a href="#属性">属性</a>
+      <ol>
+        <li><a href="#组件启动配置属性">组件启动配置属性</a></li>
+        <li><a href="#组件运行过程属性">组件运行过程属性</a></li>
+        <li><a href="#数据处理属性">数据处理属性</a></li>
+      </ol>
+    </li>
+    <li><a href="#接口">接口</a>
+      <ol>
+        <li><a href="#生命周期管理">生命周期管理</a></li>
+        <li><a href="#数据处理">数据处理</a>
+          <ol>
+            <li><a href="#算法运行模式"><strong>算法运行模式</strong></a></li>
+            <li><a href="#数据清理模式">数据清理模式</a></li>
+          </ol>
+        </li>
+        <li><a href="#检查点管理">检查点管理</a></li>
+        <li><a href="#事件发布">事件发布</a></li>
+      </ol>
+    </li>
+    <li><a href="#事件">事件</a>
+      <ol>
+        <li><a href="#运行生命周期事件life-cycle-event">运行生命周期事件（Life Cycle Event）</a></li>
+        <li><a href="#运行进度事件run-progress-event">运行进度事件（Run Progress Event）</a></li>
+        <li><a href="#自定义事件custom-event">自定义事件（Custom Event）</a></li>
+      </ol>
+    </li>
+    <li><a href="#组件运行入口">组件运行入口</a></li>
+    <li><a href="#批处理算法组件的模型机制">批处理算法组件的模型机制</a>
+      <ol>
+        <li><a href="#生命周期管理机制">生命周期管理机制</a></li>
+        <li><a href="#检查点恢复机制">检查点恢复机制</a>
+          <ol>
+            <li><a href="#设置检查点">设置检查点</a></li>
+          </ol>
+        </li>
+        <li><a href="#读取检查点">读取检查点</a></li>
+      </ol>
+    </li>
+    <li><a href="#批处理算法组件的编排模型">批处理算法组件的编排模型</a>
+      <ol>
+        <li><a href="#编排模型的结构设计">编排模型的结构设计</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/%E4%B8%AA%E4%BA%BA%E9%A1%B9%E7%9B%AE/" style="background-color: #2a9d8f; color: #fff;">
+                个人项目
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%BA%8C%E6%89%B9%E5%A4%84%E7%90%86%E7%AE%97%E6%B3%95%E7%BB%84%E4%BB%B6%E6%A8%A1%E5%9E%8B/">分布式批处理计算平台（二）批处理算法组件模型</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            大三实训项目——基于Serverless架构的分布式批处理计算平台的批处理算法组件模型
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-01-07</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 7 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：3482 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="批处理算法组件的设计动机">批处理算法组件的设计动机
+</h2><ul>
+<li><strong>异常处理</strong>：大多数算法开发人员在程序开发过程中通常只关注程序的正常逻辑，而忽视了程序在运行过程中可能遇到的异常情况以及如何处理这些异常故障。</li>
+<li><strong>缺乏生命周期管理</strong>：缺乏提供生命周期管理接口，用户无法方便地查询程序的运行状态，也无法进行必要的生命周期管理操作，例如暂停、恢复或停止程序的执行。若在程序执行过程中发现逻辑错误或需要优先执行其他任务，用户只能通过终止进程的方式停止程序的执行。</li>
+</ul>
+<h2 id="批处理算法组件的模型结构">批处理算法组件的模型结构
+</h2><p>批处理算法组件是<strong>面向海量数据批处理场景</strong>的<strong>具有生命周期管理</strong>和<strong>检查点恢复机制</strong>的功能软件单元</p>
+<p><img src="/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%BA%8C%E6%89%B9%E5%A4%84%E7%90%86%E7%AE%97%E6%B3%95%E7%BB%84%E4%BB%B6%E6%A8%A1%E5%9E%8B/image-20250107155315075.png"
+	width="185"
+	height="217"
+	
+	loading="lazy"
+	
+		alt="image-20250107155315075"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="85"
+		data-flex-basis="204px"
+	
+></p>
+<h2 id="属性">属性
+</h2><p>属性是组件内部维护的数据成员，包含以下两种类型：<strong>组件启动配置属性</strong>、<strong>组件运行过程属性</strong>以及<strong>数据处理属性</strong>。</p>
+<h3 id="组件启动配置属性">组件启动配置属性
+</h3><p>在组件启动时，外部环境将参数传递给组件，随后组件进入初始化阶段，利用这些参数为组件的启动配置属性进行赋值</p>
+<ul>
+<li><strong>mode</strong>：组件运行模式
+<ul>
+<li>算法执行模式 （algorithm）：正常执行算法过程</li>
+<li>数据清理模式（clean）：若组件的算法逻辑有误导致错误的数据输出或中间输出结果没有业务价值，则需要清理这些数据，减轻集群节点机器的磁盘资源压力。</li>
+</ul>
+</li>
+<li><strong>restore</strong>：检查点标志位
+<ul>
+<li><strong>1</strong>：组件在运行之前，会尝试读取本地的检查点文件，并从检查点处恢复执行</li>
+<li><strong>0</strong>：组件此次运行会重新开始处理所有数据</li>
+</ul>
+</li>
+<li><strong>properties_url</strong>：数据处理参数的配置文件地址</li>
+</ul>
+<h3 id="组件运行过程属性">组件运行过程属性
+</h3><p>组件运行过程属性是用于记录组件的运行状态、运行进度等相关信息的属性集合</p>
+<ul>
+<li><strong>status</strong>：组件当前的运行状态
+<ul>
+<li>初始化 <strong>（init）</strong></li>
+<li>运行中 <strong>（running）</strong></li>
+<li>暂停 <strong>（paused）</strong></li>
+<li>停止 <strong>（stop）</strong></li>
+<li>运行完成 <strong>（finished）</strong></li>
+<li>运行失败 <strong>（failed）</strong></li>
+</ul>
+</li>
+<li><strong>now</strong>：当前处理的数据块序号。</li>
+<li><strong>total</strong>：数据块总数</li>
+<li><strong>progress</strong>：组件的运行进度，计算公式：$progress=now/total$。</li>
+<li><strong>start_at</strong>：组件的开始运行时间，组件初始化完毕后设置该属性。</li>
+<li><strong>pause_at</strong>：组件的运行暂停时间，该属性记录组件运行的最近一次暂停时间。</li>
+<li><strong>pause_duration</strong>：组件运行暂停的总时长，组件在运行时可以被多次暂停。</li>
+<li><strong>remain_time</strong>：组件运行的剩余时长</li>
+</ul>
+<h3 id="数据处理属性">数据处理属性
+</h3><p>数据处理属性是组件进行数据处理时需要使用的属性</p>
+<ul>
+<li>输入数据地址</li>
+<li>输出结果地址</li>
+<li>可选的算法模型动态参数</li>
+</ul>
+<h2 id="接口">接口
+</h2><p>接口定义了组件的各项行为</p>
+<h3 id="生命周期管理">生命周期管理
+</h3><p>组件运行时会启动一个HTTP服务，并提供生命周期管理接口给外界控制和获取组件运行状态</p>
+<ul>
+<li><strong>info</strong> ：获取组件运行状态，包括组件运行进度、运行状态等信息</li>
+<li><strong>pause</strong>：暂停组件运行</li>
+<li><strong>restart</strong>：恢复运行处于暂停状态的组件</li>
+<li><strong>stop</strong>：停止组件运行</li>
+</ul>
+<h3 id="数据处理">数据处理
+</h3><p>数据处理接口是组件读取、处理以及写入数据的接口集合</p>
+<ul>
+<li><strong>getConfig</strong>：获取数据处理属性。</li>
+<li><strong>getGenerator</strong>：返回一个获取批处理任务所需数据的生成器。组件进行数据处理时，数据被分成块进行处理。开发人员实现该接口时，可以根据需要指定块的粒度。</li>
+<li><strong>readItem</strong>：从生成器中遍历得到数据的存放地址，并将数据读取至内存中。</li>
+<li><strong>beforeProcess</strong>：输入数据的预处理环节。</li>
+<li><strong>process</strong>：主要的数据分析处理环节，开发人员要在该接口内实现批处理算法逻辑。</li>
+<li><strong>afterProcess</strong>：收尾工作，例如可将处理完毕的图片从内存中移除，避免过多的图片将内存占满</li>
+<li><strong>clean</strong>：清理组件执行过程中生成的所有数据</li>
+<li><strong>handleFinish</strong>：当数据的批处理任务后，将要退出前调用此接口进行收尾工作</li>
+</ul>
+<h4 id="算法运行模式"><strong>算法运行模式</strong>
+</h4><ol>
+<li>通过<strong>getGenerator</strong>接口获取数据生成器，并遍历该生成器</li>
+<li>在每次遍历时，按照以下步骤进行数据处理操作。
+<ol>
+<li>通过<strong>readItem</strong>接口将数据块读入内存。</li>
+<li>将读入的数据传入<strong>beforeProcress</strong>接口进行预处理操作。</li>
+<li>预处理完毕后，将处理结果传入<strong>process</strong>接口进行数据分析处理，执行具体的数据处理算法或操作。</li>
+<li>处理完毕的数据会进入到<strong>afterProcess</strong>接口进行收尾工作，如释放内存等。</li>
+</ol>
+</li>
+<li>进入下一次循环之前，组件程序会判断当前的运行状态。
+<ol>
+<li>如果状态为暂停，线程将被阻塞，直到状态重新变为运行中。</li>
+<li>如果状态为停止或生成器已遍历完成，则进入使用<strong>handleFinish</strong>接口进行程序的收尾工作。</li>
+</ol>
+</li>
+</ol>
+<p><img src="/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%BA%8C%E6%89%B9%E5%A4%84%E7%90%86%E7%AE%97%E6%B3%95%E7%BB%84%E4%BB%B6%E6%A8%A1%E5%9E%8B/image-20250107180644046.png"
+	width="1387"
+	height="817"
+	
+	loading="lazy"
+	
+		alt="算法运行模式流程图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="169"
+		data-flex-basis="407px"
+	
+></p>
+<h4 id="数据清理模式">数据清理模式
+</h4><ol>
+<li>通过getGenerator接口获取待清理数据生成器，并遍历该生成器。</li>
+<li>在每次遍历时
+<ol>
+<li>将数据块地址传入clean接口进行数据清理工作。</li>
+</ol>
+</li>
+<li>数据清理完毕后，在进入下一次循环之前，需要判断组件运行状态
+<ol>
+<li>如果状态为暂停，线程将被阻塞，直到状态重新变为运行中。</li>
+<li>如果状态为停止或生成器已遍历完成，则进入使用<strong>handleFinish</strong>接口进行程序的收尾工作。</li>
+</ol>
+</li>
+</ol>
+<p><img src="/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%BA%8C%E6%89%B9%E5%A4%84%E7%90%86%E7%AE%97%E6%B3%95%E7%BB%84%E4%BB%B6%E6%A8%A1%E5%9E%8B/image-20250107192746462.png"
+	width="1206"
+	height="470"
+	
+	loading="lazy"
+	
+		alt="数据清理模式流程图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="256"
+		data-flex-basis="615px"
+	
+></p>
+<h3 id="检查点管理">检查点管理
+</h3><p>检查点接口是负责组件运行过程中检查点设置和读取的接口集合</p>
+<ul>
+<li><strong>setCheckpoint</strong>：设置检查点内容，保存组件当前的运行状态。</li>
+<li><strong>getCheckpoint</strong>：读取检查点内容，组件重新启动时，调用该接口恢复组件运行状态。</li>
+</ul>
+<h3 id="事件发布">事件发布
+</h3><ul>
+<li><strong>lifeCycleEventPublish</strong>：发布组件运行生命周期事件。</li>
+<li><strong>runPorgressEventPublish</strong>：发布组件运行进度事件。</li>
+</ul>
+<h2 id="事件">事件
+</h2><p>事件是批处理算法组件具备的主动向外界传递信息的能力，采用发布/订阅机制。</p>
+<p>消息队列接受组件模型发布的事件</p>
+<p>订阅者通过订阅获取事件</p>
+<p><img src="/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%BA%8C%E6%89%B9%E5%A4%84%E7%90%86%E7%AE%97%E6%B3%95%E7%BB%84%E4%BB%B6%E6%A8%A1%E5%9E%8B/image-20250107193737002.png"
+	width="831"
+	height="390"
+	
+	loading="lazy"
+	
+		alt="示意图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="213"
+		data-flex-basis="511px"
+	
+></p>
+<h3 id="运行生命周期事件life-cycle-event">运行生命周期事件（Life Cycle Event）
+</h3><p>组件运行过程中，向外界告知当前组件的运行状态。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span> 
+</span></span><span class="line"><span class="cl"> 	<span class="nt">&#34;id&#34;</span><span class="p">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span> <span class="c1">// 组件运行唯一标识 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span> 	<span class="nt">&#34;status&#34;</span><span class="p">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span> <span class="c1">// 运行状态, running/paused/stopped/finished/failed 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span> 	<span class="nt">&#34;msg&#34;</span><span class="p">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span> <span class="c1">// 消息，如运行异常的原因 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span> 	<span class="nt">&#34;occurAt&#34;</span><span class="p">:</span> <span class="s2">&#34;&#34;</span> <span class="c1">// 事件发生时间 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="运行进度事件run-progress-event">运行进度事件（Run Progress Event）
+</h3><p>组件运行时首先获取待处理数据，再将待处理数据分批并以循环的方式进行重复的算法操作。每个循环执行结束后，向外界告知组件当前的执行进度</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span> 	
+</span></span><span class="line"><span class="cl">	<span class="nt">&#34;id&#34;</span><span class="p">:</span> <span class="s2">&#34;&#34;</span><span class="p">,</span> <span class="c1">// 组件运行唯一标识 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nt">&#34;progress&#34;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="c1">// 运行进度 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nt">&#34;startTime&#34;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="c1">// 开始时间，毫秒级时间戳 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nt">&#34;usedTime&#34;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="c1">// 使用时间，秒 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nt">&#34;remainTime&#34;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="c1">// 剩余时间，秒 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="自定义事件custom-event">自定义事件（Custom Event）
+</h3><p>自定义事件允许用户根据业务需求发送事件，事件内容不做限制</p>
+<h2 id="组件运行入口">组件运行入口
+</h2><p>组件的运行入口是一个main函数，外界通过调用组件的main函数启动组件运行。</p>
+<ol>
+<li>首先接收外界传递的参数，以进行组件的初始化阶段。</li>
+<li>启动一个HTTP服务线程，以便外界可以与组件进行通信。</li>
+<li>通过判断mode属性值来确定组件进入哪种运行模式
+<ol>
+<li>如果mode为algorithm，进入算法执行模式；</li>
+<li>如果mode为clean，进入数据清理模式。</li>
+</ol>
+</li>
+</ol>
+<h2 id="批处理算法组件的模型机制">批处理算法组件的模型机制
+</h2><h3 id="生命周期管理机制">生命周期管理机制
+</h3><ul>
+<li>初始化 <strong>（init）</strong> ：处于该状态的组件进行必要的初始化操作。</li>
+<li>运行中 <strong>（running）</strong> ：处于该状态的组件按照既定的算法逻辑处理数据。</li>
+<li>运行暂停 <strong>（paused）</strong> ：一旦组件进入暂停状态，线程将会持续阻塞，无法继续执行下一步操作。</li>
+<li>运行停止 <strong>（stopped）</strong> ：组件主动终止当前的执行进入停止状态，组件进程将会退出</li>
+<li>运行完成 <strong>（finished）</strong> ：当组件处理完所有的数据后，进入运行完成状态，进行收尾工作并退出进程。</li>
+<li>运行失败 <strong>（failed）</strong> ：运行失败状态表示组件在执行过程中遇到了错误、异常或不可恢复的问题，导致无法继续正常运行</li>
+</ul>
+<p><img src="/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%BA%8C%E6%89%B9%E5%A4%84%E7%90%86%E7%AE%97%E6%B3%95%E7%BB%84%E4%BB%B6%E6%A8%A1%E5%9E%8B/image-20250108163252986.png"
+	width="781"
+	height="420"
+	
+	loading="lazy"
+	
+		alt="状态转移图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="185"
+		data-flex-basis="446px"
+	
+></p>
+<h3 id="检查点恢复机制">检查点恢复机制
+</h3><p>检查点恢复机制确保组件运行时，即使组件运行停止或突然遇到故障导致组件崩溃退出，也能够在下一次重新启动时恢复到最近一个检查点的状态继续执行</p>
+<h4 id="设置检查点">设置检查点
+</h4><p>在每次数据处理循环结束之前，调用设置检查点接口 <strong>setCheckpoint</strong> 将当前组件处理输入数据的进度作为检查点文件保存在本地文件系统中。组件模型内部维护一个检查点对象，在保存检查点时，会将该对象进行序列化并以 <strong>Json</strong> 文件格式持久到本地的文件系统</p>
+<p>一个粗粒度的检查点对象示例</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span> 
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;offset&#34;</span><span class="p">:</span> <span class="mi">50</span><span class="p">,</span> <span class="c1">// 循环执行偏移量 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nt">&#34;total&#34;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="c1">// 循环总数 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nt">&#34;startTime&#34;</span><span class="p">:</span> <span class="mi">1640966400000</span><span class="p">,</span> <span class="c1">// 组件运行开始时间 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nt">&#34;usedTime&#34;</span><span class="p">:</span> <span class="mi">100</span> <span class="c1">// 组件运行时长 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>后续开发人员可以增加检查点中的数据成员用于保存数据处理的中间处理结果，并在 <strong>setCheckpoint</strong> 和 <strong>getCheckpoint</strong> 接口实现相应代码逻辑</p>
+<p><img src="/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%BA%8C%E6%89%B9%E5%A4%84%E7%90%86%E7%AE%97%E6%B3%95%E7%BB%84%E4%BB%B6%E6%A8%A1%E5%9E%8B/image-20250108164558091.png"
+	width="474"
+	height="779"
+	
+	loading="lazy"
+	
+		alt="组件检查点恢复机制-设置检查点"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="60"
+		data-flex-basis="146px"
+	
+></p>
+<h3 id="读取检查点">读取检查点
+</h3><p>当组件恢复运行时，若属性restore的值为1，则判断本地是否存在该组件运行的检查点文件，存在则读取检查点文件并进行反序列化得到检查点对象</p>
+<p><img src="/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%BA%8C%E6%89%B9%E5%A4%84%E7%90%86%E7%AE%97%E6%B3%95%E7%BB%84%E4%BB%B6%E6%A8%A1%E5%9E%8B/image-20250108165714360.png"
+	width="507"
+	height="806"
+	
+	loading="lazy"
+	
+		alt="组件检查点恢复机制-读取检查点"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="62"
+		data-flex-basis="150px"
+	
+></p>
+<h2 id="批处理算法组件的编排模型">批处理算法组件的编排模型
+</h2><p>由算法程序封装得到的批处理算法组件只能提供单一的算法功能，无法单独完成完整的数据处理任务。</p>
+<p>因此在完成各个组件的独立开发后，还需要允许用户根据具体需求选择组件，并对多个组件进行编排，通过复用已有组件，处理复杂的数据处理任务。</p>
+<h3 id="编排模型的结构设计">编排模型的结构设计
+</h3><p>在组件编排模型中，多个组件之间以有向无环图（DAG）的方式进行编排</p>
+<p>有向箭头表示组件之间的依赖关系，例如，组件A指向组件B的有向箭头表示组件B需要在组件A的运行结果的基础上进行数据处理和分析，即组件A的运行输出结果作为组件B的运行输入数据。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2025-01-08 09:26 UTC
+        </span>
+    </section></footer>
+
+
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI&#43;WdtXRGWt2kTvGFasHpSy3SV"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG&#43;vnGctmUb0ZY0l8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"integrity="sha384-&#43;VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4&#43;/RRE05"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+        renderMathInElement(document.body, {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ],
+            ignoredClasses: ["gist"]
+        });})
+</script>
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%B8%80%E9%A1%B9%E7%9B%AE%E8%B5%B7%E6%AD%A5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">分布式批处理计算平台（一）项目起步</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2025 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
