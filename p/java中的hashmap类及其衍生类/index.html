@@ -10,7 +10,7 @@
 <meta property='og:description' content="手写笔记转换">
 <meta property='og:url' content='https://Tyritic.github.io/p/java%E4%B8%AD%E7%9A%84hashmap%E7%B1%BB%E5%8F%8A%E5%85%B6%E8%A1%8D%E7%94%9F%E7%B1%BB/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='JavaSE' /><meta property='article:published_time' content='2024-11-26T13:02:26&#43;08:00'/><meta property='article:modified_time' content='2025-01-27T01:50:46&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='JavaSE' /><meta property='article:published_time' content='2024-11-26T13:02:26&#43;08:00'/><meta property='article:modified_time' content='2025-01-27T05:06:52&#43;00:00'/>
 <meta name="twitter:title" content="Java中的HashMap类及其衍生类">
 <meta name="twitter:description" content="手写笔记转换">
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -354,6 +354,24 @@
         <li><a href="#示例">示例</a></li>
       </ol>
     </li>
+    <li><a href="#hashmap的衍生类concurrenthashmap类">HashMap的衍生类——ConcurrentHashMap类</a>
+      <ol>
+        <li><a href="#特点">特点</a></li>
+        <li><a href="#构造方法-2">构造方法</a></li>
+        <li><a href="#底层实现-1">底层实现</a>
+          <ol>
+            <li><a href="#jdk-17之前">JDK 1.7之前</a></li>
+            <li><a href="#jdk-17以后">JDK 1.7以后</a></li>
+          </ol>
+        </li>
+        <li><a href="#加锁机制">加锁机制</a>
+          <ol>
+            <li><a href="#分段锁加锁机制jdk-17以前"><strong>分段锁加锁机制（JDK 1.7以前）</strong></a></li>
+            <li><a href="#悲观锁和乐观锁jdk-17以后"><strong>悲观锁和乐观锁（JDK 1.7以后）</strong></a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
   </ol>
 </nav>
         </div>
@@ -426,7 +444,7 @@
 
 
                 <time class="article-time--reading">
-                    阅读时长: 15 分钟
+                    阅读时长: 20 分钟
                 </time>
             </div>
 
@@ -434,7 +452,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：7435 字
+                     字数统计：9640 字
                 </time>
             </div>
 
@@ -1011,10 +1029,10 @@
 <li>检查该位置是否为空（即没有键值对存在）
 <ul>
 <li>如果为空，则直接在该位置创建一个新的Entry对象来存储键值对。将要添加的键值对作为该Entry的键和值，并保存在数组的对应位置。</li>
-<li>如果不为空则检查该位置的第一个键值对的键是否与要添加的键值对的键相同（<code>equals</code>方法）
+<li>如果不为空则遍历链表或者红黑树检查键值对的键是否与要添加的键值对的键相同（<code>equals</code>方法）
 <ul>
 <li>如果相同，则表示找到了相同的键，直接将新的值替换旧的值，完成更新操作。</li>
-<li>若不相同，则需要遍历链表或红黑树来查找是否有相同的键，然后根据对应的数据结构进行插入工作</li>
+<li>若不相同，根据对应的数据结构进行插入工作</li>
 </ul>
 </li>
 </ul>
@@ -1715,7 +1733,245 @@
 </li>
 </ul>
 <h3 id="示例">示例
-</h3>
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.Comparator</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.TreeSet</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">class</span> <span class="nc">Person</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">name</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">age</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">Person</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">age</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">name</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">age</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">age</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nd">@Override</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">toString</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s">&#34;Person{name=&#39;&#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34;&#39;, age=&#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">age</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34;}&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">TreeSetExample2</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c1">// 自定义排序规则：按名字字典序排列</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">Comparator</span><span class="o">&lt;</span><span class="n">Person</span><span class="o">&gt;</span><span class="w"> </span><span class="n">nameComparator</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">p1</span><span class="p">,</span><span class="w"> </span><span class="n">p2</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">p1</span><span class="p">.</span><span class="na">name</span><span class="p">.</span><span class="na">compareTo</span><span class="p">(</span><span class="n">p2</span><span class="p">.</span><span class="na">name</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">TreeSet</span><span class="o">&lt;</span><span class="n">Person</span><span class="o">&gt;</span><span class="w"> </span><span class="n">treeSet</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">TreeSet</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="n">nameComparator</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">treeSet</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">Person</span><span class="p">(</span><span class="s">&#34;Alice&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">30</span><span class="p">));</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">treeSet</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">Person</span><span class="p">(</span><span class="s">&#34;Charlie&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">35</span><span class="p">));</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">treeSet</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">Person</span><span class="p">(</span><span class="s">&#34;Bob&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">25</span><span class="p">));</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">Person</span><span class="w"> </span><span class="n">person</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">treeSet</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">person</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="hashmap的衍生类concurrenthashmap类">HashMap的衍生类——ConcurrentHashMap类
+</h2><p><code>ConcurrentHashMap</code> 是 Java 提供的一种线程安全的哈希表实现，位于 <code>java.util.concurrent</code> 包中，广泛用于高并发环境下。它与传统的 <code>HashMap</code> 不同，能够在多个线程并发操作时保持高效性和一致性。</p>
+<h3 id="特点">特点
+</h3><ul>
+<li><strong>线程安全</strong>：
+<ul>
+<li>多线程可以同时操作不同的桶（bucket），提高并发性能。</li>
+</ul>
+</li>
+<li><strong>高效性</strong>：
+<ul>
+<li>通过细粒度锁或无锁机制（CAS），在高并发场景下效率比 <code>Hashtable</code> 更高。</li>
+</ul>
+</li>
+<li><strong>不允许 <code>null</code> 键和值</strong>：
+<ul>
+<li>如果尝试插入 <code>null</code> 键或 <code>null</code> 值，会抛出 <code>NullPointerException</code>。</li>
+</ul>
+</li>
+<li><strong>支持部分并发操作</strong>：
+<ul>
+<li>可以在迭代期间执行插入或删除操作，不会抛出 <code>ConcurrentModificationException</code>。</li>
+</ul>
+</li>
+<li><strong>不支持键或值为null</strong>：</li>
+</ul>
+<h3 id="构造方法-2">构造方法
+</h3><ul>
+<li>
+<p><code>public ConcurrentHashMap()</code>：创建一个默认的 <code>ConcurrentHashMap</code> 实例</p>
+</li>
+<li>
+<p><code>public ConcurrentHashMap(int initialCapacity, float loadFactor, int concurrencyLevel)</code></p>
+<ul>
+<li>
+<p><code>initialCapacity</code>：初始容量。</p>
+<p><code>loadFactor</code>：负载因子。</p>
+<p><code>concurrencyLevel</code>：并发级别（用于估计并发线程数，JDK 1.8 后不再显式使用）。</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="底层实现-1">底层实现
+</h3><h4 id="jdk-17之前">JDK 1.7之前
+</h4><p>在 JDK 1.7 中它使用的是数组加链表的形式实现的</p>
+<p><strong>实现思想</strong></p>
+<p>基于 <strong>分段锁机制（Segmented Locking）</strong>，其核心思想是将整个哈希表分成多个段（<code>Segment</code>），每个段独立加锁，从而实现线程安全的高效访问。默认是 16 个 <code>Segment</code>，所以最多有 16 个线程可以并发执行。</p>
+<p><strong>核心数据结构</strong></p>
+<p>一个 ConcurrentHashMap 里包含一个 <code>Segment</code> 数组，一个 <code>Segment</code> 里包含一个 <code>HashEntry</code> 数组，每个 HashEntry 是一个链表结构的元素。</p>
+<ul>
+<li><strong><code>Segment</code></strong>：一种可重入锁，继承了 <code>ReentrantLock</code>，在 <strong><code>ConcurrentHashMap</code></strong> 里扮演锁的角色用来保护段内的数据安全。</li>
+<li><strong><code>HashEntry</code></strong>：表示一个键值对节点，类似于 <code>HashMap</code> 的链表节点</li>
+</ul>
+<p><img src="/p/java%E4%B8%AD%E7%9A%84hashmap%E7%B1%BB%E5%8F%8A%E5%85%B6%E8%A1%8D%E7%94%9F%E7%B1%BB/1721807523151-41ad316a-6264-48e8-9704-5b362bc0083c.webp"
+	width="622"
+	height="330"
+	
+	loading="lazy"
+	
+		alt="示意图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="188"
+		data-flex-basis="452px"
+	
+></p>
+<p>分段锁技术将数据分成一段一段的存储，然后给每一段数据配一把锁，不同 Segment 之间的操作互不影响，从而提高并发性能。。当一个线程占用锁访问其中一个段数据的时候，其他段的数据也能被其他线程访问，能够实现真正的并发访问。</p>
+<ul>
+<li>先通过 <code>key</code> 的 <code>hash</code> 判断得到 <code>Segment</code> 数组的下标，将这个 <code>Segment</code> 上锁</li>
+<li>再次通过 <code>key</code> 的 <code>hash</code> 得到 <code>Segment</code> 里 <code>HashEntry</code> 数组的下标</li>
+</ul>
+<p><img src="/p/java%E4%B8%AD%E7%9A%84hashmap%E7%B1%BB%E5%8F%8A%E5%85%B6%E8%A1%8D%E7%94%9F%E7%B1%BB/20220219203435_mianshiya.png"
+	width="1130"
+	height="336"
+	
+	loading="lazy"
+	
+		alt="分段锁示意图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="336"
+		data-flex-basis="807px"
+	
+></p>
+<p>可以简化理解：每个 Segment 数组存放的就是一个单独的 <strong>HashMap</strong></p>
+<p><strong>缺陷</strong></p>
+<p><strong><code>Segment</code></strong> 数组一旦初始化了之后不会扩容，只有 <strong><code>HashEntry</code></strong> 数组会扩容，这就导致并发度过于死板，不能随着数据的增加而提高并发度</p>
+<h4 id="jdk-17以后">JDK 1.7以后
+</h4><p><code>ConcurrentHashMap</code> 做了更细粒度的锁控制，可以理解为 HashMap 的节点数组的每个位置都是一把锁，这样扩容了锁也会变多，并发度也会增加。</p>
+<p><img src="/p/java%E4%B8%AD%E7%9A%84hashmap%E7%B1%BB%E5%8F%8A%E5%85%B6%E8%A1%8D%E7%94%9F%E7%B1%BB/1721807523128-7b1419e7-e6ba-47e6-aba0-8b29423a8ce7.webp"
+	width="455"
+	height="388"
+	
+	loading="lazy"
+	
+		alt="内存示意图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="117"
+		data-flex-basis="281px"
+	
+></p>
+<h3 id="加锁机制">加锁机制
+</h3><h4 id="分段锁加锁机制jdk-17以前"><strong>分段锁加锁机制（JDK 1.7以前）</strong>
+</h4><p>在 ConcurrentHashMap 中，将整个数据结构分为多个 Segment，每个 <strong>Segment</strong> 都类似于一个小的 HashMap，每个 Segment 都有自己的锁，不同 <strong>Segment</strong> 之间的操作互不影响，从而提高并发性能。</p>
+<ul>
+<li>不同 Segment 的并发写入（可以并发执行）</li>
+<li>同一 Segment 的一写一读（可以并发执行）</li>
+<li>同一 Segment 的并发写入（同一 Segment 的并发写入会被阻塞）</li>
+</ul>
+<p>在 ConcurrentHashMap 中，对于插入、更新、删除等操作，需要先定位到具体的 Segment，然后再在该 Segment 上加锁，而不是像传统的 HashMap 一样对整个数据结构加锁。这样可以使得不同 Segment 之间的操作并行进行，提高了并发性能。</p>
+<p><strong>get操作（读操作）</strong></p>
+<p>​	<strong>get</strong>操作是无锁的。读操作不会阻塞写操作，从而提高了并发性能</p>
+<ul>
+<li>通过 <code>volatile</code> 保证 <code>HashEntry</code> 的可见性，允许多个线程同时读取。</li>
+<li>遍历链表或红黑树时无需加锁。</li>
+</ul>
+<p><strong>put/remove操作（写操作）</strong></p>
+<p>写操作如 <code>put</code> 和 <code>remove</code> 需要加锁，以确保写入时的线程安全性和一致性</p>
+<ul>
+<li>根据哈希值找到目标 <code>Segment</code>。</li>
+<li>使用 <code>lock()</code> 方法（可重入锁）锁定该 <code>Segment</code>。</li>
+<li>在加锁状态下，检查是否存在相同键：
+<ul>
+<li>存在：更新值。</li>
+<li>不存在：插入新节点。</li>
+</ul>
+</li>
+</ul>
+<p><strong>扩容机制</strong></p>
+<ul>
+<li><strong>基于 Segment</strong>：<code>ConcurrentHashMap</code> 是由多个 <code>Segment</code> 组成的，每个 <code>Segment</code> 中包含一个 <code>HashMap</code>。当某个 <code>Segment</code> 内的 <code>HashMap</code> 达到扩容阈值时，单独为该 <code>Segment</code> 进行扩容，而不会影响其他 <code>Segment</code>。</li>
+<li><strong>扩容过程</strong>：每个 <code>Segment</code> 维护自己的负载因子，当 <code>Segment</code> 中的元素数量超过阈值时，该 <code>Segment</code> 的 <code>HashMap</code> 会扩容，整体的 <code>ConcurrentHashMap</code> 并不是一次性全部扩容。</li>
+</ul>
+<h4 id="悲观锁和乐观锁jdk-17以后"><strong>悲观锁和乐观锁（JDK 1.7以后）</strong>
+</h4><p><strong>get操作（读操作）</strong></p>
+<p>​		<strong>get</strong>操作是无锁的。</p>
+<ul>
+<li>直接定位到目标桶，读取链表或红黑树中的数据。</li>
+<li>由于数据节点的 <code>value</code> 是 <code>volatile</code> 修饰的，确保多线程下读取的数据一致性。</li>
+</ul>
+<p><strong>put操作（写操作）</strong></p>
+<ul>
+<li>计算键的哈希值，定位目标桶。</li>
+<li>如果桶为空，尝试使用<code>volatile</code> 和 <code>CAS</code>（乐观锁） 创建新节点。</li>
+<li>如果 <code>CAS</code> 失败或桶非空，使用<code>synchronized</code>（悲观锁）锁定该桶：
+<ul>
+<li>遍历链表或者红黑树检查键值对的键是否与要添加的键值对的键相同（<code>equals</code>方法）
+<ul>
+<li>如果相同，则表示找到了相同的键，直接将新的值替换旧的值，完成更新操作。</li>
+<li>若不相同，根据对应的数据结构进行插入工作</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>如果链表长度超过阈值（8），将链表转换为红黑树。</li>
+</ul>
+<p><strong>扩容机制</strong></p>
+<ul>
+<li><strong>全局扩容</strong>：<code>ConcurrentHashMap</code> 取消了 <code>Segment</code>，变成了一个全局的数组（类似于 <code>HashMap</code>）。因此，当 <code>ConcurrentHashMap</code> 中任意位置的元素超过阈值时，整个 <code>ConcurrentHashMap</code> 的数组都会被扩容。</li>
+<li><strong>基于 CAS 的扩容</strong>：在扩容时，<code>ConcurrentHashMap</code> 采用了类似 <code>HashMap</code> 的方式，但通过<strong>CAS 操作</strong>确保线程安全，避免了锁住整个数组。在扩容时，多个线程可以同时帮助完成扩容操作。</li>
+<li><strong>渐进式扩容</strong>：JDK 1.8 的 <code>ConcurrentHashMap</code> 引入了渐进式扩容机制，扩容时并不是一次性将所有数据重新分配，而是多个线程共同参与，逐步迁移旧数据到新数组中，降低了扩容时的性能开销。</li>
+</ul>
+
 </section>
 
 
@@ -1738,7 +1994,7 @@
 
 
         <span>
-            最后更新于 2025-01-27 01:50 UTC
+            最后更新于 2025-01-27 05:06 UTC
         </span>
     </section></footer>
 
