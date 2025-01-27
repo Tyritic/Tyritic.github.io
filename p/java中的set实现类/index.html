@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="手写笔记转换">
+<title>Java中的Set实现类</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/java%E4%B8%AD%E7%9A%84set%E5%AE%9E%E7%8E%B0%E7%B1%BB/'>
+
+<link rel="stylesheet" href="/scss/style.min.00fdb13873a10c0d571b0a082e72c57836d458957efcda9eaef694985da2c45f.css"><meta property='og:title' content="Java中的Set实现类">
+<meta property='og:description' content="手写笔记转换">
+<meta property='og:url' content='https://Tyritic.github.io/p/java%E4%B8%AD%E7%9A%84set%E5%AE%9E%E7%8E%B0%E7%B1%BB/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='JavaSE' /><meta property='article:published_time' content='2024-11-25T10:21:08&#43;08:00'/><meta property='article:modified_time' content='2025-01-27T01:50:46&#43;00:00'/>
+<meta name="twitter:title" content="Java中的Set实现类">
+<meta name="twitter:description" content="手写笔记转换">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_1927a00d8e6b4977.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">永远不要低估一颗冠军的心。</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#hashset类">HashSet类</a>
+      <ol>
+        <li><a href="#特点">特点</a></li>
+        <li><a href="#注意事项">注意事项</a></li>
+        <li><a href="#底层原理">底层原理</a>
+          <ol>
+            <li><a href="#去重原理">去重原理</a></li>
+            <li><a href="#扩容机制">扩容机制</a></li>
+          </ol>
+        </li>
+        <li><a href="#常见方法">常见方法</a>
+          <ol>
+            <li><a href="#构造方法">构造方法</a></li>
+            <li><a href="#添加元素">添加元素</a></li>
+            <li><a href="#删除元素">删除元素</a></li>
+            <li><a href="#查询元素">查询元素</a></li>
+            <li><a href="#集合大小">集合大小</a></li>
+            <li><a href="#集合运算">集合运算</a></li>
+          </ol>
+        </li>
+        <li><a href="#与hashmap的关系">与HashMap的关系</a></li>
+      </ol>
+    </li>
+    <li><a href="#linkedhashset类">LinkedHashSet类</a>
+      <ol>
+        <li><a href="#特点-1">特点</a></li>
+        <li><a href="#底层原理-1">底层原理</a>
+          <ol>
+            <li><a href="#插入顺序的维护">插入顺序的维护</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#treeset类">TreeSet类</a>
+      <ol>
+        <li><a href="#特点-2">特点</a></li>
+        <li><a href="#排序规则">排序规则</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/java%E9%9B%86%E5%90%88/" style="background-color: #2a9d8f; color: #fff;">
+                Java集合
+            </a>
+        
+            <a href="/categories/%E4%BA%92%E8%81%94%E7%BD%91%E9%9D%A2%E8%AF%95%E9%A2%98/" style="background-color: #2a9d8f; color: #fff;">
+                互联网面试题
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/java%E4%B8%AD%E7%9A%84set%E5%AE%9E%E7%8E%B0%E7%B1%BB/">Java中的Set实现类</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            手写笔记转换
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2024-11-25</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 7 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：3020 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="hashset类">HashSet类
+</h2><p><code>HashSet</code> 是 Java 集合框架中的一个实现类，属于 <code>Set</code> 接口的一种实现，基于<strong>哈希表</strong>来存储数据。它不允许存储重复元素，并且不保证元素的顺序。</p>
+<h3 id="特点">特点
+</h3><ul>
+<li>
+<p><strong>无重复元素</strong>：</p>
+<ul>
+<li>
+<p><code>HashSet</code> 使用哈希算法来存储元素，保证集合中没有重复的元素。</p>
+</li>
+<li>
+<p>元素的唯一性由 <code>equals()</code> 和 <code>hashCode()</code> 方法决定。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>无序存储</strong>：</p>
+<ul>
+<li><code>HashSet</code> 不保证元素的存储顺序，与插入顺序无关。</li>
+</ul>
+</li>
+<li>
+<p><strong>允许存储一个 <code>null</code> 值</strong>：</p>
+<ul>
+<li>只能包含一个 <code>null</code> 值。</li>
+</ul>
+</li>
+<li>
+<p><strong>非线程安全</strong>：</p>
+<ul>
+<li>默认情况下，<code>HashSet</code> 不是线程安全的。</li>
+</ul>
+</li>
+<li>
+<p><strong>性能高效</strong>：</p>
+<ul>
+<li>添加、删除和查找操作的时间复杂度为 <strong>O(1)</strong>，但需要良好的哈希算法来避免哈希冲突。</li>
+</ul>
+</li>
+</ul>
+<h3 id="注意事项">注意事项
+</h3><ul>
+<li>必须同时重写<code>hashCode</code>方法和<code>equal</code>方法
+<ul>
+<li>通过 <code>hashCode</code> 方法快速找到存储位置（哈希桶）。</li>
+<li>再通过 <code>equals</code> 方法检查对象是否相等，避免重复存储。</li>
+</ul>
+</li>
+<li><code>hashCode</code>方法默认根据地址值计算，<code>equal</code>方法默认根据地址值判断对象是否相同</li>
+</ul>
+<h3 id="底层原理">底层原理
+</h3><p><code>HashSet</code> 的底层是由一个 <code>HashMap</code> 实现的，它将需要存储的元素作为 <code>HashMap</code> 的键（<code>key</code>），而值（<code>value</code>）则是一个固定的常量 <code>PRESENT</code>。</p>
+<h4 id="去重原理">去重原理
+</h4><p><code>HashSet</code> 是基于 <strong>哈希表</strong> 实现的集合类，它的去重功能依赖于两个方法：</p>
+<ul>
+<li><strong><code>hashCode</code> 方法</strong>：用于快速定位存储位置。</li>
+<li><strong><code>equals</code> 方法</strong>：用于确定逻辑相等性（是否是重复元素）。</li>
+</ul>
+<p>当调用 <code>HashSet</code> 的 <code>add</code> 方法时，具体过程如下：</p>
+<ol>
+<li><strong>计算哈希值</strong>：
+<ul>
+<li>调用元素的 <code>hashCode</code> 方法，计算出该元素的哈希值，用于确定其存储位置（哈希桶）。</li>
+</ul>
+</li>
+<li><strong>定位哈希桶</strong>：
+<ul>
+<li>根据哈希值找到对应的哈希桶。</li>
+</ul>
+</li>
+<li><strong>检查冲突</strong>：
+<ul>
+<li>如果桶中已经有一个或多个元素（两个对象具有相同的哈希值，发生哈希冲突），则调用元素的<code>equals</code>方法，与桶中已有元素逐一比较：
+<ul>
+<li>如果 <code>equals</code> 返回 <code>true</code>，说明两个对象逻辑相等，不添加新元素，去重成功。</li>
+<li>如果 <code>equals</code> 返回 <code>false</code>，说明不是重复元素，将新元素添加到桶中。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>存储元素</strong>：
+<ul>
+<li>如果桶中没有冲突（即不存在相同的哈希值和 <code>equals</code> 相等的对象），直接存储该元素。</li>
+</ul>
+</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.HashSet</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="nn">java.util.Objects</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">class</span> <span class="nc">Person</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">name</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">age</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">Person</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">age</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">name</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">age</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">age</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nd">@Override</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">equals</span><span class="p">(</span><span class="n">Object</span><span class="w"> </span><span class="n">o</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">this</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">o</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">o</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">getClass</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="na">getClass</span><span class="p">())</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">Person</span><span class="w"> </span><span class="n">person</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">Person</span><span class="p">)</span><span class="w"> </span><span class="n">o</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">age</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">person</span><span class="p">.</span><span class="na">age</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">Objects</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">person</span><span class="p">.</span><span class="na">name</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nd">@Override</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">hashCode</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">Objects</span><span class="p">.</span><span class="na">hash</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">age</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nd">@Override</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">toString</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="s">&#34;Person{name=&#39;&#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34;&#39;, age=&#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">age</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34;}&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">HashSetExample</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">HashSet</span><span class="o">&lt;</span><span class="n">Person</span><span class="o">&gt;</span><span class="w"> </span><span class="n">set</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashSet</span><span class="o">&lt;&gt;</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">Person</span><span class="w"> </span><span class="n">p1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Person</span><span class="p">(</span><span class="s">&#34;Alice&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">25</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">Person</span><span class="w"> </span><span class="n">p2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Person</span><span class="p">(</span><span class="s">&#34;Alice&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">25</span><span class="p">);</span><span class="w"> </span><span class="c1">// 与 p1 逻辑相等</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">Person</span><span class="w"> </span><span class="n">p3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Person</span><span class="p">(</span><span class="s">&#34;Bob&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">30</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">set</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="n">p1</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">set</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="n">p2</span><span class="p">);</span><span class="w"> </span><span class="c1">// 不会添加，因为 p1 和 p2 逻辑相等</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">set</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="n">p3</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&#34;HashSet contains:&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">Person</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">set</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">p</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="扩容机制">扩容机制
+</h4><p><strong>初始容量</strong></p>
+<ul>
+<li><code>HashSet</code> 的底层 <code>HashMap</code> 默认初始容量为 <strong>16</strong>。</li>
+<li>如果在创建 <code>HashSet</code> 时指定了初始容量，则会根据该容量初始化底层的 <code>HashMap</code>。</li>
+</ul>
+<p><strong>负载因子</strong></p>
+<ul>
+<li>默认负载因子为 <strong>0.75</strong>。</li>
+<li>负载因子是一个用来衡量哈希表满的程度的指标。
+<ul>
+<li>当哈希表中的元素个数达到 <code>容量 × 负载因子</code> 时，触发扩容。</li>
+</ul>
+</li>
+</ul>
+<p><strong>扩容条件</strong></p>
+<p>当 <code>HashSet</code> 中的元素数量达到容量的 <strong>75%</strong> 时（即 <code>size ≥ capacity × loadFactor</code>），底层的 <code>HashMap</code> 会触发扩容操作</p>
+<p><strong>扩容过程</strong></p>
+<ul>
+<li><strong>容量翻倍</strong>：每次扩容时，<code>HashMap</code> 的容量会 <strong>翻倍</strong>。</li>
+<li><strong>重新哈希</strong>：扩容后，所有已有元素需要重新计算哈希值并分配到新的桶中</li>
+<li><strong>迁移数据</strong>：将原哈希表中的元素迁移到新的哈希表中
+<ul>
+<li>遍历旧哈希表中的每个桶。</li>
+<li>对每个桶中的元素重新计算哈希值，将其分配到新哈希表中</li>
+</ul>
+</li>
+</ul>
+<h3 id="常见方法">常见方法
+</h3><h4 id="构造方法">构造方法
+</h4><ul>
+<li><code>public HashSet()</code>：创建一个空的 <code>HashSet</code>，默认容量为 16，负载因子为 0.75。</li>
+<li><code>public HashSet(int initialCapacity)</code>：创建一个具有指定初始容量的空 <code>HashSet</code>。</li>
+<li><code>public HashSet(int initialCapacity, float loadFactor)</code>：创建一个具有指定初始容量和负载因子的空 <code>HashSet</code>。</li>
+<li><code>public HashSet(Collection&lt;? extends E&gt; c)</code>：创建一个包含指定集合中所有元素的 <code>HashSet</code></li>
+</ul>
+<h4 id="添加元素">添加元素
+</h4><ul>
+<li><code>public boolean add(E e)</code>：如果元素不存在，则添加成功并返回 <code>true</code>；否则返回 <code>false</code>。</li>
+<li><code>public boolean addAll(Collection&lt;? extends E&gt; c)</code>：将指定集合中的所有元素添加到当前 <code>HashSet</code>。</li>
+</ul>
+<h4 id="删除元素">删除元素
+</h4><ul>
+<li><code>public boolean remove(Object o)</code>：如果集合中存在该元素，则移除并返回 <code>true</code>；否则返回 <code>false</code>。</li>
+<li><code>public boolean removeAll(Collection&lt;?&gt; c)</code>：从当前集合中移除指定集合中的所有元素</li>
+<li><code>public void clear()</code>：移除集合中的所有元素</li>
+</ul>
+<h4 id="查询元素">查询元素
+</h4><ul>
+<li><code>public boolean contains(Object o)</code>：如果集合中存在指定的元素，则返回 <code>true</code></li>
+<li><code>public boolean containsAll(Collection&lt;?&gt; c)</code>：如果当前集合包含指定集合中的所有元素，则返回 <code>true</code>。</li>
+</ul>
+<h4 id="集合大小">集合大小
+</h4><ul>
+<li><code>public boolean isEmpty()</code>：如果集合为空，则返回 <code>true</code></li>
+<li><code>public int size()</code>：返回集合中的元素数量</li>
+</ul>
+<h4 id="集合运算">集合运算
+</h4><ul>
+<li><strong>并集（Union）</strong> 并集是将两个集合的所有元素合并在一起，去重后返回新集合
+<ul>
+<li><code>public boolean addAll(Collection&lt;? extends E&gt; c)</code></li>
+<li>将指定集合中的所有元素添加到当前集合中</li>
+</ul>
+</li>
+<li><strong>交集（Intersection）</strong> 交集是将两个集合中共同的元素取出来
+<ul>
+<li><code>public boolean retainAll(Collection&lt;?&gt; c)</code></li>
+<li>只保留当前集合和指定集合中的交集部分</li>
+</ul>
+</li>
+<li><strong>差集（Difference）</strong> 差集是从一个集合中去除另一个集合中的元素
+<ul>
+<li><code>public boolean removeAll(Collection&lt;?&gt; c)</code></li>
+<li>从当前集合中移除与指定集合相交的元素，返回的是当前集合和指定集合的差集</li>
+</ul>
+</li>
+</ul>
+<h3 id="与hashmap的关系">与HashMap的关系
+</h3><p>实际上HashSet 内部使用 <code>HashMap</code> 来实现，<code>HashSet</code> 中的元素实际上存储在 <code>HashMap</code> 的键中，而所有的值都是一个常量对象 <code>PRESENT</code>。因此，<code>HashSet</code> 仅操作 <code>HashMap</code> 的键部分。</p>
+<h2 id="linkedhashset类">LinkedHashSet类
+</h2><p><code>LinkedHashSet</code> 是 Java 集合框架中的一个类，它实现了 <code>Set</code> 接口，并且结合了 <code>HashSet</code> 和链表的特性。它是 <code>HashSet</code> 的一个变种，具有元素唯一性和顺序性的特点。<code>LinkedHashSet</code> 维护了元素插入的顺序（即按插入顺序遍历元素），这使得它在保持 <code>Set</code> 接口的特性（元素唯一性）的同时，还能提供元素的顺序遍历。</p>
+<h3 id="特点-1">特点
+</h3><ul>
+<li>
+<p><strong>元素唯一性</strong>：</p>
+<ul>
+<li><code>LinkedHashSet</code> 和 <code>HashSet</code> 一样，保证集合中的元素不重复，即不允许重复元素。</li>
+</ul>
+</li>
+<li>
+<p><strong>保持插入顺序</strong>：</p>
+<ul>
+<li>与 <code>HashSet</code> 不同的是，<code>LinkedHashSet</code> 维护了元素的插入顺序。也就是说，元素是按照它们被添加到集合中的顺序来存储的。</li>
+<li>这使得 <code>LinkedHashSet</code> 在遍历时能按照元素的插入顺序进行。</li>
+</ul>
+</li>
+<li>
+<p><strong>基于哈希表和链表实现</strong>：</p>
+<ul>
+<li>
+<p>它继承了 <code>HashSet</code>，因此内部使用哈希表来存储元素，同时使用链表来记录元素的插入顺序。</p>
+</li>
+<li>
+<p>使用哈希表来实现高效的查找、插入和删除操作。</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="底层原理-1">底层原理
+</h3><h4 id="插入顺序的维护">插入顺序的维护
+</h4><p><code>LinkedHashSet</code> 通过内部维护一个 <strong>双向链表</strong> 来保持元素的插入顺序。每个元素在哈希表中不仅存储它的哈希值，还会保存指向前一个元素和后一个元素的引用。这使得集合可以按照插入顺序遍历元素。</p>
+<p><strong>插入时创建新节点</strong>：</p>
+<ul>
+<li>
+<p>当调用 <code>add(E e)</code> 方法插入一个新元素时，<code>LinkedHashSet</code> 会先通过哈希表检查该元素是否已存在。如果不存在，它会将元素插入到哈希表中，并在双向链表的末尾添加该元素。</p>
+</li>
+<li>
+<p>每次添加元素时，它会被插入到链表的末尾，并通过双向链表保持元素之间的顺序。这样，在遍历 <code>LinkedHashSet</code> 时，元素会按照它们被插入的顺序输出。</p>
+</li>
+</ul>
+<h2 id="treeset类">TreeSet类
+</h2><h3 id="特点-2">特点
+</h3><ul>
+<li>
+<p><strong>排序功能</strong>：</p>
+<ul>
+<li><code>TreeSet</code> 中的元素是自动按升序排序的。它使用 <strong>自然顺序</strong>（元素必须实现 <code>Comparable</code> 接口）或者提供的 <strong><code>Comparator</code></strong> 对元素进行排序。</li>
+</ul>
+</li>
+<li>
+<p><strong>元素唯一性</strong>：</p>
+<ul>
+<li>与 <code>HashSet</code> 一样，<code>TreeSet</code> 保证集合中的元素不重复，即不允许添加重复元素。</li>
+</ul>
+</li>
+<li>
+<p><strong>基于红黑树实现</strong>：</p>
+<ul>
+<li>
+<p><code>TreeSet</code> 是基于 <strong>红黑树</strong> 数据结构实现的。红黑树是一种自平衡的二叉查找树，能够保证树的高度始终处于对数级别，从而保证了操作的效率。</p>
+</li>
+<li>
+<p>由于使用了红黑树，<code>TreeSet</code> 可以在对元素进行插入、删除、查找时提供 <strong>O(log n)</strong> 的时间复杂度。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>不允许 <code>null</code> 元素</strong>：</p>
+<ul>
+<li><code>TreeSet</code> 不允许 <code>null</code> 元素。如果尝试向 <code>TreeSet</code> 中添加 <code>null</code> 元素，将会抛出 <code>NullPointerException</code>。</li>
+</ul>
+</li>
+<li>
+<p><strong>线程不安全</strong>：</p>
+<ul>
+<li><code>TreeSet</code> 不是线程安全的。如果多个线程同时访问一个 <code>TreeSet</code>，并且至少有一个线程修改了该集合，则必须在外部进行同步。</li>
+</ul>
+</li>
+<li>
+<p><strong>访问和操作性能</strong>：</p>
+<ul>
+<li><code>TreeSet</code> 的常见操作（如 <code>add</code>、<code>remove</code>、<code>contains</code>）的时间复杂度是 O(log n)，这是因为它使用了红黑树来存储元素。</li>
+</ul>
+</li>
+</ul>
+<h3 id="排序规则">排序规则
+</h3><ul>
+<li>对于数值类型默认采用升序排列</li>
+<li>对于字符类型默认采用ASCII码排序</li>
+<li>对于字符串类型采用字典序进行排列</li>
+<li>自定义规则
+<ul>
+<li>让元素实现<code>Comparable</code>接口，重</li>
+<li>创建集合时传递<code>Comparator</code>指定gui&rsquo;z</li>
+</ul>
+</li>
+</ul>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/javase/">JavaSE</a>
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2025-01-27 01:50 UTC
+        </span>
+    </section></footer>
+
+
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI&#43;WdtXRGWt2kTvGFasHpSy3SV"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG&#43;vnGctmUb0ZY0l8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"integrity="sha384-&#43;VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4&#43;/RRE05"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+        renderMathInElement(document.body, {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ],
+            ignoredClasses: ["gist"]
+        });})
+</script>
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/java%E4%B8%AD%E7%9A%84hashmap%E7%B1%BB%E5%8F%8A%E5%85%B6%E8%A1%8D%E7%94%9F%E7%B1%BB/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java中的HashMap类及其衍生类</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/java%E4%B8%AD%E7%9A%84map%E6%8E%A5%E5%8F%A3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java中的Map接口</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/java%E4%B8%AD%E7%9A%84queue%E6%8E%A5%E5%8F%A3%E5%92%8Cdeque%E6%8E%A5%E5%8F%A3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java中的Queue接口和Deque接口</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/java%E4%B8%AD%E7%9A%84set%E6%8E%A5%E5%8F%A3/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java中的Set接口</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/java%E4%B8%AD%E7%9A%84list%E5%AE%9E%E7%8E%B0%E7%B1%BB/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java中的List实现类</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2025 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
