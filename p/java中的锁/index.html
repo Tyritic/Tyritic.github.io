@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="对synchronized关键字的理解">
+<title>Java中的锁</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/java%E4%B8%AD%E7%9A%84%E9%94%81/'>
+
+<link rel="stylesheet" href="/scss/style.min.00fdb13873a10c0d571b0a082e72c57836d458957efcda9eaef694985da2c45f.css"><meta property='og:title' content="Java中的锁">
+<meta property='og:description' content="对synchronized关键字的理解">
+<meta property='og:url' content='https://Tyritic.github.io/p/java%E4%B8%AD%E7%9A%84%E9%94%81/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='JavaSE' /><meta property='article:published_time' content='2025-02-03T12:54:49&#43;08:00'/><meta property='article:modified_time' content='2025-02-03T13:37:37&#43;00:00'/>
+<meta name="twitter:title" content="Java中的锁">
+<meta name="twitter:description" content="对synchronized关键字的理解">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_1927a00d8e6b4977.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">永远不要低估一颗冠军的心。</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#线程同步问题">线程同步问题</a></li>
+    <li><a href="#死锁问题">死锁问题</a>
+      <ol>
+        <li><a href="#死锁的必要条件">死锁的必要条件</a></li>
+        <li><a href="#预防和防止死锁的方法">预防和防止死锁的方法</a></li>
+      </ol>
+    </li>
+    <li><a href="#锁机制的定义">锁机制的定义</a></li>
+    <li><a href="#锁存放的位置">锁存放的位置</a>
+      <ol>
+        <li><a href="#对象头">对象头</a></li>
+        <li><a href="#mark-word"><strong><code>Mark Word</code></strong></a></li>
+      </ol>
+    </li>
+    <li><a href="#锁的级别">锁的级别</a>
+      <ol>
+        <li><a href="#无锁状态">无锁状态</a></li>
+        <li><a href="#偏向锁">偏向锁</a>
+          <ol>
+            <li><a href="#工作原理">工作原理</a></li>
+          </ol>
+        </li>
+        <li><a href="#轻量级锁">轻量级锁</a>
+          <ol>
+            <li><a href="#工作原理-1">工作原理</a></li>
+          </ol>
+        </li>
+        <li><a href="#重量级锁">重量级锁</a></li>
+        <li><a href="#锁的升级过程">锁的升级过程</a></li>
+        <li><a href="#synchronized-的优化"><strong><code>synchronized</code></strong> 的优化</a></li>
+      </ol>
+    </li>
+    <li><a href="#乐观锁和悲观锁">乐观锁和悲观锁</a></li>
+    <li><a href="#悲观锁">悲观锁</a>
+      <ol>
+        <li><a href="#定义">定义</a></li>
+        <li><a href="#特点">特点</a></li>
+        <li><a href="#缺点">缺点</a></li>
+        <li><a href="#使用场景">使用场景</a></li>
+        <li><a href="#具体实现">具体实现</a></li>
+      </ol>
+    </li>
+    <li><a href="#乐观锁">乐观锁</a>
+      <ol>
+        <li><a href="#定义-1">定义</a></li>
+        <li><a href="#特点-1">特点</a></li>
+        <li><a href="#缺点-1">缺点</a></li>
+        <li><a href="#使用场景-1">使用场景</a></li>
+        <li><a href="#具体实现-1">具体实现</a>
+          <ol>
+            <li><a href="#版本号机制">版本号机制</a></li>
+            <li><a href="#cas算法">CAS算法</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" style="background-color: #2a9d8f; color: #fff;">
+                Java并发编程
+            </a>
+        
+            <a href="/categories/%E4%BA%92%E8%81%94%E7%BD%91%E9%9D%A2%E8%AF%95%E9%A2%98/" style="background-color: #2a9d8f; color: #fff;">
+                互联网面试题
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/java%E4%B8%AD%E7%9A%84%E9%94%81/">Java中的锁</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            对synchronized关键字的理解
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-02-03</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 11 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：5241 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="线程同步问题">线程同步问题
+</h2><p>线程同步是指在多线程环境下，为了避免多个线程对共享资源进行同时访问，从而引发数据不一致或其他问题的一种机制。它通过对关键代码段加锁，使得同一时刻只有一个线程能够访问共享资源。</p>
+<p>当多个线程共享同一资源（如变量、对象或文件）时，若没有同步机制，可能会导致<strong>竞态条件</strong>，即线程对共享资源的操作是非原子性的，多个线程之间可能会同时修改数据，导致结果不符合预期。</p>
+<h2 id="死锁问题">死锁问题
+</h2><p>线程死锁的定义：多个线程同时被阻塞，它们中的一个或者全部都在等待某个资源被释放。由于线程被无限期地阻塞，因此程序不可能正常终止。（ <strong>死锁不是锁</strong> ）</p>
+<p><img src="https://oss.javaguide.cn/github/javaguide/java/2019-4%E6%AD%BB%E9%94%811.png"
+	
+	
+	
+	loading="lazy"
+	
+		alt="线程死锁示意图 "
+	
+	
+></p>
+<p>示例代码</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">A</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">synchronized</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">method1</span><span class="p">(</span><span class="n">B</span><span class="w"> </span><span class="n">b</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&#34;Thread 1: Holding lock 1...&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="n">1000</span><span class="p">);</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InterruptedException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&#34;Thread 1: Waiting for lock 2...&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">b</span><span class="p">.</span><span class="na">last</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">synchronized</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">last</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&#34;Thread 1: Inside method last&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">class</span> <span class="nc">B</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">synchronized</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">method2</span><span class="p">(</span><span class="n">A</span><span class="w"> </span><span class="n">a</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&#34;Thread 2: Holding lock 2...&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="n">1000</span><span class="p">);</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InterruptedException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&#34;Thread 2: Waiting for lock 1...&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">a</span><span class="p">.</span><span class="na">last</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">synchronized</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">last</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&#34;Thread 2: Inside method last&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">DeadlockExample</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kd">final</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">A</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kd">final</span><span class="w"> </span><span class="n">B</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">B</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c1">// Thread 1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">new</span><span class="w"> </span><span class="n">Thread</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">run</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="na">method1</span><span class="p">(</span><span class="n">b</span><span class="p">);</span><span class="w"> </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}.</span><span class="na">start</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c1">// Thread 2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">new</span><span class="w"> </span><span class="n">Thread</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">run</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="na">method2</span><span class="p">(</span><span class="n">a</span><span class="p">);</span><span class="w"> </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}.</span><span class="na">start</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="死锁的必要条件">死锁的必要条件
+</h3><ul>
+<li>互斥条件：该资源任意一个时刻只由一个线程占用。</li>
+<li>请求与保持条件：一个线程因请求资源而阻塞时，对已获得的资源保持不放。</li>
+<li>不剥夺条件：线程已获得的资源在未使用完之前不能被其他线程强行剥夺，只有自己使用完毕后才释放资源。</li>
+<li>循环等待条件：若干线程之间形成一种头尾相接的循环等待资源关系。</li>
+</ul>
+<h3 id="预防和防止死锁的方法">预防和防止死锁的方法
+</h3><p>预防死锁的方法</p>
+<ul>
+<li><strong>破坏请求与保持条件</strong>：一次性申请所有的资源。</li>
+<li><strong>破坏不剥夺条件</strong>：占用部分资源的线程进一步申请其他资源时，如果申请不到，可以主动释放它占有的资源。</li>
+<li><strong>破坏循环等待条件</strong>
+<ul>
+<li><strong>靠按序申请资源来预防</strong> ：按某一顺序申请资源，释放资源则反序释放。破坏循环等待条件。</li>
+<li><strong>设置超时等待时间</strong>：为锁操作设置超时，防止线程无限期地等待锁。</li>
+</ul>
+</li>
+</ul>
+<h2 id="锁机制的定义">锁机制的定义
+</h2><p><strong>锁</strong>（Lock）是一种用于控制对共享资源的访问的机制，确保多个线程在并发执行时，能够安全地访问资源，防止数据冲突和不一致的情况。锁通常用于实现线程同步，确保同一时刻只有一个线程可以访问临界区（critical section）中的共享资源。</p>
+<p><strong>Java 多线程的锁都是基于对象的</strong>，Java 中的每一个对象都可以作为一个锁。</p>
+<h2 id="锁存放的位置">锁存放的位置
+</h2><h3 id="对象头">对象头
+</h3><p>每个 Java 对象都有一个对象头。如果是非数组类型，则用 2 个字宽来存储对象头，如果是数组，则会用 3 个字宽来存储对象头。</p>
+<p>对象头的内容</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>长度</th>
+          <th>内容</th>
+          <th>说明</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>32/64bit</td>
+          <td>Mark Word</td>
+          <td>存储对象的 hashCode 或锁信息等</td>
+      </tr>
+      <tr>
+          <td>32/64bit</td>
+          <td>Class Metadata Address</td>
+          <td>存储到对象类型数据的指针</td>
+      </tr>
+      <tr>
+          <td>32/64bit</td>
+          <td>Array length</td>
+          <td>数组的长度（如果是数组）</td>
+      </tr>
+  </tbody>
+</table></div>
+<h3 id="mark-word"><strong><code>Mark Word</code></strong>
+</h3><div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>锁状态</th>
+          <th>29 bit 或 61 bit</th>
+          <th>1 bit 是否是偏向锁？</th>
+          <th>2 bit 锁标志位</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>无锁</td>
+          <td></td>
+          <td>0</td>
+          <td>01</td>
+      </tr>
+      <tr>
+          <td>偏向锁</td>
+          <td>线程 ID</td>
+          <td>1</td>
+          <td>01</td>
+      </tr>
+      <tr>
+          <td>轻量级锁</td>
+          <td>指向栈中锁记录的指针</td>
+          <td>此时这一位不用于标识偏向锁</td>
+          <td>00</td>
+      </tr>
+      <tr>
+          <td>重量级锁</td>
+          <td>指向互斥量（重量级锁）的指针</td>
+          <td>此时这一位不用于标识偏向锁</td>
+          <td>10</td>
+      </tr>
+      <tr>
+          <td>GC 标记</td>
+          <td></td>
+          <td>此时这一位不用于标识偏向锁</td>
+          <td>11</td>
+      </tr>
+  </tbody>
+</table></div>
+<h2 id="锁的级别">锁的级别
+</h2><p>在 JDK 1.6 以前，所有的锁都是”重量级“锁，因为使用的是操作系统的互斥锁，当一个线程持有锁时，其他试图进入  <strong><code>synchronized</code></strong> 块的线程将被阻塞，直到锁被释放。涉及到了线程上下文切换和用户态与内核态的切换，因此效率较低。</p>
+<p>那为了减少获得锁和释放锁带来的性能消耗，JDK 1.6 引入了 “ <strong>偏向锁</strong> ”和“ <strong>轻量级锁</strong> ” 的概念</p>
+<p>一个对象其实有四种锁级别，它们级别由低到高依次是</p>
+<ul>
+<li>无锁状态</li>
+<li>偏向锁状态</li>
+<li>轻量级锁状态</li>
+<li>重量级锁状态</li>
+</ul>
+<h3 id="无锁状态">无锁状态
+</h3><p>在这个状态下，没有线程试图获取锁。没有对资源进行锁定，任何线程都可以尝试去修改它</p>
+<h3 id="偏向锁">偏向锁
+</h3><p>出现原因：<strong>大多数情况下，锁不仅不存在多线程竞争，而且总是由同一线程多次获得，因此可以消除同一线程的后续锁获取和释放的开销。如果同一线程再次请求锁，就无需再次同步。</strong></p>
+<p>偏向锁会偏向于第一个访问锁的线程，如果在接下来的运行过程中，该锁没有被其他的线程访问，则持有偏向锁的线程将永远不需要触发同步。也就是说，<strong>偏向锁在资源无竞争情况下消除了同步语句</strong>。</p>
+<h4 id="工作原理">工作原理
+</h4><ul>
+<li>一个线程在第一次进入同步块时，会在对象头和栈帧中的锁记录里存储锁偏向的线程 ID。</li>
+<li>当下次该线程进入这个同步块时，会去检查锁的 <strong><code>Mark Word</code></strong> 里面是不是放的自己的线程 ID。
+<ul>
+<li>如果是，表明该线程已经获得了锁，以后该线程在进入和退出同步块时不需要花费 <strong><code>CAS</code></strong> 操作来加锁和解锁</li>
+<li>如果不是，就代表有另一个线程来竞争这个偏向锁，这个时候会尝试使用 <strong><code>CAS</code></strong> 来替换 <strong><code>Mark Word</code></strong> 里面的线程 ID 为新线程的 ID
+<ul>
+<li>成功，表示之前的线程不存在了， <strong><code>Mark Word</code></strong> 里面的线程 ID 为新线程的 ID，锁不会升级，仍然为偏向锁；</li>
+<li>失败，表示之前的线程仍然存在，那么暂停之前的线程，升级为轻量级锁，会按照轻量级锁的方式进行竞争锁。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="轻量级锁">轻量级锁
+</h3><p><strong>多个线程在不同时段获取同一把锁</strong> ，即不存在锁竞争的情况，也就没有线程阻塞。针对这种情况，JVM 采用轻量级锁来避免线程的阻塞与唤醒。</p>
+<p>当一个线程尝试获取轻量级锁时，它会在自己的栈帧中创建一个锁记录（Lock Record），然后尝试使用  <strong><code>CAS</code></strong> 操作将对象头的 Mark Word 替换为指向锁记录的指针。</p>
+<h4 id="工作原理-1">工作原理
+</h4><ul>
+<li>当线程想要获取一个轻量级锁时，它会在自己的栈帧中创建一个锁记录（Lock Record）然后尝试用 <strong><code>CAS</code></strong> 将锁的 <strong><code>Mark Word</code></strong> 替换为指向锁记录的指针
+<ul>
+<li>如果 <strong><code>CAS</code></strong> 操作成功，即锁当前没有被任何线程持有。JVM会将锁的标志位设置为“轻量级锁”状态，并将当前线程的ID保存在对象头中。该线程会继续执行它的代码，并且无需阻塞。</li>
+<li>如果 <strong><code>CAS</code></strong> 操作失败，即另一个线程试图获取锁。当前线程会进入<strong>自旋</strong> 状态（它会在短时间内不断地尝试访问锁的对象，而不立即挂起自己）自旋的过程会消耗一些CPU资源，但如果锁竞争不激烈，线程很可能在自旋过程中成功获取锁，而不会造成线程的阻塞。</li>
+</ul>
+</li>
+<li>如果自旋到一定程度（和 JVM、操作系统相关），依然没有获取到锁，那么这个线程会阻塞。同时这个锁就会<strong>升级成重量级锁</strong>。</li>
+</ul>
+<h3 id="重量级锁">重量级锁
+</h3><p>重量级锁依赖于操作系统的互斥锁（mutex，用于保证任何给定时间内，只有一个线程可以执行某一段特定的代码段） 实现，而操作系统中线程间状态的转换需要相对较长的时间，所以重量级锁效率很低，但被阻塞的线程不会消耗 CPU。</p>
+<h3 id="锁的升级过程">锁的升级过程
+</h3><h3 id="synchronized-的优化"><strong><code>synchronized</code></strong> 的优化
+</h3><style type="text/css">
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+</style><div
+  class="notice tip"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
+  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+    </span>提示</p><p><strong>自旋</strong> 和 <strong>锁自适应自旋</strong></p>
+<ul>
+<li><strong>自旋</strong> ：在多线程环境下，当一个线程尝试获取锁时，如果锁已经被其他线程持有，线程并不会立即被阻塞，而是不断地访问锁对象。检查锁是否已经释放，线程在自旋过程中不会被挂起，也不会进行上下文切换，而是占用CPU继续执行循环检查。</li>
+<li><strong>锁自适应自旋</strong> ：自适应自旋锁通过动态调整自旋的次数来提高性能。自适应的策略基于之前的自旋结果，假如上一次自旋很快获得了锁，下次可能会增加自旋次数；如果自旋失败，则减少自旋时间甚至直接放弃自旋。</li>
+</ul></div>
+
+<h2 id="乐观锁和悲观锁">乐观锁和悲观锁
+</h2><p><strong>乐观锁（Optimistic Lock）</strong> 和 <strong>悲观锁（Pessimistic Lock）</strong> 是两种不同的并发控制策略，常用于处理多线程环境下对共享资源的访问冲突。它们的核心区别在于对数据冲突的预判和处理方式不同。</p>
+<h2 id="悲观锁">悲观锁
+</h2><h3 id="定义">定义
+</h3><p>悲观锁是一种假设会发生冲突的策略，认为在并发环境下线程之间会发生数据竞争，因此采用锁机制来确保线程之间的互斥执行，避免数据冲突。悲观锁会在操作数据之前加锁，保证同一时刻只有一个线程可以访问共享资源。也就是说，<strong>共享资源每次只给一个线程使用，其它线程阻塞，用完后再把资源转让给其它线程</strong>。</p>
+<h3 id="特点">特点
+</h3><ul>
+<li>假设线程之间会有冲突，因此总是会对共享资源加锁。</li>
+<li>锁的粒度较大，通常在整个操作过程中都持有锁。</li>
+<li>当一个线程持有锁时，其他线程必须等待该锁释放才能继续执行。</li>
+</ul>
+<h3 id="缺点">缺点
+</h3><ul>
+<li><strong>性能开销大</strong> ：高并发的场景下，激烈的锁竞争会造成线程阻塞，大量阻塞线程会导致系统的上下文切换，增加系统的性能开销。</li>
+<li><strong>线程阻塞</strong> ：悲观锁还可能会存在死锁问题（线程获得锁的顺序不当时），影响代码的正常运行。</li>
+</ul>
+<h3 id="使用场景">使用场景
+</h3><ul>
+<li>悲观锁通常多用于写比较多的情况（读少写多场景，竞争激烈），这样可以避免频繁失败和重试影响性能。</li>
+<li>需要严格保证数据一致性和完整性的场合
+<ul>
+<li>数据库中的行级锁防止多个事务同时修改同一行数据。</li>
+<li>在电商平台等支付系统中，多个用户可能会同时购买同一商品，或者多个支付请求同时处理。使用悲观锁可以确保同一时间只有一个线程能够处理某个商品的支付请求，从而避免出现库存不足或重复支付的情况。</li>
+</ul>
+</li>
+</ul>
+<h3 id="具体实现">具体实现
+</h3><ul>
+<li><strong><code>synchronized</code></strong> 是最常见的悲观锁实现方式，会在方法或代码块上加锁，确保同一时刻只有一个线程能够执行该代码块或方法。</li>
+<li><strong><code>ReentrantLock</code></strong> 是 Java 提供的一种显式锁，比 <strong><code>synchronized</code></strong> 提供了更多的控制功能，例如尝试获取锁、定时获取锁等。</li>
+</ul>
+<h2 id="乐观锁">乐观锁
+</h2><h3 id="定义-1">定义
+</h3><p>乐观锁则是一种假设不会发生冲突的策略，认为在并发环境下线程之间发生冲突的概率较低，因此不通过加锁来进行数据保护，而是通过其他手段，如版本号、时间戳等，来验证数据在提交时是否发生变化。如果数据发生了变化，乐观锁会进行重试或者抛出异常。</p>
+<h3 id="特点-1">特点
+</h3><ul>
+<li>假设冲突发生的概率较低，因此不会加锁。</li>
+<li>在操作数据时，乐观锁会先执行任务并在提交时检查数据是否已经发生变化。</li>
+<li>如果数据没有变化，则提交成功；如果数据发生了变化，则需要重新尝试或处理冲突。</li>
+</ul>
+<h3 id="缺点-1">缺点
+</h3><ul>
+<li>实现复杂度较高，尤其是在多表或复杂事务的场景下。</li>
+<li>冲突频繁时性能下降。</li>
+</ul>
+<h3 id="使用场景-1">使用场景
+</h3><ul>
+<li>“读多写少“的环境，避免频繁加锁影响性能</li>
+<li>在数据库系统中，乐观锁用于保证数据在并发环境下的正确性。典型的做法是给每行数据加上一个 <code>version</code> 字段（或 <code>timestamp</code>）。在更新数据时，首先读取该行数据的版本号，然后在提交时比较版本号，如果版本号没有变化，则表示没有其他事务修改过该数据，可以进行更新；如果版本号发生变化，则回滚操作。</li>
+</ul>
+<h3 id="具体实现-1">具体实现
+</h3><h4 id="版本号机制">版本号机制
+</h4><p>在版本号机制中，每个数据对象（或数据库表中的记录）都会有一个与之关联的版本号或时间戳。每次读取数据时，都会获取当前的版本号。在数据修改时，首先检查版本号是否和读时一致。如果版本号没有变化，则说明在读取和写入期间没有其他事务对该数据进行修改，操作可以继续进行；否则，如果版本号发生了变化，表示数据在此期间已被其他事务修改，当前事务需要回滚或者重试。</p>
+<ul>
+<li><strong>初始化版本号</strong>：每个数据项或记录初始化时会有一个版本号 <strong><code>version</code></strong></li>
+<li><strong>读取数据时</strong>：每次读取数据时，除了获取数据内容外，还会获取该数据的版本号 <strong><code>version</code></strong>。</li>
+<li><strong>修改数据时</strong>：</li>
+<li>
+<ul>
+<li>在修改数据前，程序会检查当前数据的版本号 <strong><code>version</code></strong>。</li>
+<li>提交更新时，检查该数据在操作期间是否有其他事务修改过。如果版本号 <strong><code>version</code></strong> 没有变化，说明没有发生冲突，可以提交更新；如果版本号 <strong><code>version</code></strong> 已发生变化，说明数据已被其他事务修改，此时需要回滚或重试。</li>
+</ul>
+</li>
+<li><strong>提交操作时</strong>：如果数据没有被其他事务修改（即版本号 <strong><code>version</code></strong> 一致），则可以成功提交更新，并将版本号 <strong><code>version</code></strong> 自增。</li>
+<li><strong>冲突处理</strong>：如果在提交时发现版本号 <strong><code>version</code></strong> 不一致，说明发生了冲突，当前操作需要处理冲突（比如重试、提示用户、选择保留某个版本等）。</li>
+</ul>
+<h4 id="cas算法">CAS算法
+</h4><p><strong><code>CAS(Compare And Swap)</code></strong> 是一种<strong>硬件级别的原子操作</strong>，它比较内存中的某个值是否为预期值，如果是，则更新为新值，否则不做修改。</p>
+<p><strong>算法原理</strong></p>
+<p>涉及的变量如下</p>
+<ul>
+<li><strong><code>V</code></strong>：要更新的变量(var)</li>
+<li><strong><code>E</code></strong>：预期值(expected)</li>
+<li><strong><code>N</code></strong>：新值(new)</li>
+</ul>
+<p>算法步骤如下</p>
+<ul>
+<li><strong>比较（Compare）</strong> ：<strong><code>CAS</code></strong> 会检查内存中的某个值 <strong><code>V</code></strong> 是否与预期值 <strong><code>E</code></strong> 相等。</li>
+<li><strong>交换（Swap）</strong> ：如果相等，则 <strong><code>CAS</code></strong> 通过 <strong>原子</strong> 方式用新值 <strong><code>N</code></strong> 来更新 <strong><code>V</code></strong> 的值</li>
+<li><strong>失败重试</strong> ：如果不相等，说明有其他线程已经修改了该值，<strong><code>CAS</code></strong> 操作失败。当多个线程同时使用 <strong><code>CAS</code></strong> 操作一个变量时，只有一个会胜出，并成功更新，其余均会失败，但失败的线程并不会被挂起，仅是被告知失败，并且允许再次尝试，当然也允许失败的线程放弃操作。</li>
+</ul>
+<p><strong>Java中的实现和应用</strong></p>
+<p>在 Java 中，实现 <strong><code>CAS</code></strong> 操作的一个关键类是 <strong><code>Unsafe</code></strong> 。<strong><code>Unsafe</code></strong> 类中的 CAS 方法是 <strong><code>native</code><strong>方法。</strong><code>native</code></strong> 关键字表明这些方法是用本地代码（通常是 C 或 C++）实现的，而不是用 Java 实现的。这些方法直接调用底层的硬件指令来实现原子操作。也就是说，Java 语言并没有直接用 Java 实现 <strong><code>CAS</code></strong> 。</p>
+<p>Java中的原子类都是基于 <strong><code>CAS</code></strong> 操作实现原子操作的</p>
+<p><strong>原子性的保证机制</strong></p>
+<p>CPU层面采取以下策略</p>
+<ul>
+<li><strong>总线锁定</strong>：通过锁定 CPU 的总线，禁止其他 CPU 或设备访问内存。在进行操作时，CPU 发出一个 LOCK 信号，这会阻止其他处理器对内存地址进行操作，直到当前指令执行完成。<img src="/p/java%E4%B8%AD%E7%9A%84%E9%94%81/javathread-20241115161305.png"
+	width="637"
+	height="763"
+	
+	loading="lazy"
+	
+		alt="总线锁定"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="83"
+		data-flex-basis="200px"
+	
+></li>
+<li><strong>缓存锁定</strong>：当多个 CPU 操作同一块内存地址时，如果该内存地址已经被缓存到某个 CPU 的缓存中，缓存锁定机制会锁定该缓存行，防止其他 CPU 对这块内存进行修改。</li>
+</ul>
+<p><strong>存在的问题</strong></p>
+<ul>
+<li><strong><code>ABA</code></strong> 问题：在多线程环境下，某个变量的值在一段时间内经历了从 A 到 B 再到 A 的变化，这种变化可能被线程误认为值没有变化，从而导致错误的判断和操作。
+<ul>
+<li>解决思路
+<ul>
+<li><strong>版本号/时间戳</strong>：在每次更新一个变量时，不仅更新变量的值，还更新一个版本号。<strong><code>CAS</code></strong> 操作在比较时，除了比较值是否一致，还比较版本号是否匹配。这样，即使值回到了初始值，版本号的变化也能检测到修改。</li>
+<li><strong>引用标记</strong> ：另一种类似的机制，通过在引用上标记一个布尔值，帮助区分是否发生了特定变化。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>长时间自旋的CPU消耗</strong> ：CAS 经常会用到自旋操作来进行重试，也就是不成功就一直循环执行直到成功。如果长时间不成功，会给 CPU 带来非常大的执行开销。
+<ul>
+<li>解决方案：让 JVM 支持处理器提供的<strong>pause 指令</strong>。</li>
+</ul>
+</li>
+<li><strong>只能对单个变量执行操作的原子性</strong> ：如果对多个变量操作时，CAS 目前无法直接保证操作的原子性的。
+<ul>
+<li>解决方案
+<ul>
+<li>可以考虑改用锁来保证操作的原子性</li>
+<li>可以考虑合并多个变量，将多个变量封装成一个对象，通过 <strong><code>AtomicReference</code></strong> 来保证原子性。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/javase/">JavaSE</a>
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2025-02-03 13:37 UTC
+        </span>
+    </section></footer>
+
+
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI&#43;WdtXRGWt2kTvGFasHpSy3SV"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG&#43;vnGctmUb0ZY0l8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"integrity="sha384-&#43;VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4&#43;/RRE05"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+        renderMathInElement(document.body, {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ],
+            ignoredClasses: ["gist"]
+        });})
+</script>
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/java%E4%B8%AD%E7%9A%84volatile%E5%85%B3%E9%94%AE%E5%AD%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java中的volatile关键字</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/java%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8Bjmm/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java内存模型（JMM）</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/java%E4%B8%AD%E7%9A%84%E5%A4%9A%E7%BA%BF%E7%A8%8B/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java中的多线程</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/java%E7%9A%84bionioaio/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java的BIO,NIO,AIO</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/java%E7%9A%84%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java的动态代理</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2025 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
