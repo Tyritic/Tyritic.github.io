@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="手写笔记转换">
+<title>应用层和HTTP协议</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/'>
+
+<link rel="stylesheet" href="/scss/style.min.00fdb13873a10c0d571b0a082e72c57836d458957efcda9eaef694985da2c45f.css"><meta property='og:title' content="应用层和HTTP协议">
+<meta property='og:description' content="手写笔记转换">
+<meta property='og:url' content='https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='计算机基础' /><meta property='article:published_time' content='2024-06-09T10:51:40&#43;08:00'/><meta property='article:modified_time' content='2025-02-10T08:24:53&#43;00:00'/>
+<meta name="twitter:title" content="应用层和HTTP协议">
+<meta name="twitter:description" content="手写笔记转换">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_1927a00d8e6b4977.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#网络应用程序的常见架构">网络应用程序的常见架构</a>
+      <ol>
+        <li><a href="#客户端服务器结构cs结构">客户端—服务器结构（CS结构）</a></li>
+        <li><a href="#浏览器服务器结构bs结构">浏览器—服务器结构（BS结构）</a></li>
+        <li><a href="#点对点结构p2p结构">点对点结构（P2P结构）</a></li>
+      </ol>
+    </li>
+    <li><a href="#进程与网络之间的接口socket">进程与网络之间的接口（Socket）</a></li>
+    <li><a href="#超文本传输协议http">超文本传输协议（HTTP）</a>
+      <ol>
+        <li><a href="#uri和url">URI和URL</a></li>
+        <li><a href="#基本工作模型">基本工作模型</a></li>
+        <li><a href="#协议特点">协议特点</a></li>
+        <li><a href="#http状态码">HTTP状态码</a></li>
+        <li><a href="#http请求方法">HTTP请求方法</a></li>
+        <li><a href="#http报文格式">HTTP报文格式</a>
+          <ol>
+            <li><a href="#请求报文">请求报文</a></li>
+            <li><a href="#响应报文">响应报文</a></li>
+          </ol>
+        </li>
+        <li><a href="#http缓存技术">HTTP缓存技术</a>
+          <ol>
+            <li><a href="#强制缓存">强制缓存</a></li>
+            <li><a href="#协商缓存">协商缓存</a></li>
+          </ol>
+        </li>
+        <li><a href="#http版本">HTTP版本</a>
+          <ol>
+            <li><a href="#http10版本">HTTP1.0版本</a></li>
+            <li><a href="#http11版本">HTTP1.1版本</a></li>
+            <li><a href="#http20版本">HTTP2.0版本</a></li>
+            <li><a href="#http30版本">HTTP3.0版本</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#https协议">HTTPS协议</a>
+      <ol>
+        <li><a href="#加密机制">加密机制</a>
+          <ol>
+            <li><a href="#混合加密">混合加密</a></li>
+            <li><a href="#数字签名和摘要算法">数字签名和摘要算法</a></li>
+            <li><a href="#数字证书">数字证书</a></li>
+            <li><a href="#生活例子解释">生活例子解释</a></li>
+            <li><a href="#通信过程">通信过程</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#dns域名解析协议">DNS（域名解析协议）</a>
+      <ol>
+        <li><a href="#dns服务器">DNS服务器</a></li>
+        <li><a href="#域名解析过程">域名解析过程</a></li>
+      </ol>
+    </li>
+    <li><a href="#rpc远程过程调用">RPC（<strong>远程过程调用</strong>）</a>
+      <ol>
+        <li><a href="#服务发现">服务发现</a></li>
+        <li><a href="#底层连接形式">底层连接形式</a></li>
+      </ol>
+    </li>
+    <li><a href="#websocket">WebSocket</a>
+      <ol>
+        <li><a href="#与http的区别">与HTTP的区别</a></li>
+        <li><a href="#http轮询和长轮询">HTTP轮询和长轮询</a>
+          <ol>
+            <li><a href="#http轮询">HTTP轮询</a></li>
+            <li><a href="#长轮询">长轮询</a></li>
+          </ol>
+        </li>
+        <li><a href="#websocket握手过程">WebSocket握手过程</a></li>
+      </ol>
+    </li>
+    <li><a href="#tomcat服务器">Tomcat服务器</a>
+      <ol>
+        <li><a href="#基本使用">基本使用</a></li>
+        <li><a href="#tomcat服务器的目录结构">Tomcat服务器的目录结构</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" style="background-color: #2a9d8f; color: #fff;">
+                计算机网络
+            </a>
+        
+            <a href="/categories/%E4%BA%92%E8%81%94%E7%BD%91%E9%9D%A2%E8%AF%95%E9%A2%98/" style="background-color: #2a9d8f; color: #fff;">
+                互联网面试题
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/">应用层和HTTP协议</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            手写笔记转换
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2024-06-09</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 25 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：12364 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="网络应用程序的常见架构">网络应用程序的常见架构
+</h2><h3 id="客户端服务器结构cs结构">客户端—服务器结构（CS结构）
+</h3><ul>
+<li>设置一台或多台高性能计算机（服务器集群）作为服务端，接受其他主机（客户端）的请求
+<ul>
+<li>服务端总是打开，并具有固定的地址</li>
+</ul>
+</li>
+<li>客户端之间 <strong>不能直接通信</strong></li>
+<li>需要安装特定的客户端软件，该客户端需要承担部分业务逻辑</li>
+</ul>
+<h3 id="浏览器服务器结构bs结构">浏览器—服务器结构（BS结构）
+</h3><ul>
+<li><strong>客户端仅使用浏览器（Browser）作为访问入口</strong>，完成不需要安装额外的软件。</li>
+<li><strong>所有的业务逻辑和数据处理都在服务器端（Server）</strong></li>
+</ul>
+<h3 id="点对点结构p2p结构">点对点结构（P2P结构）
+</h3><p>P2P（Peer-to-Peer）架构是一种<strong>去中心化的网络架构</strong>，每个节点（Peer）既可以作为<strong>客户端（请求资源）</strong>，也可以作为<strong>服务器（提供资源）</strong>，节点之间可以直接通信、共享资源，而无需依赖中央服务器。</p>
+<ul>
+<li>对服务器具有最小依赖</li>
+<li><strong>具有自拓展性</strong> ：网络能够随着节点（Peer）数量的增加，自主扩展计算能力、存储容量和带宽，而不依赖中央服务器。每个对等节点都由于接受请求产生工作负荷，但是每个对等节点向其他对等节点分发文件也为系统增加服务能力</li>
+</ul>
+<h2 id="进程与网络之间的接口socket">进程与网络之间的接口（Socket）
+</h2><p><strong>Socket（套接字）</strong> 是计算机网络中用于 <strong>进程间通信（IPC, Inter-Process Communication）</strong> 的一种机制，它可以让不同计算机上的进程通过网络进行通信。Socket 提供了一种标准化的接口，使应用程序能够发送和接收数据，而不需要关心底层网络协议的实现细节。</p>
+<h2 id="超文本传输协议http">超文本传输协议（HTTP）
+</h2><p><strong>HTTP（超文本传输协议，HyperText Transfer Protocol）</strong> 是一种 <strong>无状态、基于请求-响应模式</strong> 的 <strong>应用层协议</strong> ，用于在 <strong>Web 浏览器和服务器之间</strong> 传输数据，如 HTML 页面、图片、视频等。</p>
+<p>HTTP 是 <strong>互联网的基础协议</strong>，它构建在 <strong>TCP/IP 协议</strong> 之上，使得客户端（如浏览器）和服务器可以相互通信。默认端口为 80</p>
+<h3 id="uri和url">URI和URL
+</h3><ul>
+<li><strong>URI(Uniform Resource Identifier)</strong> 全称是统一资源标志符，可以唯一标识一个资源。</li>
+<li><strong>URL(Uniform Resource Locator)</strong> 全称是统一资源定位符，可以提供该资源的路径。它是一种具体的 URI，即 URL 可以用来标识一个资源，而且还指明了如何 locate 这个资源。</li>
+</ul>
+<h3 id="基本工作模型">基本工作模型
+</h3><p>基于 <strong>请求—响应</strong> 模型进行工作，客户端向服务器发送 HTTP Request（请求），服务器响应请求并返回 HTTP Response（响应）</p>
+<p><img src="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/450px-HTTP-Header.png"
+	width="450"
+	height="340"
+	
+	loading="lazy"
+	
+		alt="基本工作模型"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="132"
+		data-flex-basis="317px"
+	
+></p>
+<ul>
+<li>
+<p>HTTP客户端先建立与服务端的TCP连接</p>
+<ul>
+<li>浏览器发起到服务器的 TCP 连接（创建套接字 <strong><code>Socket</code></strong>）。</li>
+<li>服务器接收来自浏览器的 TCP 连接。</li>
+</ul>
+</li>
+<li>
+<p>客户端进程和服务器进程通过 <strong><code>Socket</code></strong> 访问网络连接</p>
+<ul>
+<li>客户端从 <strong><code>Socket</code></strong> 发出请求并接受响应</li>
+<li>服务端从 <strong><code>Socket</code></strong> 接受请求并发送响应</li>
+</ul>
+</li>
+</ul>
+<h3 id="协议特点">协议特点
+</h3><ul>
+<li><strong>无状态协议</strong> ：HTTP 协议是 <strong>无状态</strong> 的协议，它无法记录客户端用户的状态，一般我们都是通过 <strong><code>Session</code></strong> 来记录客户端用户的状态。</li>
+<li><strong>明文传输</strong> ：默认情况下数据不加密，容易被监听（可用 HTTPS 加密）。</li>
+<li><strong>基于请求—响应机制</strong> ：客户端发送请求，服务器返回响应。</li>
+<li><strong>可靠传输</strong> ：HTTP 通过 <strong>TCP协议（三次握手）</strong> 确保可靠传输。</li>
+</ul>
+<h3 id="http状态码">HTTP状态码
+</h3><p>状态码由 <strong>3</strong> 位数字组成，第一位定义 <strong>响应的类别</strong></p>
+<ul>
+<li>
+<p><strong>1xx: 信息响应</strong></p>
+<ul>
+<li>
+<p><strong>100 Continue</strong>：服务器已接收请求的初步部分，客户端应继续请求。</p>
+</li>
+<li>
+<p><strong>101 Switching Protocols</strong>：服务器同意切换协议，如从 HTTP 切换到 WebSocket。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>2xx: 成功</strong></p>
+<ul>
+<li>
+<p><strong>200 OK</strong>：请求成功，服务器返回所请求的资源或数据。</p>
+</li>
+<li>
+<p><strong>201 Created</strong>：请求成功并创建了新的资源，常用于 POST 请求。</p>
+</li>
+<li>
+<p><strong>204 No Content</strong>：请求成功但服务器不返回任何内容，常用于删除操作。</p>
+</li>
+<li>
+<p><strong>206 Partial Content</strong> ：应用于 HTTP 分块下载或断点续传，表示响应返回的 body 数据并不是资源的全部，而是其中的一部分，也是服务器处理成功的状态。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>3xx: 重定向</strong></p>
+<ul>
+<li>
+<p><strong>301 Moved Permanently</strong>：资源已永久移动到新的 URL，客户端应使用新 URL 访问。</p>
+</li>
+<li>
+<p><strong>302 Found</strong>：资源临时移动到新的 URL，客户端应继续使用原来的 URL。搜索引擎会抓取新的内容而保存旧的网址并认为新的网址只是暂时的。</p>
+</li>
+<li>
+<p><strong>304 Not Modified</strong>：资源未修改，客户端可以使用缓存版本。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>4xx: 客户端错误</strong></p>
+<ul>
+<li>
+<p><strong>400 Bad Request</strong>：请求无效或语法错误，服务器无法处理。</p>
+</li>
+<li>
+<p><strong>401 Unauthorized</strong>：请求需要身份验证，客户端未提供有效的凭证。</p>
+</li>
+<li>
+<p><strong>403 Forbidden</strong>：服务器理解请求但拒绝执行，通常是权限问题。</p>
+</li>
+<li>
+<p><strong>404 Not Found</strong>：请求的资源在服务器上未找到。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>5xx: 服务器错误</strong></p>
+<ul>
+<li>
+<p><strong>500 Internal Server Error</strong>：服务器内部错误，无法完成请求。</p>
+</li>
+<li>
+<p><strong>501 Not Implemented</strong> ：客户端请求的功能还不支持，类似“即将开业，敬请期待”的意思。</p>
+</li>
+<li>
+<p><strong>502 Bad Gateway</strong>：服务器作为网关或代理，从上游服务器接收到无效响应。</p>
+</li>
+<li>
+<p><strong>503 Service Unavailable</strong>：服务器暂时无法处理请求，通常是因为过载或维护。</p>
+</li>
+</ul>
+</li>
+</ul>
+<style type="text/css">
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+</style><div
+  class="notice tip"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
+  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+    </span>提示</p><ul>
+<li>重定向机制的区别
+<ul>
+<li><strong>301 Moved Permanently</strong> ：用于临时重定向，不会更新书签。</li>
+<li><strong>302 Found</strong> ：用于永久重定向，通常会更新客户端的书签</li>
+</ul>
+</li>
+</ul></div>
+
+<h3 id="http请求方法">HTTP请求方法
+</h3><ul>
+<li><strong>GET</strong> ：用于请求获取指定资源，通常用于获取数据。
+<ul>
+<li><strong>GET</strong> 请求的参数位置一般是写在 <strong>URL</strong> 中，但是浏览器会对 URL 的长度有限制（HTTP协议本身对 URL长度并没有做任何规定）。</li>
+</ul>
+</li>
+<li><strong>POST</strong> ：用于向服务器提交数据，通常用于提交表单数据或进行资源的创建。
+<ul>
+<li><strong>POST</strong> 请求携带数据的位置一般是写在报文请求体 <strong>body</strong> 中，请求体中的数据可以是任意格式的数据，只要客户端与服务端协商好即可，而且浏览器不会对请求体大小做限制。</li>
+</ul>
+</li>
+<li><strong>PUT</strong> ：用于向服务器更新指定资源，通常用于更新已存在的资源。</li>
+<li><strong>DELETE</strong> ：用于请求服务器删除指定资源。</li>
+<li><strong>HEAD</strong> ：类似于GET请求，但只返回资源的头部信息，用于获取资源的元数据而不获取实际内容。</li>
+</ul>
+<div
+  class="notice tip"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
+  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+    </span>提示</p><p><strong>GET</strong> 和 <strong>POST</strong> 的区别</p>
+<ul>
+<li>定义
+<ul>
+<li><strong>GET</strong>：用于获取资源，通常用于请求数据而不改变服务器状态。</li>
+<li><strong>POST</strong>：用于提交数据到服务器，通常会改变服务器的状态或产生副作用（如创建或更新资源）。</li>
+</ul>
+</li>
+<li>参数传递方式
+<ul>
+<li><strong>GET</strong>：参数通过 URL 拼接传递，暴露在请求 URL 中，具有可见性，长度有限（取决于浏览器和服务器）。</li>
+<li><strong>POST</strong>：参数放在请求体中，通常不可见且长度理论上没有限制，更适合传递大量数据或敏感信息（但是注意，POST 也可以在 URL 上放参数！）。</li>
+</ul>
+</li>
+<li>安全性
+<ul>
+<li>数据安全性
+<ul>
+<li><strong>GET</strong>：参数可见，数据容易暴露在浏览器历史记录、日志和缓存中，不适合传递敏感信息。</li>
+<li><strong>POST</strong>：数据放在请求体中，相对安全，但需要 <strong>HTTPS</strong> 才能保证数据加密传输。</li>
+</ul>
+</li>
+<li>HTTP定义：在 HTTP 协议里，所谓的 <strong>安全</strong> 是指请求方法不会 <strong>破坏</strong> 服务器上的资源。
+<ul>
+<li><strong>GET</strong> ：是 <strong>只读</strong> 操作，无论操作多少次，服务器上的数据都是安全的，且每次的结果都是相同的。</li>
+<li><strong>POST</strong> ：是 <strong>新增或提交数据</strong> 的操作，会修改服务器上的资源</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>幂等性：多次执行相同的操作，结果都是相同的
+<ul>
+<li><strong>GET</strong> ：<strong>GET</strong> 具有幂等性，<strong>GET</strong> 是 <strong>只读</strong> 操作，无论操作多少次，服务器上的数据都是安全的，且每次的结果都是相同的。（重复请求不会改变服务器状态）。</li>
+<li><strong>POST</strong> ：<strong>POST</strong> 具有非幂等，<strong>POST</strong> 是 <strong>新增或提交数据</strong> 的操作，会修改服务器上的资源（多次请求可能导致重复创建资源或执行多次相同操作）</li>
+</ul>
+</li>
+<li>缓存机制
+<ul>
+<li><strong>GET</strong> ：可以对 <strong>GET</strong> 请求的数据做缓存，当请求同一个 URL 时可以直接返回缓存内容，减少服务器负载。适用于不频繁变动的资源，比如图片、静态页面。
+<ul>
+<li>缓存可以做到浏览器本身上（彻底避免浏览器发请求）</li>
+<li>缓存可以做到代理上，而且在浏览器中 <strong>GET</strong> 请求可以保存为书签。</li>
+</ul>
+</li>
+<li><strong>POST</strong> ：<strong>POST</strong> 请求默认不缓存，大部分浏览器和缓存服务器不缓存 POST 请求，主要因为 POST 请求通常会对服务器数据产生影响（如创建、修改数据），需要确保请求每次都传递到服务器。</li>
+</ul>
+</li>
+</ul></div>
+
+<h3 id="http报文格式">HTTP报文格式
+</h3><h4 id="请求报文">请求报文
+</h4><p><img src="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/HTTP%E8%AF%B7%E6%B1%82%E5%8D%8F%E8%AE%AE.png"
+	width="1062"
+	height="585"
+	
+	loading="lazy"
+	
+		alt="HTTP请求报文"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="181"
+		data-flex-basis="435px"
+	
+></p>
+<p>HTTP 请求报文由三个部分组成(请求行+请求头+请求体)</p>
+<ul>
+<li><strong>请求行 （红色部分）</strong> ：请求报文的第一行
+<ul>
+<li>请求方法（如<strong>GET</strong>、<strong>POST</strong> ）</li>
+<li>请求的资源路径 <strong>URI</strong></li>
+<li>HTTP协议版本（如HTTP/1.1）。</li>
+</ul>
+</li>
+<li><strong>请求头（深黄色部分）</strong>：以键值对的形式表现，用于传递客户端环境、请求内容、认证信息等。
+<ul>
+<li><strong>实体头部</strong> ：描述请求体的头部
+<ul>
+<li><strong><code>Content-Length</code></strong> ：表明本次请求的数据长度。用于服务端进行拆包
+<ul>
+<li>当客户端发送一个HTTP请求时，会在请求头中添加 <strong><code>Content-Length</code></strong> 字段，该字段的值表示请求正文的字节数。服务器在接收到请求后，会根据 <strong><code>Content-Length</code></strong> 字段的值来确定请求的长度，并从请求中读取相应数量的字节，直到读取完整个请求内容。这种基于 <strong><code>Content-Length</code></strong> 字段的拆包机制可以确保服务器正确接收到完整的请求，避免了请求的丢失或截断问题。</li>
+</ul>
+</li>
+<li><strong><code>Content-Type</code></strong> ：请求体的多媒体类型（用于 POST 和 PUT 请求中）</li>
+</ul>
+</li>
+<li><strong>通用头部</strong>：适用于请求和响应
+<ul>
+<li><strong><code>Cache-Control</code></strong> ：用来指定在这次的请求/响应链中的所有缓存机制都必须 遵守的指令</li>
+<li><strong><code>Connection</code></strong> ：该浏览器想要优先使用的连接类型（持久连接还是非持久连接）</li>
+</ul>
+</li>
+<li><strong>请求头部</strong>：特定于请求的头部
+<ul>
+<li><strong><code>Host</code></strong> ：客户端发送请求时，用来指定服务器的域名。</li>
+<li><strong><code>User-Agent</code></strong> ：浏览器的浏览器身份标识字符串</li>
+<li><strong><code>Accept</code></strong> ：能够接受的回应内容类型（Content-Types）。</li>
+<li><strong><code>Accept-Encoding</code></strong> ：能够接受的编码方式列表</li>
+<li><strong><code>Accept-Language</code></strong> ：能够接受的回应内容的自然语言列表。</li>
+<li><strong><code>Cookie</code></strong> ：服务器通过 Set-Cookie发送的一个超文本传输协议 Cookie</li>
+<li><strong><code>Authorization</code></strong> ：用于超文本传输协议的认证的认证信息</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>空行</strong>：用于分隔请求头和请求体。</li>
+<li><strong>请求体</strong>：仅在POST、PUT等方法中存在，包含需要发送到服务器的数据。
+<ul>
+<li><strong>表单数据（Form Data）</strong>：<strong><code>application/x-www-form-urlencoded</code></strong>，用于提交表单数据。</li>
+<li><strong>多部分数据（Multipart Data）</strong>：<code>multipart/form-data</code>，用于上传文件或复杂表单数据。</li>
+<li><strong>JSON数据</strong>：<strong><code>application/json</code></strong> ，用于提交JSON格式的数据。</li>
+<li><strong>XML数据</strong>：<strong><code>application/xml</code></strong> ，用于提交XML格式的数据。</li>
+<li><strong>文本数据</strong>：<strong><code>text/plain</code></strong> ，用于提交纯文本数据。</li>
+</ul>
+</li>
+</ul>
+<p><strong>请求解析过程</strong></p>
+<ul>
+<li><strong>请求行解析</strong>：根据 HTTP 请求的第一行（请求行），服务器首先解析出请求方法、请求 URI 和协议版本。</li>
+<li><strong>请求头解析</strong>：请求头的格式为 <strong><code>key: value</code></strong>，可以通过换行符来分隔每一行的头部信息。头部信息指示了客户端的行为、首选内容类型、缓存控制等。</li>
+<li><strong>请求体解析</strong>：对于包含请求体的请求（如 POST 或 PUT），服务器需要解析请求体的内容。通常，内容类型会告知服务器如何解析请求体。</li>
+<li><strong>请求路由与处理</strong>：HTTP 请求中的 URI 部分会被用来进行路由匹配，决定请求应该被哪个资源或处理程序处理。</li>
+<li><strong>生成 HTTP 响应</strong>：服务器处理请求后，会生成一个 HTTP 响应</li>
+<li><strong>发送 HTTP 响应</strong>：服务器将构造好的 HTTP 响应通过 TCP 连接返回给客户端。客户端接收到响应后，会根据状态码和响应头判断如何处理响应体</li>
+</ul>
+<h4 id="响应报文">响应报文
+</h4><p><img src="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/image-20250209191221600.png"
+	width="486"
+	height="140"
+	
+	loading="lazy"
+	
+		alt="HTTP响应报文"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="347"
+		data-flex-basis="833px"
+	
+></p>
+<p>HTTP响应报文由三个部分组成(响应行,响应头,响应体)</p>
+<ul>
+<li><strong>响应行（红色部分）</strong>：响应报文的第一行
+<ul>
+<li>HTTP协议版本</li>
+<li>状态码：用于描述响应结果</li>
+<li>描述</li>
+</ul>
+</li>
+<li><strong>响应头（黄色部分）</strong>：以键值对形式表现
+<ul>
+<li><strong><code>Set-Cookie</code></strong> ：服务端可以设置客户端的cookie</li>
+<li><strong><code>Connection</code></strong> ：该浏览器想要优先使用的连接类型</li>
+</ul>
+</li>
+<li><strong>响应体（绿色部分）</strong>：存放响应数据</li>
+</ul>
+<h3 id="http缓存技术">HTTP缓存技术
+</h3><p>对于一些具有重复性的 HTTP 请求，比如每次请求得到的数据都一样的，我们可以把这对「请求-响应」的数据都<strong>缓存在本地</strong>，那么下次就直接读取本地的数据，不必在通过网络获取服务器的响应了，这样的话 HTTP/1.1 的性能肯定肉眼可见的提升。</p>
+<h4 id="强制缓存">强制缓存
+</h4><p>强制缓存指的是只要浏览器判断缓存没有过期，则直接使用浏览器的本地缓存。由浏览器决定是否使用缓存的主动性。</p>
+<p><strong>实现方式</strong></p>
+<p>强制缓存是利用HTTP 响应头部（Response Header）字段实现的，它们都用来表示资源在客户端缓存的有效期：</p>
+<ul>
+<li><strong><code>Cache-Control</code></strong> ：是一个相对时间</li>
+<li><strong><code>Expires</code></strong> ：是一个绝对时间</li>
+</ul>
+<p><strong>工作流程</strong></p>
+<ul>
+<li>当浏览器第一次请求访问服务器资源时，服务器会在返回这个资源的同时，在请求头部加上 <strong><code>Cache-Control</code></strong> ，<strong><code>Cache-Control</code></strong> 中设置了过期时间大小；</li>
+<li>浏览器再次请求访问服务器中的该资源时，会先 <strong>通过请求资源的时间与 Cache-Control 中设置的过期时间大小，来计算出该资源是否过期</strong> ，如果没有，则使用该缓存，否则重新请求服务器；</li>
+<li>服务器再次收到请求后，会再次更新请求头的 <strong><code>Cache-Control</code></strong>。</li>
+</ul>
+<h4 id="协商缓存">协商缓存
+</h4><p>通过服务端告知客户端是否可以使用缓存的方式被称为协商缓存。</p>
+<p><strong>实现方式</strong></p>
+<ul>
+<li>响应头部中 <strong><code>Etag</code></strong> ：唯一标识响应资源</li>
+<li>请求头部中的 <strong><code>If-None-Match</code></strong> ：当资源过期时，浏览器发现响应头里有 <strong><code>Etag</code></strong>，则再次向服务器发起请求时，会将请求头 If-None-Match 值设置为 <strong>Etag</strong> 的值。服务器收到请求后进行比对，如果资源没有变化返回 <strong>304（允许使用本地缓存）</strong>，如果资源变化了返回 <strong>200</strong>。</li>
+</ul>
+<p><strong>工作流程</strong></p>
+<ul>
+<li>当浏览器第一次请求访问服务器资源时，服务器会在返回这个资源的同时，在请求头部加上 <strong><code>ETag</code></strong> 唯一标识，这个唯一标识的值是根据当前请求的资源生成的</li>
+<li>当浏览器再次请求访问服务器中的该资源时，首先会先检查强制缓存是否过期：
+<ul>
+<li>如果没有过期，则直接使用本地缓存；</li>
+<li>如果缓存过期了，会在请求头部加上 <strong><code>If-None-Match</code></strong> 字段，该字段的值就是 <strong><code>ETag</code></strong> 唯一标识；</li>
+</ul>
+</li>
+<li>服务器再次收到请求后，会根据请求中的 <strong><code>If-None-Match</code></strong> 值与当前请求的资源生成的唯一标识进行比较
+<ul>
+<li>如果值相等代表服务器中的资源未被修改，则返回 <strong>304 Not Modified</strong>，不会返回资源</li>
+<li>如果不相等代表服务器中的资源被修改，则返回 <strong>200</strong> 状态码和返回资源，并在请求头部加上新的 ETag 唯一标识；</li>
+</ul>
+</li>
+<li>如果浏览器收到 <strong>304</strong> 的请求响应状态码，则会从本地缓存中加载资源，否则更新资源。</li>
+</ul>
+<h3 id="http版本">HTTP版本
+</h3><h4 id="http10版本">HTTP1.0版本
+</h4><ul>
+<li><strong>无状态协议</strong>：HTTP 1.0 是无状态的，每个请求之间相互独立，服务器不保存任何请求的状态信息。</li>
+<li><strong>非持久连接</strong>：默认情况下，每个 HTTP 请求/响应对之后，连接会被关闭，属于短连接。这意味着对于同一个网站的每个资源请求，如 HTML 页面上的图片和脚本，都需要建立一个新的 TCP 连接。可以设置 <code>Connection: keep-alive</code> 强制开启长连接。</li>
+</ul>
+<h4 id="http11版本">HTTP1.1版本
+</h4><p><strong>新增特性</strong></p>
+<ul>
+<li>
+<p>默认使用长连接即  <strong><code>keep—alive</code></strong> ，允许持久连接。只要任意一端没有明确提出断开连接，则保持 TCP 连接状态。<img src="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/16-%E7%9F%AD%E8%BF%9E%E6%8E%A5%E4%B8%8E%E9%95%BF%E8%BF%9E%E6%8E%A5.png"
+	width="616"
+	height="472"
+	
+	loading="lazy"
+	
+		alt="短连接与长连接"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="130"
+		data-flex-basis="313px"
+	
+></p>
+</li>
+<li>
+<p>支持 <strong><code>pipeline</code></strong>，在同一个 TCP 连接里面，客户端可以发起多个请求，只要第一个请求发出去了，不必等其回来，就可以发第二个请求出去，可以 <strong>减少整体的响应时间。</strong> 但是<strong>服务器必须按照接收请求的顺序发送对这些管道化请求的响应（队尾堵塞）</strong>。</p>
+<p><img src="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/17-%E7%AE%A1%E9%81%93%E7%BD%91%E7%BB%9C%E4%BC%A0%E8%BE%93.png"
+	width="351"
+	height="381"
+	
+	loading="lazy"
+	
+		alt="管道网络传输"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="92"
+		data-flex-basis="221px"
+	
+></p>
+</li>
+<li>
+<p>允许响应数据分块（chunked)，即响应的时候不标明 <strong><code>Content-Length</code></strong> ，客户端就无法断开连接，直到收到服务端的 EOF ，利于传输大文件。</p>
+</li>
+<li>
+<p>新增缓存的控制和管理。</p>
+</li>
+<li>
+<p>请求头中加入了 <strong><code>Host</code></strong> 字段：解决了域名系统（DNS）允许多个主机名绑定到同一个 IP 地址上，而请求报文无法指出所请求的主机名的问题</p>
+</li>
+<li>
+<p>范围请求：HTTP/1.1 引入了范围请求（range request）机制，以避免带宽的浪费。当客户端想请求一个文件的一部分，或者需要继续下载一个已经下载了部分但被终止的文件，HTTP/1.1 可以在请求中加入 <strong><code>Range</code></strong> 头部，以请求（并只能请求字节型数据）数据的一部分。</p>
+</li>
+</ul>
+<p><strong>性能瓶颈</strong></p>
+<ul>
+<li>请求 / 响应头部（Header）未经压缩就发送，首部信息越多延迟越大。只能压缩 <code>Body</code> 的部分；</li>
+<li>发送冗长的首部。每次互相发送相同的首部造成的浪费较多；</li>
+<li>服务器是按请求的顺序响应的，如果服务器响应慢，会招致客户端一直请求不到数据，也就是队头阻塞；</li>
+<li>没有请求优先级控制；</li>
+<li>请求只能从客户端开始，服务器只能被动响应。</li>
+</ul>
+<p><strong>优化思路</strong></p>
+<ul>
+<li>避免发送HTTP请求
+<ul>
+<li>实现方案：采用缓存技术，对于一些具有重复性的 HTTP 请求，可以把这对请求-响应的数据都<strong>缓存在本地</strong>，那么下次就直接读取本地的数据，不必在通过网络获取服务器的响应了</li>
+</ul>
+</li>
+<li>减少HTTP响应数据大小
+<ul>
+<li>实现方案
+<ul>
+<li>无损压缩（适合用在文本文件、程序可执行文件、程序源代码）、</li>
+<li>有损压缩（压缩多媒体数据）</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>减少 HTTP 请求的次数
+<ul>
+<li>实现方案
+<ul>
+<li>减少重定向请求：将原本由客户端处理的重定向请求，交给代理服务器处理，这样可以减少重定向请求的次数</li>
+<li>合并请求：将多个小资源合并成一个大资源再传输，能够减少 HTTP 请求次数以及 头部的重复传输，再来减少 TCP 连接数量，进而省去 TCP 握手和慢启动的网络消耗</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h4 id="http20版本">HTTP2.0版本
+</h4><p><strong>新增特性</strong></p>
+<ul>
+<li><strong>二进制帧</strong>：相较于HTTP/1.1 则使用文本格式的报文，HTTP 2.0 使用二进制而不是文本格式来传输数据，解析更加高效。</li>
+<li><strong>多路复用</strong>：一个 TCP 连接上可以同时进行多个 HTTP 请求/响应，解决了 HTTP 1.x 的队头阻塞问题。</li>
+<li><strong>头部压缩</strong>：HTTP 协议不带状态，所以每次请求都必须附上所有信息。HTTP 2.0 引入了头部压缩机制，可以使用 gzip 或 compress 压缩后再发送，减少了冗余头部信息的带宽消耗。</li>
+<li><strong>服务端推送</strong>：服务器可以主动向客户端推送资源，而不需要客户端明确请求。</li>
+<li><strong>优先级设置</strong> ：HTTP2.0支持优先级设置</li>
+</ul>
+<p><strong>底层实现</strong></p>
+<p><img src="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/image-20240105143224839.png"
+	width="464"
+	height="535"
+	
+	loading="lazy"
+	
+		alt="底层图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="86"
+		data-flex-basis="208px"
+	
+></p>
+<ul>
+<li><strong>Stream</strong> ：一个TCP连接中包含多条 <strong>Stream</strong> ，一个 <strong>Stream</strong>中包含一对请求响应报文</li>
+<li><strong>Message</strong> ：请求或响应报文</li>
+<li><strong>Frame</strong> ：Frame 是 HTTP/2 最小单位，以二进制压缩格式存放 HTTP/1 中的内容（头部和包体）</li>
+</ul>
+<p>在 HTTP/2 连接上，<strong>不同 Stream 的帧是可以乱序发送的（因此可以并发不同的 Stream ）</strong>，因为每个帧的头部会携带 Stream ID 信息，所以接收端可以通过 Stream ID 有序组装成 HTTP 消息，而<strong>同一 Stream 内部的帧必须是严格有序的</strong>。</p>
+<p>客户端和服务器<strong>双方都可以建立 Stream</strong> ，客户端建立的 Stream 必须是奇数号，而服务器建立的 Stream 必须是偶数号。</p>
+<p><img src="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/image-20240105143421889.png"
+	width="1492"
+	height="568"
+	
+	loading="lazy"
+	
+		alt="示例图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="262"
+		data-flex-basis="630px"
+	
+></p>
+<p>HTTP/2 还可以对每个 Stream 设置不同 <strong>优先级</strong></p>
+<h4 id="http30版本">HTTP3.0版本
+</h4><ul>
+<li><strong>传输协议</strong>：HTTP/2.0 是基于 TCP 协议实现的，HTTP/3.0 新增了 QUIC（Quick UDP Internet Connections） 协议来实现可靠的传输，提供与 TLS/SSL 相当的安全性，具有较低的连接和传输延迟。你可以将 QUIC 看作是 UDP 的升级版本，在其基础上新增了很多功能比如加密、重传等等。HTTP/3.0 之前名为 HTTP-over-QUIC，从这个名字中我们也可以发现，HTTP/3 最大的改造就是使用了 QUIC。</li>
+<li><strong>连接建立</strong>：HTTP/2.0 需要经过经典的 TCP 三次握手过程（由于安全的 HTTPS 连接建立还需要 TLS 握手，共需要大约 3 个 RTT）。由于 QUIC 协议的特性（TLS 1.3，TLS 1.3 除了支持 1 个 RTT 的握手，还支持 0 个 RTT 的握手）连接建立仅需 0-RTT 或者 1-RTT。这意味着 QUIC 在最佳情况下不需要任何的额外往返时间就可以建立新连接。</li>
+<li><strong>队头阻塞</strong>：HTTP/2.0 多请求复用一个 TCP 连接，一旦发生丢包，就会阻塞住所有的 HTTP 请求。由于 QUIC 协议的特性，HTTP/3.0 在一定程度上解决了队头阻塞问题，一个连接建立多个不同的数据流，这些数据流之间独立互不影响，某个数据流发生丢包了，其数据流不受影响（本质上是多路复用+轮询）。</li>
+<li><strong>连接迁移</strong>：HTTP/3.0 支持连接迁移，因为 QUIC 使用 64 位 ID 标识连接，只要 ID 不变就不会中断，网络环境改变时（如从 Wi-Fi 切换到移动数据）也能保持连接。而 TCP 连接是由（源 IP，源端口，目的 IP，目的端口）组成，这个四元组中一旦有一项值发生改变，这个连接也就不能用了。</li>
+<li><strong>安全性</strong>：在 HTTP/2.0 中，TLS 用于加密和认证整个 HTTP 会话，包括所有的 HTTP 头部和数据负载。TLS 的工作是在 TCP 层之上，它加密的是在 TCP 连接中传输的应用层的数据，并不会对 TCP 头部以及 TLS 记录层头部进行加密，所以在传输的过程中 TCP 头部可能会被攻击者篡改来干扰通信。而 HTTP/3.0 的 QUIC 对整个数据包（包括报文头和报文体）进行了加密与认证处理，保障安全性。</li>
+</ul>
+<h2 id="https协议">HTTPS协议
+</h2><p>HTTP 是明文传输的，存在数据窃听、数据篡改和身份伪造等问题。而 HTTPS 通过引入 SSL/TLS 解决安全性问题，HTTPS 默认端口号是  <strong>443</strong></p>
+<ul>
+<li><strong>信息加密</strong>：交互信息无法被窃取。</li>
+<li><strong>校验机制</strong>：无法篡改通信内容，篡改了就不能正常显示。</li>
+<li><strong>身份证书</strong>：证明身份。</li>
+</ul>
+<h3 id="加密机制">加密机制
+</h3><h4 id="混合加密">混合加密
+</h4><p>HTTPS 采用的是<strong>对称加密</strong>和<strong>非对称加密</strong>结合的混合加密方式实现消息的机密性，保证消息不被窃听</p>
+<ul>
+<li>在通信建立前（TLS四次握手）采用<strong>非对称加密</strong>的方式交换「会话秘钥」，后续就不再使用非对称加密。</li>
+<li>在通信过程（后续加密通信）中全部使用<strong>对称加密</strong>的「会话秘钥」的方式加密明文数据。</li>
+</ul>
+<div
+  class="notice tip"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
+  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+    </span>提示</p><p><strong>非对称加密和对称加密</strong></p>
+<ul>
+<li>对称加密：双方用会话密钥加密通信内容。</li>
+<li>非对称加密：服务器向客户端发送公钥，然后客户端用公钥加密自己的随机密钥，也就是会话密钥，发送给服务器，服务器用私钥解密，得到会话密钥。
+<ul>
+<li>密钥类型
+<ul>
+<li>公钥：负责加密</li>
+<li>私钥：负责解密</li>
+</ul>
+</li>
+<li>用公钥加密过的密文只有私钥才能解密，用私钥加密过的密文只有公钥才能解密
+<ul>
+<li><strong>公钥加密，私钥解密</strong>。这个目的是为了<strong>保证内容传输的安全</strong>，因为被公钥加密的内容，其他人是无法解密的，只有持有私钥的人，才能解密出实际的内容；</li>
+<li><strong>私钥加密，公钥解密</strong>。这个目的是为了<strong>保证消息不会被冒充</strong>，因为私钥是不可泄露的，如果公钥能正常解密出私钥加密的内容，就能证明这个消息是来源于持有私钥身份的人发送的。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>相较于对称加密，非对称加密的速度慢</li>
+</ul></div>
+
+<h4 id="数字签名和摘要算法">数字签名和摘要算法
+</h4><p>HTTPS 采用的是 <strong>数字签名</strong> 和 <strong>摘要算法</strong> 实现消息的完整性，保证消息不被篡改</p>
+<p><strong>摘要算法</strong> 用于保证消息的 <strong>完整性</strong></p>
+<p>计算机里会 <strong>用摘要算法（哈希函数）来计算出内容的哈希值</strong> ，也就是内容的摘要，这个<strong>哈希值是唯一的，且无法通过哈希值推导出内容</strong>，然后将内容和哈希值一同发送。对方收到后，先是对内容也计算出一个摘要，然后跟发送方发送的摘要做一个比较，如果摘要相同，说明内容没有被篡改，否则就可以判断出内容被篡改了。</p>
+<p><img src="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/%E6%91%98%E8%A6%81%E7%AE%97%E6%B3%95.png"
+	width="1276"
+	height="636"
+	
+	loading="lazy"
+	
+		alt="摘要算法"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="200"
+		data-flex-basis="481px"
+	
+></p>
+<p><strong>数字签名</strong> 用于保证消息保证消息的来源可靠性（能确认消息是由持有私钥的一方发送的）</p>
+<p>数字签名算法利用非对称加密的机制，服务器用私钥对内容的哈希值进行加密，然后服务端会向客户端颁发对应的公钥。如果客户端收到的信息，能被公钥解密，就说明该消息是由服务器发送的。</p>
+<p><img src="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/%E6%95%B0%E5%AD%97%E7%AD%BE%E5%90%8D.png"
+	width="1282"
+	height="652"
+	
+	loading="lazy"
+	
+		alt="数字签名过程"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="196"
+		data-flex-basis="471px"
+	
+></p>
+<h4 id="数字证书">数字证书
+</h4><p>由于客户端的公钥可以被替换或者伪造，导致在通信时攻击者可以使用与自己私钥配对的公钥替换客户端的公钥然后与客户端进行通信</p>
+<p><strong>数字证书</strong> 用于保证公钥无法被伪造或者替换</p>
+<p><img src="https://cdn.xiaolincoding.com/gh/xiaolincoder/ImageHost/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/HTTP/22-%E6%95%B0%E5%AD%97%E8%AF%81%E4%B9%A6%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B.png"
+	
+	
+	
+	loading="lazy"
+	
+		alt="数子证书工作流程"
+	
+	
+></p>
+<ul>
+<li>服务器将自己的公钥注册到数字证书认证机构（CA）</li>
+<li>CA 使用自己的私钥将服务器的公钥进行加密</li>
+<li>客户端拿到服务器的数字证书后，使用CA的公钥确认服务器的数字证书的真实性</li>
+<li>客户端从数字证书获取服务器公钥后，使用已被验证的公钥进行加密后发送</li>
+<li>服务器用私钥对报文解密</li>
+</ul>
+<h4 id="生活例子解释">生活例子解释
+</h4><p>你想向老师请假，一般来说是要求由家长写一份请假理由并签名，老师才能允许你请假</p>
+<p>这里的老师对应于客户端，家长对应服务端，你对应一名攻击者。</p>
+<p><strong>为什么需要数字签名？</strong></p>
+<p>假设你有模仿家长字迹的能力，你用家长的字迹写了一份请假条然后签上你爸爸的名字，老师一看到这个请假条，查看字迹和签名，就误以为是家长写的，就会允许你请假。</p>
+<p>引入了数字签名算法后，你就无法模仿家长的字迹来请假了，家长手上持有着私钥，老师持有着公钥。</p>
+<p>其中请假条中的签名对于数字签名，字迹对应内容</p>
+<p>这样只有用家长手上的私钥才对请假条进行签名，老师通过公钥看能不能解出这个签名，如果能解出并且确认内容的完整性，就能证明是由家长发起的请假条，这样老师才允许你请假，否则老师就不认。</p>
+<p><strong>为什么需要数字证书？</strong></p>
+<p>虽然家长持有私钥，老师通过是否能用公钥解密来确认这个请假条是不是来源你父亲的。但是我们还可以自己伪造出一对公私钥啊！</p>
+<p>你找了个夜晚，偷偷把老师桌面上和你爸爸配对的公钥，换成了你的公钥，那么下次你在请假的时候，你继续模仿你爸爸的字迹写了个请假条，然后用你的私钥做个了「数字签名」。</p>
+<p>但是老师并不知道自己的公钥被你替换过了，所以他还是按照往常一样用公钥解密，由于这个公钥和你的私钥是配对的，老师当然能用这个被替换的公钥解密出来，并且确认了内容的完整性，于是老师就会以为是家长写的请假条，又允许你请假了。</p>
+<h4 id="通信过程">通信过程
+</h4><p><img src="/640"
+	
+	
+	
+	loading="lazy"
+	
+		alt="通信过程"
+	
+	
+></p>
+<p><strong>第一阶段</strong>是TLS四次握手，这一阶段主要是利用<strong>非对称加密</strong>的特性各种交换信息，最后得到一个&quot;会话秘钥&quot;。</p>
+<p><strong>第二阶段</strong>是则是在第一阶段的&quot;<strong>会话秘钥</strong>&ldquo;基础上，进行<strong>对称加密</strong>通信。</p>
+<p><img src="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/640.png"
+	width="1080"
+	height="1283"
+	
+	loading="lazy"
+	
+		alt="四次握手过程"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="84"
+		data-flex-basis="202px"
+	
+></p>
+<ul>
+<li>第一次握手：由客户端向服务器发起加密通信请求，也就是 ClientHello 请求。
+<ul>
+<li>客户端支持的 TLS 协议版本，如 TLS 1.2 版本。</li>
+<li>客户端生产的随机数 <strong><code>（Client Random）</code></strong> ，后面用于生成「会话秘钥」条件之一。</li>
+<li>客户端支持的密码套件列表，如 RSA 加密算法。</li>
+</ul>
+</li>
+<li>第二次握手：服务器收到客户端请求后，向客户端发出响应，也就是 SeverHello 响应
+<ul>
+<li>确认 TLS 协议版本，如果浏览器不支持，则关闭加密通信。</li>
+<li>服务器生产的随机数 <strong><code>（Server Random）</code></strong> ，也是后面用于生产「会话秘钥」条件之一。</li>
+<li>确认的密码套件列表，如 RSA 加密算法。</li>
+<li>服务器的数字证书，包含被CA私钥加密过的服务器公钥。</li>
+</ul>
+</li>
+<li>第三次握手：客户端收到服务器的回应之后，通过浏览器或者操作系统中的 CA 公钥，确认服务器的数字证书的真实性。客户端会<strong>从数字证书中取出服务器的公钥</strong>，然后使用它加密报文，向服务器发送如下信息：
+<ul>
+<li>一个随机数 <strong><code>（pre-master key）</code></strong> ：该随机数由客户端生成，并被服务器公钥加密。</li>
+<li>会话密钥： 客户端这边<strong>已经拥有三个随机数</strong>：客户端随机数，服务器随机数和 <strong><code>pre_master_key</code></strong> ，用这三个随机数进行计算得到一个<strong>会话秘钥</strong>&quot;。此时客户端通知服务端，后面会用这个会话秘钥进行对称机密通信。</li>
+<li>内容摘要：客户端会把迄今为止的通信数据内容生成一个摘要，用 <strong>会话秘钥</strong> 加密一下，发给服务器做校验，此时客户端这边的握手流程就结束了，因此也叫<strong>Finished报文</strong>。</li>
+</ul>
+</li>
+<li>第四次握手：服务器收到客户端的第三个随机数 <strong><code>（pre-master key）</code></strong> 之后，通过协商的加密算法，计算出本次通信的 <strong>会话秘钥</strong> 。
+<ul>
+<li>会话密钥：服务端此时拿到客户端传来的 <strong><code>pre_master_key</code></strong>（虽然被服务器公钥加密过，但服务器有私钥，能解密获得原文），集齐三个随机数，跟客户端一样，用这三个随机数通过同样的算法获得一个&rdquo;<strong>会话秘钥</strong>&quot;。此时服务器告诉客户端，后面会用这个&quot;会话秘钥&quot;进行加密通信。</li>
+<li>服务器握手结束通知，表示服务器的握手阶段已经结束。这一项同时把之前所有内容的发生的数据做个摘要，用来供客户端校验。</li>
+</ul>
+</li>
+</ul>
+<h2 id="dns域名解析协议">DNS（域名解析协议）
+</h2><p>DNS的全称是Domain Name System（域名系统），它是互联网中用于将域名转换为对应IP地址的分布式数据库系统。</p>
+<p><strong>DNS 是应用层协议，基于 UDP 协议之上，端口为 53</strong> 。</p>
+<h3 id="dns服务器">DNS服务器
+</h3><ul>
+<li>根 DNS 服务器：根 DNS 服务器提供 TLD 服务器的 IP 地址。目前世界上只有 13 组根服务器，我国境内目前仍没有根服务器。</li>
+<li>顶级域 DNS 服务器（TLD 服务器）：顶级域是指域名的后缀，如<code>com</code>、<code>org</code>、<code>net</code>和<code>edu</code>等。国家也有自己的顶级域，如<code>uk</code>、<code>fr</code>和<code>ca</code>。TLD 服务器提供了权威 DNS 服务器的 IP 地址。</li>
+<li>权威 DNS 服务器：在因特网上具有公共可访问主机的每个组织机构必须提供公共可访问的 DNS 记录，这些记录将这些主机的名字映射为 IP 地址。</li>
+<li>本地 DNS 服务器：每个 ISP（互联网服务提供商）都有一个自己的本地 DNS 服务器。当主机发出 DNS 请求时，该请求被发往本地 DNS 服务器，它起着代理的作用，并将该请求转发到 DNS 层次结构中。严格说来，不属于 DNS 层级结构</li>
+</ul>
+<p><img src="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/5.jpg"
+	width="621"
+	height="420"
+	
+	loading="lazy"
+	
+		alt="DNS 树状结构"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="147"
+		data-flex-basis="354px"
+	
+></p>
+<h3 id="域名解析过程">域名解析过程
+</h3><p><img src="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/DNS-process.png"
+	width="496"
+	height="539"
+	
+	loading="lazy"
+	
+		alt="迭代式域名解析过程"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="92"
+		data-flex-basis="220px"
+	
+></p>
+<ul>
+<li><strong>域名解析请求</strong>：用户在浏览器中输入一个域名，浏览器首先检查本地缓存（如果有的话）是否存有该域名的 IP 地址。</li>
+<li><strong>本地DNS解析</strong>：如果本地缓存中没有所需的 IP 地址，浏览器会向配置的 <strong>本地 DNS 服务器</strong> 发送请求。若存在则直接返回</li>
+<li><strong>根DNS解析</strong> ：如果 <strong>本地DNS服务器</strong> 中没有所需的 IP 地址，<strong>本地 DNS 服务器</strong> 向 <strong>根DNS服务器</strong> 发出请求，查询 <strong>根DNS</strong> 以获取 <strong>顶级域（TLD）的 DNS</strong> 地址。 <strong>根DNS</strong> 负责将 <strong>顶级域DNS</strong> 的IP地址发回到 <strong>本地DNS</strong> 。</li>
+<li><strong>顶级域DNS解析</strong> ：<strong>本地DNS</strong> 向 <strong>顶级域DNS</strong> 发出请求，查询 <strong>顶级域DNS</strong> 以获取 <strong>权威DNS</strong> 地址。 <strong>顶级域DNS</strong> 负责将 <strong>权威DNS</strong> 的IP地址发回到 <strong>本地DNS</strong> 。</li>
+<li><strong>权威DNS解析</strong> ：<strong>本地DNS</strong> 向 <strong>权威DNS</strong> 发出请求，查询 <strong>权威DNS</strong> 以获取 <strong>域名对应的IP地址</strong> 。 <strong>权威DNS</strong> 负责将 <strong>域名对应的IP地址</strong> 发回到 <strong>本地DNS</strong> 。</li>
+<li>浏览器缓存该 IP 地址以供后续请求使用，并通过 IP 地址连接到目标服务器以访问网站内容</li>
+</ul>
+<h2 id="rpc远程过程调用">RPC（<strong>远程过程调用</strong>）
+</h2><p><strong>RPC</strong>（<strong>R</strong>emote <strong>P</strong>rocedure <strong>C</strong>all），又叫做<strong>远程过程调用</strong>。它本身并不是一个具体的协议，而是一种<strong>调用方式</strong>。</p>
+<h3 id="服务发现">服务发现
+</h3><p>在 <strong>HTTP</strong> 中，你知道服务的域名，就可以通过 <strong>DNS 服务</strong>去解析得到它背后的 IP 地址，默认 80 端口。</p>
+<p>而 <strong>RPC</strong> 的话，就有些区别，一般会有专门的<strong>中间服务</strong>去保存服务名和IP信息，比如 <strong>Consul 或者 Etcd，甚至是 Redis</strong>。想要访问某个服务，就去这些中间服务去获得 IP 和端口信息。由于 DNS 也是服务发现的一种，所以也有基于 DNS 去做服务发现的组件，比如<strong>CoreDNS</strong>。</p>
+<h3 id="底层连接形式">底层连接形式
+</h3><p>主流的 <strong>HTTP/1.1</strong> 协议为例，其默认在建立底层 TCP 连接之后会一直保持这个连接（<strong>Keep Alive</strong>），之后的请求和响应都会复用这条连接。</p>
+<p>而 <strong>RPC</strong> 协议，也跟 HTTP 类似，也是通过建立 TCP 长链接进行数据交互，但不同的地方在于，RPC 协议一般还会再建个<strong>连接池</strong>，在请求量大的时候，建立多条连接放在池内，要发数据的时候就从池里取一条连接出来，<strong>用完放回去，下次再复用</strong>，可以说非常环保。</p>
+<h2 id="websocket">WebSocket
+</h2><p>WebSocket 适用于需要实时通信和双向数据流的场景，而 HTTP 更适合于传统的客户端与服务器之间的短时请求响应场景。</p>
+<p>WebSocket 是一种基于 TCP 连接的全双工通信协议，即客户端和服务器可以同时发送和接收数据。客户端和服务器仅需一次握手，两者之间就直接可以创建持久性的连接，并进行双向数据传输。</p>
+<div
+  class="notice tip"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
+  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+    </span>提示</p><p>全双工和半双工的概念</p>
+<ul>
+<li><strong>全双工</strong> ：<strong>同一时间里</strong>，<strong>双方</strong>都可以<strong>主动</strong>向对方发送数据。</li>
+<li><strong>半双工</strong> ：<strong>同一时间里</strong>，客户端和服务器<strong>只能有一方主动</strong>发数据</li>
+</ul></div>
+
+<h3 id="与http的区别">与HTTP的区别
+</h3><ul>
+<li>WebSocket 是一种双向实时通信协议，客户端和服务器建立持久连接后，双方可以随时发送消息，直到主动关闭连接</li>
+<li>HTTP 是一种单向通信协议。HTTP 协议基于请求/响应模型，下的通信只能由客户端发起，服务器无法主动通知客户端</li>
+</ul>
+<h3 id="http轮询和长轮询">HTTP轮询和长轮询
+</h3><p>为了实现类似服务器主动发送消息给客户端的场景，有HTTP轮询和长轮询两种实现方案</p>
+<h4 id="http轮询">HTTP轮询
+</h4><p><strong>网页的前端代码里不断定时发 HTTP 请求到服务器，服务器收到请求后给客户端响应消息。</strong>。这是一种伪实现。本质上并不是服务器主动发消息到客户端，而是客户端自己不断偷偷请求服务器，只是用户无感知而已。</p>
+<p><strong>缺点</strong></p>
+<ul>
+<li>消耗带宽，同时也会增加下游服务器的负担。</li>
+<li>使用体验上会出现 <strong>明显的卡顿</strong> ，用户需要等个 1~2 秒，正好才触发下一次 HTTP 请求</li>
+</ul>
+<h4 id="长轮询">长轮询
+</h4><p>将HTTP 请求的 <strong>超时时间设置的很大</strong> ，比如 30 秒，<strong>在这 30 秒内只要服务器收到了请求，就立马返回给客户端。如果超时，那就立马发起下一次请求。</strong></p>
+<p>这样就减少了 HTTP 请求的个数，并且由于大部分情况下，响应也是及时的。</p>
+<h3 id="websocket握手过程">WebSocket握手过程
+</h3><ul>
+<li>客户端向服务器发送一个 HTTP 请求，请求头中包含 <strong><code>Upgrade: websocket</code></strong> 和 <strong><code>Sec-WebSocket-Key</code></strong> 等字段，表示要求升级协议为 <strong>WebSocket</strong> ；
+<ul>
+<li><strong><code>Upgrade: websocket</code></strong> ：请求升级协议到 <strong>WebSocket</strong></li>
+<li><strong><code>Sec-WebSocket-Key</code></strong>  ：<strong>随机生成的 base64 码</strong></li>
+</ul>
+</li>
+<li>服务器收到这个请求后，会进行升级协议的操作，如果支持 WebSocket，它将回复一个 HTTP 101 状态码，响应头中包含 ，<strong><code>Connection: Upgrade</code></strong> 和 <strong><code>Sec-WebSocket-Accept: xxx</code></strong> 等字段、表示成功升级到 WebSocket 协议。
+<ul>
+<li><strong><code>Connection: Upgrade</code></strong> ：支持协议切换</li>
+<li><strong><code>Sec-WebSocket-Accept</code></strong> ：根据客户端生成的 <strong><code>Sec-WebSocket-Key</code></strong> ，用 <strong>公开的</strong> 算法变成另一段字符串</li>
+</ul>
+</li>
+<li>客户端也用同样的<strong>公开算法</strong>将 <strong><code>Sec-WebSocket-Key</code></strong> 转成另一段字符串，如果这段字符串跟服务器传回来的 <strong><code>Sec-WebSocket-Accept</code></strong> <strong>一致</strong>，那验证通过。客户端和服务器之间建立了一个 WebSocket 连接，可以进行双向的数据传输。</li>
+<li>数据以帧（frames）的形式进行传送，WebSocket 的每条消息可能会被切分成多个数据帧（最小单位）。发送端会将消息切割成多个帧发送给接收端，接收端接收消息帧，并将关联的帧重新组装成完整的消息。</li>
+<li>客户端或服务器可以主动发送一个关闭帧，表示要断开连接。另一方收到后，也会回复一个关闭帧，然后双方关闭 TCP 连接。</li>
+</ul>
+<h2 id="tomcat服务器">Tomcat服务器
+</h2><h3 id="基本使用">基本使用
+</h3><p><strong>启动Tomcat服务器</strong>：双击Tomcat服务器目录下的bin\startup.bat</p>
+<p><strong>关闭Tomcat服务器</strong></p>
+<ul>
+<li><strong>CTRL+C</strong>：正常关闭</li>
+<li><strong>直接关闭运行窗口</strong>：强制关闭</li>
+<li><strong>双击Tomcat服务器目录下的bin\shutdown.bat</strong>：正常关闭</li>
+</ul>
+<p><strong>部署项目</strong>：将应用放入webapps目录下</p>
+<h3 id="tomcat服务器的目录结构">Tomcat服务器的目录结构
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Tomcat/
+</span></span><span class="line"><span class="cl">|--bin（可执行文件）
+</span></span><span class="line"><span class="cl">|--conf（配置文件）
+</span></span><span class="line"><span class="cl">|--lib（Tomcat依赖的jar包）
+</span></span><span class="line"><span class="cl">|--logs（日志文件）
+</span></span><span class="line"><span class="cl">|--temp（测试代码资源）
+</span></span><span class="line"><span class="cl">|--webapps（应用发布目录）
+</span></span><span class="line"><span class="cl">|--resource（工作目录）
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/Tomcat%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84.png"
+	width="240"
+	height="162"
+	
+	loading="lazy"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="355px"
+	
+></p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9F%BA%E7%A1%80/">计算机基础</a>
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2025-02-10 08:24 UTC
+        </span>
+    </section></footer>
+
+
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI&#43;WdtXRGWt2kTvGFasHpSy3SV"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG&#43;vnGctmUb0ZY0l8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"integrity="sha384-&#43;VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4&#43;/RRE05"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+        renderMathInElement(document.body, {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ],
+            ignoredClasses: ["gist"]
+        });})
+</script>
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/%E7%BD%91%E7%BB%9C%E5%88%86%E5%B1%82%E6%A8%A1%E5%9E%8B/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">网络分层模型</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/java%E4%B8%AD%E7%9A%84%E5%BC%82%E6%AD%A5%E8%B0%83%E7%94%A8/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java中的异步调用</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/java%E7%9A%84%E9%98%BB%E5%A1%9E%E9%98%9F%E5%88%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java的阻塞队列</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/java%E7%9A%84%E7%BA%BF%E7%A8%8B%E6%B1%A0%E6%8A%80%E6%9C%AF/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java的线程池技术</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/java%E4%B8%AD%E7%9A%84%E5%8E%9F%E5%AD%90%E6%93%8D%E4%BD%9C%E7%B1%BB/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java中的原子操作类</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2025 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

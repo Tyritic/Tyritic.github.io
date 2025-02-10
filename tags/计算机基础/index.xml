@@ -7,6 +7,991 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh-cn</language>
         <copyright>Tyritic</copyright><atom:link href="https://Tyritic.github.io/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9F%BA%E7%A1%80/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>应用层和HTTP协议</title>
+        <link>https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/</link>
+        <pubDate>Sun, 09 Jun 2024 10:51:40 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/</guid>
+        <description>&lt;h2 id=&#34;网络应用程序的常见架构&#34;&gt;网络应用程序的常见架构
+&lt;/h2&gt;&lt;h3 id=&#34;客户端服务器结构cs结构&#34;&gt;客户端—服务器结构（CS结构）
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;设置一台或多台高性能计算机（服务器集群）作为服务端，接受其他主机（客户端）的请求
+&lt;ul&gt;
+&lt;li&gt;服务端总是打开，并具有固定的地址&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;客户端之间 &lt;strong&gt;不能直接通信&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;需要安装特定的客户端软件，该客户端需要承担部分业务逻辑&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;浏览器服务器结构bs结构&#34;&gt;浏览器—服务器结构（BS结构）
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;客户端仅使用浏览器（Browser）作为访问入口&lt;/strong&gt;，完成不需要安装额外的软件。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;所有的业务逻辑和数据处理都在服务器端（Server）&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;点对点结构p2p结构&#34;&gt;点对点结构（P2P结构）
+&lt;/h3&gt;&lt;p&gt;P2P（Peer-to-Peer）架构是一种&lt;strong&gt;去中心化的网络架构&lt;/strong&gt;，每个节点（Peer）既可以作为&lt;strong&gt;客户端（请求资源）&lt;/strong&gt;，也可以作为&lt;strong&gt;服务器（提供资源）&lt;/strong&gt;，节点之间可以直接通信、共享资源，而无需依赖中央服务器。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;对服务器具有最小依赖&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;具有自拓展性&lt;/strong&gt; ：网络能够随着节点（Peer）数量的增加，自主扩展计算能力、存储容量和带宽，而不依赖中央服务器。每个对等节点都由于接受请求产生工作负荷，但是每个对等节点向其他对等节点分发文件也为系统增加服务能力&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;进程与网络之间的接口socket&#34;&gt;进程与网络之间的接口（Socket）
+&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;Socket（套接字）&lt;/strong&gt; 是计算机网络中用于 &lt;strong&gt;进程间通信（IPC, Inter-Process Communication）&lt;/strong&gt; 的一种机制，它可以让不同计算机上的进程通过网络进行通信。Socket 提供了一种标准化的接口，使应用程序能够发送和接收数据，而不需要关心底层网络协议的实现细节。&lt;/p&gt;
+&lt;h2 id=&#34;超文本传输协议http&#34;&gt;超文本传输协议（HTTP）
+&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;HTTP（超文本传输协议，HyperText Transfer Protocol）&lt;/strong&gt; 是一种 &lt;strong&gt;无状态、基于请求-响应模式&lt;/strong&gt; 的 &lt;strong&gt;应用层协议&lt;/strong&gt; ，用于在 &lt;strong&gt;Web 浏览器和服务器之间&lt;/strong&gt; 传输数据，如 HTML 页面、图片、视频等。&lt;/p&gt;
+&lt;p&gt;HTTP 是 &lt;strong&gt;互联网的基础协议&lt;/strong&gt;，它构建在 &lt;strong&gt;TCP/IP 协议&lt;/strong&gt; 之上，使得客户端（如浏览器）和服务器可以相互通信。默认端口为 80&lt;/p&gt;
+&lt;h3 id=&#34;uri和url&#34;&gt;URI和URL
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;URI(Uniform Resource Identifier)&lt;/strong&gt; 全称是统一资源标志符，可以唯一标识一个资源。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;URL(Uniform Resource Locator)&lt;/strong&gt; 全称是统一资源定位符，可以提供该资源的路径。它是一种具体的 URI，即 URL 可以用来标识一个资源，而且还指明了如何 locate 这个资源。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;基本工作模型&#34;&gt;基本工作模型
+&lt;/h3&gt;&lt;p&gt;基于 &lt;strong&gt;请求—响应&lt;/strong&gt; 模型进行工作，客户端向服务器发送 HTTP Request（请求），服务器响应请求并返回 HTTP Response（响应）&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/450px-HTTP-Header.png&#34;
+	width=&#34;450&#34;
+	height=&#34;340&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;基本工作模型&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;132&#34;
+		data-flex-basis=&#34;317px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;HTTP客户端先建立与服务端的TCP连接&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;浏览器发起到服务器的 TCP 连接（创建套接字 &lt;strong&gt;&lt;code&gt;Socket&lt;/code&gt;&lt;/strong&gt;）。&lt;/li&gt;
+&lt;li&gt;服务器接收来自浏览器的 TCP 连接。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;客户端进程和服务器进程通过 &lt;strong&gt;&lt;code&gt;Socket&lt;/code&gt;&lt;/strong&gt; 访问网络连接&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;客户端从 &lt;strong&gt;&lt;code&gt;Socket&lt;/code&gt;&lt;/strong&gt; 发出请求并接受响应&lt;/li&gt;
+&lt;li&gt;服务端从 &lt;strong&gt;&lt;code&gt;Socket&lt;/code&gt;&lt;/strong&gt; 接受请求并发送响应&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;协议特点&#34;&gt;协议特点
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;无状态协议&lt;/strong&gt; ：HTTP 协议是 &lt;strong&gt;无状态&lt;/strong&gt; 的协议，它无法记录客户端用户的状态，一般我们都是通过 &lt;strong&gt;&lt;code&gt;Session&lt;/code&gt;&lt;/strong&gt; 来记录客户端用户的状态。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;明文传输&lt;/strong&gt; ：默认情况下数据不加密，容易被监听（可用 HTTPS 加密）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;基于请求—响应机制&lt;/strong&gt; ：客户端发送请求，服务器返回响应。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;可靠传输&lt;/strong&gt; ：HTTP 通过 &lt;strong&gt;TCP协议（三次握手）&lt;/strong&gt; 确保可靠传输。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;http状态码&#34;&gt;HTTP状态码
+&lt;/h3&gt;&lt;p&gt;状态码由 &lt;strong&gt;3&lt;/strong&gt; 位数字组成，第一位定义 &lt;strong&gt;响应的类别&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;1xx: 信息响应&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;100 Continue&lt;/strong&gt;：服务器已接收请求的初步部分，客户端应继续请求。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;101 Switching Protocols&lt;/strong&gt;：服务器同意切换协议，如从 HTTP 切换到 WebSocket。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;2xx: 成功&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;200 OK&lt;/strong&gt;：请求成功，服务器返回所请求的资源或数据。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;201 Created&lt;/strong&gt;：请求成功并创建了新的资源，常用于 POST 请求。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;204 No Content&lt;/strong&gt;：请求成功但服务器不返回任何内容，常用于删除操作。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;206 Partial Content&lt;/strong&gt; ：应用于 HTTP 分块下载或断点续传，表示响应返回的 body 数据并不是资源的全部，而是其中的一部分，也是服务器处理成功的状态。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;3xx: 重定向&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;301 Moved Permanently&lt;/strong&gt;：资源已永久移动到新的 URL，客户端应使用新 URL 访问。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;302 Found&lt;/strong&gt;：资源临时移动到新的 URL，客户端应继续使用原来的 URL。搜索引擎会抓取新的内容而保存旧的网址并认为新的网址只是暂时的。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;304 Not Modified&lt;/strong&gt;：资源未修改，客户端可以使用缓存版本。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;4xx: 客户端错误&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;400 Bad Request&lt;/strong&gt;：请求无效或语法错误，服务器无法处理。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;401 Unauthorized&lt;/strong&gt;：请求需要身份验证，客户端未提供有效的凭证。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;403 Forbidden&lt;/strong&gt;：服务器理解请求但拒绝执行，通常是权限问题。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;404 Not Found&lt;/strong&gt;：请求的资源在服务器上未找到。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;5xx: 服务器错误&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;500 Internal Server Error&lt;/strong&gt;：服务器内部错误，无法完成请求。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;501 Not Implemented&lt;/strong&gt; ：客户端请求的功能还不支持，类似“即将开业，敬请期待”的意思。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;502 Bad Gateway&lt;/strong&gt;：服务器作为网关或代理，从上游服务器接收到无效响应。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;503 Service Unavailable&lt;/strong&gt;：服务器暂时无法处理请求，通常是因为过载或维护。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;style type=&#34;text/css&#34;&gt;
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+&lt;/style&gt;&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;ul&gt;
+&lt;li&gt;重定向机制的区别
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;301 Moved Permanently&lt;/strong&gt; ：用于临时重定向，不会更新书签。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;302 Found&lt;/strong&gt; ：用于永久重定向，通常会更新客户端的书签&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h3 id=&#34;http请求方法&#34;&gt;HTTP请求方法
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;GET&lt;/strong&gt; ：用于请求获取指定资源，通常用于获取数据。
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;GET&lt;/strong&gt; 请求的参数位置一般是写在 &lt;strong&gt;URL&lt;/strong&gt; 中，但是浏览器会对 URL 的长度有限制（HTTP协议本身对 URL长度并没有做任何规定）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;POST&lt;/strong&gt; ：用于向服务器提交数据，通常用于提交表单数据或进行资源的创建。
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;POST&lt;/strong&gt; 请求携带数据的位置一般是写在报文请求体 &lt;strong&gt;body&lt;/strong&gt; 中，请求体中的数据可以是任意格式的数据，只要客户端与服务端协商好即可，而且浏览器不会对请求体大小做限制。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;PUT&lt;/strong&gt; ：用于向服务器更新指定资源，通常用于更新已存在的资源。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;DELETE&lt;/strong&gt; ：用于请求服务器删除指定资源。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;HEAD&lt;/strong&gt; ：类似于GET请求，但只返回资源的头部信息，用于获取资源的元数据而不获取实际内容。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;&lt;strong&gt;GET&lt;/strong&gt; 和 &lt;strong&gt;POST&lt;/strong&gt; 的区别&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;定义
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;GET&lt;/strong&gt;：用于获取资源，通常用于请求数据而不改变服务器状态。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;POST&lt;/strong&gt;：用于提交数据到服务器，通常会改变服务器的状态或产生副作用（如创建或更新资源）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;参数传递方式
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;GET&lt;/strong&gt;：参数通过 URL 拼接传递，暴露在请求 URL 中，具有可见性，长度有限（取决于浏览器和服务器）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;POST&lt;/strong&gt;：参数放在请求体中，通常不可见且长度理论上没有限制，更适合传递大量数据或敏感信息（但是注意，POST 也可以在 URL 上放参数！）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;安全性
+&lt;ul&gt;
+&lt;li&gt;数据安全性
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;GET&lt;/strong&gt;：参数可见，数据容易暴露在浏览器历史记录、日志和缓存中，不适合传递敏感信息。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;POST&lt;/strong&gt;：数据放在请求体中，相对安全，但需要 &lt;strong&gt;HTTPS&lt;/strong&gt; 才能保证数据加密传输。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;HTTP定义：在 HTTP 协议里，所谓的 &lt;strong&gt;安全&lt;/strong&gt; 是指请求方法不会 &lt;strong&gt;破坏&lt;/strong&gt; 服务器上的资源。
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;GET&lt;/strong&gt; ：是 &lt;strong&gt;只读&lt;/strong&gt; 操作，无论操作多少次，服务器上的数据都是安全的，且每次的结果都是相同的。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;POST&lt;/strong&gt; ：是 &lt;strong&gt;新增或提交数据&lt;/strong&gt; 的操作，会修改服务器上的资源&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;幂等性：多次执行相同的操作，结果都是相同的
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;GET&lt;/strong&gt; ：&lt;strong&gt;GET&lt;/strong&gt; 具有幂等性，&lt;strong&gt;GET&lt;/strong&gt; 是 &lt;strong&gt;只读&lt;/strong&gt; 操作，无论操作多少次，服务器上的数据都是安全的，且每次的结果都是相同的。（重复请求不会改变服务器状态）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;POST&lt;/strong&gt; ：&lt;strong&gt;POST&lt;/strong&gt; 具有非幂等，&lt;strong&gt;POST&lt;/strong&gt; 是 &lt;strong&gt;新增或提交数据&lt;/strong&gt; 的操作，会修改服务器上的资源（多次请求可能导致重复创建资源或执行多次相同操作）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;缓存机制
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;GET&lt;/strong&gt; ：可以对 &lt;strong&gt;GET&lt;/strong&gt; 请求的数据做缓存，当请求同一个 URL 时可以直接返回缓存内容，减少服务器负载。适用于不频繁变动的资源，比如图片、静态页面。
+&lt;ul&gt;
+&lt;li&gt;缓存可以做到浏览器本身上（彻底避免浏览器发请求）&lt;/li&gt;
+&lt;li&gt;缓存可以做到代理上，而且在浏览器中 &lt;strong&gt;GET&lt;/strong&gt; 请求可以保存为书签。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;POST&lt;/strong&gt; ：&lt;strong&gt;POST&lt;/strong&gt; 请求默认不缓存，大部分浏览器和缓存服务器不缓存 POST 请求，主要因为 POST 请求通常会对服务器数据产生影响（如创建、修改数据），需要确保请求每次都传递到服务器。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h3 id=&#34;http报文格式&#34;&gt;HTTP报文格式
+&lt;/h3&gt;&lt;h4 id=&#34;请求报文&#34;&gt;请求报文
+&lt;/h4&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/HTTP%E8%AF%B7%E6%B1%82%E5%8D%8F%E8%AE%AE.png&#34;
+	width=&#34;1062&#34;
+	height=&#34;585&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;HTTP请求报文&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;181&#34;
+		data-flex-basis=&#34;435px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;HTTP 请求报文由三个部分组成(请求行+请求头+请求体)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;请求行 （红色部分）&lt;/strong&gt; ：请求报文的第一行
+&lt;ul&gt;
+&lt;li&gt;请求方法（如&lt;strong&gt;GET&lt;/strong&gt;、&lt;strong&gt;POST&lt;/strong&gt; ）&lt;/li&gt;
+&lt;li&gt;请求的资源路径 &lt;strong&gt;URI&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;HTTP协议版本（如HTTP/1.1）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;请求头（深黄色部分）&lt;/strong&gt;：以键值对的形式表现，用于传递客户端环境、请求内容、认证信息等。
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;实体头部&lt;/strong&gt; ：描述请求体的头部
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Content-Length&lt;/code&gt;&lt;/strong&gt; ：表明本次请求的数据长度。用于服务端进行拆包
+&lt;ul&gt;
+&lt;li&gt;当客户端发送一个HTTP请求时，会在请求头中添加 &lt;strong&gt;&lt;code&gt;Content-Length&lt;/code&gt;&lt;/strong&gt; 字段，该字段的值表示请求正文的字节数。服务器在接收到请求后，会根据 &lt;strong&gt;&lt;code&gt;Content-Length&lt;/code&gt;&lt;/strong&gt; 字段的值来确定请求的长度，并从请求中读取相应数量的字节，直到读取完整个请求内容。这种基于 &lt;strong&gt;&lt;code&gt;Content-Length&lt;/code&gt;&lt;/strong&gt; 字段的拆包机制可以确保服务器正确接收到完整的请求，避免了请求的丢失或截断问题。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Content-Type&lt;/code&gt;&lt;/strong&gt; ：请求体的多媒体类型（用于 POST 和 PUT 请求中）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;通用头部&lt;/strong&gt;：适用于请求和响应
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Cache-Control&lt;/code&gt;&lt;/strong&gt; ：用来指定在这次的请求/响应链中的所有缓存机制都必须 遵守的指令&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Connection&lt;/code&gt;&lt;/strong&gt; ：该浏览器想要优先使用的连接类型（持久连接还是非持久连接）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;请求头部&lt;/strong&gt;：特定于请求的头部
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Host&lt;/code&gt;&lt;/strong&gt; ：客户端发送请求时，用来指定服务器的域名。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;User-Agent&lt;/code&gt;&lt;/strong&gt; ：浏览器的浏览器身份标识字符串&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Accept&lt;/code&gt;&lt;/strong&gt; ：能够接受的回应内容类型（Content-Types）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Accept-Encoding&lt;/code&gt;&lt;/strong&gt; ：能够接受的编码方式列表&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Accept-Language&lt;/code&gt;&lt;/strong&gt; ：能够接受的回应内容的自然语言列表。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Cookie&lt;/code&gt;&lt;/strong&gt; ：服务器通过 Set-Cookie发送的一个超文本传输协议 Cookie&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Authorization&lt;/code&gt;&lt;/strong&gt; ：用于超文本传输协议的认证的认证信息&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;空行&lt;/strong&gt;：用于分隔请求头和请求体。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;请求体&lt;/strong&gt;：仅在POST、PUT等方法中存在，包含需要发送到服务器的数据。
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;表单数据（Form Data）&lt;/strong&gt;：&lt;strong&gt;&lt;code&gt;application/x-www-form-urlencoded&lt;/code&gt;&lt;/strong&gt;，用于提交表单数据。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;多部分数据（Multipart Data）&lt;/strong&gt;：&lt;code&gt;multipart/form-data&lt;/code&gt;，用于上传文件或复杂表单数据。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;JSON数据&lt;/strong&gt;：&lt;strong&gt;&lt;code&gt;application/json&lt;/code&gt;&lt;/strong&gt; ，用于提交JSON格式的数据。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;XML数据&lt;/strong&gt;：&lt;strong&gt;&lt;code&gt;application/xml&lt;/code&gt;&lt;/strong&gt; ，用于提交XML格式的数据。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;文本数据&lt;/strong&gt;：&lt;strong&gt;&lt;code&gt;text/plain&lt;/code&gt;&lt;/strong&gt; ，用于提交纯文本数据。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;请求解析过程&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;请求行解析&lt;/strong&gt;：根据 HTTP 请求的第一行（请求行），服务器首先解析出请求方法、请求 URI 和协议版本。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;请求头解析&lt;/strong&gt;：请求头的格式为 &lt;strong&gt;&lt;code&gt;key: value&lt;/code&gt;&lt;/strong&gt;，可以通过换行符来分隔每一行的头部信息。头部信息指示了客户端的行为、首选内容类型、缓存控制等。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;请求体解析&lt;/strong&gt;：对于包含请求体的请求（如 POST 或 PUT），服务器需要解析请求体的内容。通常，内容类型会告知服务器如何解析请求体。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;请求路由与处理&lt;/strong&gt;：HTTP 请求中的 URI 部分会被用来进行路由匹配，决定请求应该被哪个资源或处理程序处理。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;生成 HTTP 响应&lt;/strong&gt;：服务器处理请求后，会生成一个 HTTP 响应&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;发送 HTTP 响应&lt;/strong&gt;：服务器将构造好的 HTTP 响应通过 TCP 连接返回给客户端。客户端接收到响应后，会根据状态码和响应头判断如何处理响应体&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;响应报文&#34;&gt;响应报文
+&lt;/h4&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/image-20250209191221600.png&#34;
+	width=&#34;486&#34;
+	height=&#34;140&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;HTTP响应报文&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;347&#34;
+		data-flex-basis=&#34;833px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;HTTP响应报文由三个部分组成(响应行,响应头,响应体)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;响应行（红色部分）&lt;/strong&gt;：响应报文的第一行
+&lt;ul&gt;
+&lt;li&gt;HTTP协议版本&lt;/li&gt;
+&lt;li&gt;状态码：用于描述响应结果&lt;/li&gt;
+&lt;li&gt;描述&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;响应头（黄色部分）&lt;/strong&gt;：以键值对形式表现
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Set-Cookie&lt;/code&gt;&lt;/strong&gt; ：服务端可以设置客户端的cookie&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Connection&lt;/code&gt;&lt;/strong&gt; ：该浏览器想要优先使用的连接类型&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;响应体（绿色部分）&lt;/strong&gt;：存放响应数据&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;http缓存技术&#34;&gt;HTTP缓存技术
+&lt;/h3&gt;&lt;p&gt;对于一些具有重复性的 HTTP 请求，比如每次请求得到的数据都一样的，我们可以把这对「请求-响应」的数据都&lt;strong&gt;缓存在本地&lt;/strong&gt;，那么下次就直接读取本地的数据，不必在通过网络获取服务器的响应了，这样的话 HTTP/1.1 的性能肯定肉眼可见的提升。&lt;/p&gt;
+&lt;h4 id=&#34;强制缓存&#34;&gt;强制缓存
+&lt;/h4&gt;&lt;p&gt;强制缓存指的是只要浏览器判断缓存没有过期，则直接使用浏览器的本地缓存。由浏览器决定是否使用缓存的主动性。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;实现方式&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;强制缓存是利用HTTP 响应头部（Response Header）字段实现的，它们都用来表示资源在客户端缓存的有效期：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Cache-Control&lt;/code&gt;&lt;/strong&gt; ：是一个相对时间&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Expires&lt;/code&gt;&lt;/strong&gt; ：是一个绝对时间&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;工作流程&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当浏览器第一次请求访问服务器资源时，服务器会在返回这个资源的同时，在请求头部加上 &lt;strong&gt;&lt;code&gt;Cache-Control&lt;/code&gt;&lt;/strong&gt; ，&lt;strong&gt;&lt;code&gt;Cache-Control&lt;/code&gt;&lt;/strong&gt; 中设置了过期时间大小；&lt;/li&gt;
+&lt;li&gt;浏览器再次请求访问服务器中的该资源时，会先 &lt;strong&gt;通过请求资源的时间与 Cache-Control 中设置的过期时间大小，来计算出该资源是否过期&lt;/strong&gt; ，如果没有，则使用该缓存，否则重新请求服务器；&lt;/li&gt;
+&lt;li&gt;服务器再次收到请求后，会再次更新请求头的 &lt;strong&gt;&lt;code&gt;Cache-Control&lt;/code&gt;&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;协商缓存&#34;&gt;协商缓存
+&lt;/h4&gt;&lt;p&gt;通过服务端告知客户端是否可以使用缓存的方式被称为协商缓存。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;实现方式&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;响应头部中 &lt;strong&gt;&lt;code&gt;Etag&lt;/code&gt;&lt;/strong&gt; ：唯一标识响应资源&lt;/li&gt;
+&lt;li&gt;请求头部中的 &lt;strong&gt;&lt;code&gt;If-None-Match&lt;/code&gt;&lt;/strong&gt; ：当资源过期时，浏览器发现响应头里有 &lt;strong&gt;&lt;code&gt;Etag&lt;/code&gt;&lt;/strong&gt;，则再次向服务器发起请求时，会将请求头 If-None-Match 值设置为 &lt;strong&gt;Etag&lt;/strong&gt; 的值。服务器收到请求后进行比对，如果资源没有变化返回 &lt;strong&gt;304（允许使用本地缓存）&lt;/strong&gt;，如果资源变化了返回 &lt;strong&gt;200&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;工作流程&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当浏览器第一次请求访问服务器资源时，服务器会在返回这个资源的同时，在请求头部加上 &lt;strong&gt;&lt;code&gt;ETag&lt;/code&gt;&lt;/strong&gt; 唯一标识，这个唯一标识的值是根据当前请求的资源生成的&lt;/li&gt;
+&lt;li&gt;当浏览器再次请求访问服务器中的该资源时，首先会先检查强制缓存是否过期：
+&lt;ul&gt;
+&lt;li&gt;如果没有过期，则直接使用本地缓存；&lt;/li&gt;
+&lt;li&gt;如果缓存过期了，会在请求头部加上 &lt;strong&gt;&lt;code&gt;If-None-Match&lt;/code&gt;&lt;/strong&gt; 字段，该字段的值就是 &lt;strong&gt;&lt;code&gt;ETag&lt;/code&gt;&lt;/strong&gt; 唯一标识；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;服务器再次收到请求后，会根据请求中的 &lt;strong&gt;&lt;code&gt;If-None-Match&lt;/code&gt;&lt;/strong&gt; 值与当前请求的资源生成的唯一标识进行比较
+&lt;ul&gt;
+&lt;li&gt;如果值相等代表服务器中的资源未被修改，则返回 &lt;strong&gt;304 Not Modified&lt;/strong&gt;，不会返回资源&lt;/li&gt;
+&lt;li&gt;如果不相等代表服务器中的资源被修改，则返回 &lt;strong&gt;200&lt;/strong&gt; 状态码和返回资源，并在请求头部加上新的 ETag 唯一标识；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;如果浏览器收到 &lt;strong&gt;304&lt;/strong&gt; 的请求响应状态码，则会从本地缓存中加载资源，否则更新资源。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;http版本&#34;&gt;HTTP版本
+&lt;/h3&gt;&lt;h4 id=&#34;http10版本&#34;&gt;HTTP1.0版本
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;无状态协议&lt;/strong&gt;：HTTP 1.0 是无状态的，每个请求之间相互独立，服务器不保存任何请求的状态信息。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;非持久连接&lt;/strong&gt;：默认情况下，每个 HTTP 请求/响应对之后，连接会被关闭，属于短连接。这意味着对于同一个网站的每个资源请求，如 HTML 页面上的图片和脚本，都需要建立一个新的 TCP 连接。可以设置 &lt;code&gt;Connection: keep-alive&lt;/code&gt; 强制开启长连接。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;http11版本&#34;&gt;HTTP1.1版本
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;新增特性&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;默认使用长连接即  &lt;strong&gt;&lt;code&gt;keep—alive&lt;/code&gt;&lt;/strong&gt; ，允许持久连接。只要任意一端没有明确提出断开连接，则保持 TCP 连接状态。&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/16-%E7%9F%AD%E8%BF%9E%E6%8E%A5%E4%B8%8E%E9%95%BF%E8%BF%9E%E6%8E%A5.png&#34;
+	width=&#34;616&#34;
+	height=&#34;472&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;短连接与长连接&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;130&#34;
+		data-flex-basis=&#34;313px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;支持 &lt;strong&gt;&lt;code&gt;pipeline&lt;/code&gt;&lt;/strong&gt;，在同一个 TCP 连接里面，客户端可以发起多个请求，只要第一个请求发出去了，不必等其回来，就可以发第二个请求出去，可以 &lt;strong&gt;减少整体的响应时间。&lt;/strong&gt; 但是&lt;strong&gt;服务器必须按照接收请求的顺序发送对这些管道化请求的响应（队尾堵塞）&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/17-%E7%AE%A1%E9%81%93%E7%BD%91%E7%BB%9C%E4%BC%A0%E8%BE%93.png&#34;
+	width=&#34;351&#34;
+	height=&#34;381&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;管道网络传输&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;92&#34;
+		data-flex-basis=&#34;221px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;允许响应数据分块（chunked)，即响应的时候不标明 &lt;strong&gt;&lt;code&gt;Content-Length&lt;/code&gt;&lt;/strong&gt; ，客户端就无法断开连接，直到收到服务端的 EOF ，利于传输大文件。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;新增缓存的控制和管理。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;请求头中加入了 &lt;strong&gt;&lt;code&gt;Host&lt;/code&gt;&lt;/strong&gt; 字段：解决了域名系统（DNS）允许多个主机名绑定到同一个 IP 地址上，而请求报文无法指出所请求的主机名的问题&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;范围请求：HTTP/1.1 引入了范围请求（range request）机制，以避免带宽的浪费。当客户端想请求一个文件的一部分，或者需要继续下载一个已经下载了部分但被终止的文件，HTTP/1.1 可以在请求中加入 &lt;strong&gt;&lt;code&gt;Range&lt;/code&gt;&lt;/strong&gt; 头部，以请求（并只能请求字节型数据）数据的一部分。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;性能瓶颈&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;请求 / 响应头部（Header）未经压缩就发送，首部信息越多延迟越大。只能压缩 &lt;code&gt;Body&lt;/code&gt; 的部分；&lt;/li&gt;
+&lt;li&gt;发送冗长的首部。每次互相发送相同的首部造成的浪费较多；&lt;/li&gt;
+&lt;li&gt;服务器是按请求的顺序响应的，如果服务器响应慢，会招致客户端一直请求不到数据，也就是队头阻塞；&lt;/li&gt;
+&lt;li&gt;没有请求优先级控制；&lt;/li&gt;
+&lt;li&gt;请求只能从客户端开始，服务器只能被动响应。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;优化思路&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;避免发送HTTP请求
+&lt;ul&gt;
+&lt;li&gt;实现方案：采用缓存技术，对于一些具有重复性的 HTTP 请求，可以把这对请求-响应的数据都&lt;strong&gt;缓存在本地&lt;/strong&gt;，那么下次就直接读取本地的数据，不必在通过网络获取服务器的响应了&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;减少HTTP响应数据大小
+&lt;ul&gt;
+&lt;li&gt;实现方案
+&lt;ul&gt;
+&lt;li&gt;无损压缩（适合用在文本文件、程序可执行文件、程序源代码）、&lt;/li&gt;
+&lt;li&gt;有损压缩（压缩多媒体数据）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;减少 HTTP 请求的次数
+&lt;ul&gt;
+&lt;li&gt;实现方案
+&lt;ul&gt;
+&lt;li&gt;减少重定向请求：将原本由客户端处理的重定向请求，交给代理服务器处理，这样可以减少重定向请求的次数&lt;/li&gt;
+&lt;li&gt;合并请求：将多个小资源合并成一个大资源再传输，能够减少 HTTP 请求次数以及 头部的重复传输，再来减少 TCP 连接数量，进而省去 TCP 握手和慢启动的网络消耗&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;http20版本&#34;&gt;HTTP2.0版本
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;新增特性&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;二进制帧&lt;/strong&gt;：相较于HTTP/1.1 则使用文本格式的报文，HTTP 2.0 使用二进制而不是文本格式来传输数据，解析更加高效。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;多路复用&lt;/strong&gt;：一个 TCP 连接上可以同时进行多个 HTTP 请求/响应，解决了 HTTP 1.x 的队头阻塞问题。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;头部压缩&lt;/strong&gt;：HTTP 协议不带状态，所以每次请求都必须附上所有信息。HTTP 2.0 引入了头部压缩机制，可以使用 gzip 或 compress 压缩后再发送，减少了冗余头部信息的带宽消耗。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;服务端推送&lt;/strong&gt;：服务器可以主动向客户端推送资源，而不需要客户端明确请求。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;优先级设置&lt;/strong&gt; ：HTTP2.0支持优先级设置&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;底层实现&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/image-20240105143224839.png&#34;
+	width=&#34;464&#34;
+	height=&#34;535&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;底层图&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;86&#34;
+		data-flex-basis=&#34;208px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Stream&lt;/strong&gt; ：一个TCP连接中包含多条 &lt;strong&gt;Stream&lt;/strong&gt; ，一个 &lt;strong&gt;Stream&lt;/strong&gt;中包含一对请求响应报文&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Message&lt;/strong&gt; ：请求或响应报文&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Frame&lt;/strong&gt; ：Frame 是 HTTP/2 最小单位，以二进制压缩格式存放 HTTP/1 中的内容（头部和包体）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在 HTTP/2 连接上，&lt;strong&gt;不同 Stream 的帧是可以乱序发送的（因此可以并发不同的 Stream ）&lt;/strong&gt;，因为每个帧的头部会携带 Stream ID 信息，所以接收端可以通过 Stream ID 有序组装成 HTTP 消息，而&lt;strong&gt;同一 Stream 内部的帧必须是严格有序的&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;客户端和服务器&lt;strong&gt;双方都可以建立 Stream&lt;/strong&gt; ，客户端建立的 Stream 必须是奇数号，而服务器建立的 Stream 必须是偶数号。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/image-20240105143421889.png&#34;
+	width=&#34;1492&#34;
+	height=&#34;568&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;示例图&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;262&#34;
+		data-flex-basis=&#34;630px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;HTTP/2 还可以对每个 Stream 设置不同 &lt;strong&gt;优先级&lt;/strong&gt;&lt;/p&gt;
+&lt;h4 id=&#34;http30版本&#34;&gt;HTTP3.0版本
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;传输协议&lt;/strong&gt;：HTTP/2.0 是基于 TCP 协议实现的，HTTP/3.0 新增了 QUIC（Quick UDP Internet Connections） 协议来实现可靠的传输，提供与 TLS/SSL 相当的安全性，具有较低的连接和传输延迟。你可以将 QUIC 看作是 UDP 的升级版本，在其基础上新增了很多功能比如加密、重传等等。HTTP/3.0 之前名为 HTTP-over-QUIC，从这个名字中我们也可以发现，HTTP/3 最大的改造就是使用了 QUIC。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;连接建立&lt;/strong&gt;：HTTP/2.0 需要经过经典的 TCP 三次握手过程（由于安全的 HTTPS 连接建立还需要 TLS 握手，共需要大约 3 个 RTT）。由于 QUIC 协议的特性（TLS 1.3，TLS 1.3 除了支持 1 个 RTT 的握手，还支持 0 个 RTT 的握手）连接建立仅需 0-RTT 或者 1-RTT。这意味着 QUIC 在最佳情况下不需要任何的额外往返时间就可以建立新连接。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;队头阻塞&lt;/strong&gt;：HTTP/2.0 多请求复用一个 TCP 连接，一旦发生丢包，就会阻塞住所有的 HTTP 请求。由于 QUIC 协议的特性，HTTP/3.0 在一定程度上解决了队头阻塞问题，一个连接建立多个不同的数据流，这些数据流之间独立互不影响，某个数据流发生丢包了，其数据流不受影响（本质上是多路复用+轮询）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;连接迁移&lt;/strong&gt;：HTTP/3.0 支持连接迁移，因为 QUIC 使用 64 位 ID 标识连接，只要 ID 不变就不会中断，网络环境改变时（如从 Wi-Fi 切换到移动数据）也能保持连接。而 TCP 连接是由（源 IP，源端口，目的 IP，目的端口）组成，这个四元组中一旦有一项值发生改变，这个连接也就不能用了。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;安全性&lt;/strong&gt;：在 HTTP/2.0 中，TLS 用于加密和认证整个 HTTP 会话，包括所有的 HTTP 头部和数据负载。TLS 的工作是在 TCP 层之上，它加密的是在 TCP 连接中传输的应用层的数据，并不会对 TCP 头部以及 TLS 记录层头部进行加密，所以在传输的过程中 TCP 头部可能会被攻击者篡改来干扰通信。而 HTTP/3.0 的 QUIC 对整个数据包（包括报文头和报文体）进行了加密与认证处理，保障安全性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;https协议&#34;&gt;HTTPS协议
+&lt;/h2&gt;&lt;p&gt;HTTP 是明文传输的，存在数据窃听、数据篡改和身份伪造等问题。而 HTTPS 通过引入 SSL/TLS 解决安全性问题，HTTPS 默认端口号是  &lt;strong&gt;443&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;信息加密&lt;/strong&gt;：交互信息无法被窃取。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;校验机制&lt;/strong&gt;：无法篡改通信内容，篡改了就不能正常显示。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;身份证书&lt;/strong&gt;：证明身份。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;加密机制&#34;&gt;加密机制
+&lt;/h3&gt;&lt;h4 id=&#34;混合加密&#34;&gt;混合加密
+&lt;/h4&gt;&lt;p&gt;HTTPS 采用的是&lt;strong&gt;对称加密&lt;/strong&gt;和&lt;strong&gt;非对称加密&lt;/strong&gt;结合的混合加密方式实现消息的机密性，保证消息不被窃听&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在通信建立前（TLS四次握手）采用&lt;strong&gt;非对称加密&lt;/strong&gt;的方式交换「会话秘钥」，后续就不再使用非对称加密。&lt;/li&gt;
+&lt;li&gt;在通信过程（后续加密通信）中全部使用&lt;strong&gt;对称加密&lt;/strong&gt;的「会话秘钥」的方式加密明文数据。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;&lt;strong&gt;非对称加密和对称加密&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;对称加密：双方用会话密钥加密通信内容。&lt;/li&gt;
+&lt;li&gt;非对称加密：服务器向客户端发送公钥，然后客户端用公钥加密自己的随机密钥，也就是会话密钥，发送给服务器，服务器用私钥解密，得到会话密钥。
+&lt;ul&gt;
+&lt;li&gt;密钥类型
+&lt;ul&gt;
+&lt;li&gt;公钥：负责加密&lt;/li&gt;
+&lt;li&gt;私钥：负责解密&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;用公钥加密过的密文只有私钥才能解密，用私钥加密过的密文只有公钥才能解密
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;公钥加密，私钥解密&lt;/strong&gt;。这个目的是为了&lt;strong&gt;保证内容传输的安全&lt;/strong&gt;，因为被公钥加密的内容，其他人是无法解密的，只有持有私钥的人，才能解密出实际的内容；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;私钥加密，公钥解密&lt;/strong&gt;。这个目的是为了&lt;strong&gt;保证消息不会被冒充&lt;/strong&gt;，因为私钥是不可泄露的，如果公钥能正常解密出私钥加密的内容，就能证明这个消息是来源于持有私钥身份的人发送的。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;相较于对称加密，非对称加密的速度慢&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h4 id=&#34;数字签名和摘要算法&#34;&gt;数字签名和摘要算法
+&lt;/h4&gt;&lt;p&gt;HTTPS 采用的是 &lt;strong&gt;数字签名&lt;/strong&gt; 和 &lt;strong&gt;摘要算法&lt;/strong&gt; 实现消息的完整性，保证消息不被篡改&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;摘要算法&lt;/strong&gt; 用于保证消息的 &lt;strong&gt;完整性&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;计算机里会 &lt;strong&gt;用摘要算法（哈希函数）来计算出内容的哈希值&lt;/strong&gt; ，也就是内容的摘要，这个&lt;strong&gt;哈希值是唯一的，且无法通过哈希值推导出内容&lt;/strong&gt;，然后将内容和哈希值一同发送。对方收到后，先是对内容也计算出一个摘要，然后跟发送方发送的摘要做一个比较，如果摘要相同，说明内容没有被篡改，否则就可以判断出内容被篡改了。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/%E6%91%98%E8%A6%81%E7%AE%97%E6%B3%95.png&#34;
+	width=&#34;1276&#34;
+	height=&#34;636&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;摘要算法&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;200&#34;
+		data-flex-basis=&#34;481px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;数字签名&lt;/strong&gt; 用于保证消息保证消息的来源可靠性（能确认消息是由持有私钥的一方发送的）&lt;/p&gt;
+&lt;p&gt;数字签名算法利用非对称加密的机制，服务器用私钥对内容的哈希值进行加密，然后服务端会向客户端颁发对应的公钥。如果客户端收到的信息，能被公钥解密，就说明该消息是由服务器发送的。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/%E6%95%B0%E5%AD%97%E7%AD%BE%E5%90%8D.png&#34;
+	width=&#34;1282&#34;
+	height=&#34;652&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;数字签名过程&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;196&#34;
+		data-flex-basis=&#34;471px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4 id=&#34;数字证书&#34;&gt;数字证书
+&lt;/h4&gt;&lt;p&gt;由于客户端的公钥可以被替换或者伪造，导致在通信时攻击者可以使用与自己私钥配对的公钥替换客户端的公钥然后与客户端进行通信&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;数字证书&lt;/strong&gt; 用于保证公钥无法被伪造或者替换&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://cdn.xiaolincoding.com/gh/xiaolincoder/ImageHost/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/HTTP/22-%E6%95%B0%E5%AD%97%E8%AF%81%E4%B9%A6%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B.png&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;数子证书工作流程&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;服务器将自己的公钥注册到数字证书认证机构（CA）&lt;/li&gt;
+&lt;li&gt;CA 使用自己的私钥将服务器的公钥进行加密&lt;/li&gt;
+&lt;li&gt;客户端拿到服务器的数字证书后，使用CA的公钥确认服务器的数字证书的真实性&lt;/li&gt;
+&lt;li&gt;客户端从数字证书获取服务器公钥后，使用已被验证的公钥进行加密后发送&lt;/li&gt;
+&lt;li&gt;服务器用私钥对报文解密&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;生活例子解释&#34;&gt;生活例子解释
+&lt;/h4&gt;&lt;p&gt;你想向老师请假，一般来说是要求由家长写一份请假理由并签名，老师才能允许你请假&lt;/p&gt;
+&lt;p&gt;这里的老师对应于客户端，家长对应服务端，你对应一名攻击者。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;为什么需要数字签名？&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;假设你有模仿家长字迹的能力，你用家长的字迹写了一份请假条然后签上你爸爸的名字，老师一看到这个请假条，查看字迹和签名，就误以为是家长写的，就会允许你请假。&lt;/p&gt;
+&lt;p&gt;引入了数字签名算法后，你就无法模仿家长的字迹来请假了，家长手上持有着私钥，老师持有着公钥。&lt;/p&gt;
+&lt;p&gt;其中请假条中的签名对于数字签名，字迹对应内容&lt;/p&gt;
+&lt;p&gt;这样只有用家长手上的私钥才对请假条进行签名，老师通过公钥看能不能解出这个签名，如果能解出并且确认内容的完整性，就能证明是由家长发起的请假条，这样老师才允许你请假，否则老师就不认。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;为什么需要数字证书？&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;虽然家长持有私钥，老师通过是否能用公钥解密来确认这个请假条是不是来源你父亲的。但是我们还可以自己伪造出一对公私钥啊！&lt;/p&gt;
+&lt;p&gt;你找了个夜晚，偷偷把老师桌面上和你爸爸配对的公钥，换成了你的公钥，那么下次你在请假的时候，你继续模仿你爸爸的字迹写了个请假条，然后用你的私钥做个了「数字签名」。&lt;/p&gt;
+&lt;p&gt;但是老师并不知道自己的公钥被你替换过了，所以他还是按照往常一样用公钥解密，由于这个公钥和你的私钥是配对的，老师当然能用这个被替换的公钥解密出来，并且确认了内容的完整性，于是老师就会以为是家长写的请假条，又允许你请假了。&lt;/p&gt;
+&lt;h4 id=&#34;通信过程&#34;&gt;通信过程
+&lt;/h4&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/640&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;通信过程&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第一阶段&lt;/strong&gt;是TLS四次握手，这一阶段主要是利用&lt;strong&gt;非对称加密&lt;/strong&gt;的特性各种交换信息，最后得到一个&amp;quot;会话秘钥&amp;quot;。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第二阶段&lt;/strong&gt;是则是在第一阶段的&amp;quot;&lt;strong&gt;会话秘钥&lt;/strong&gt;&amp;ldquo;基础上，进行&lt;strong&gt;对称加密&lt;/strong&gt;通信。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/640.png&#34;
+	width=&#34;1080&#34;
+	height=&#34;1283&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;四次握手过程&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;84&#34;
+		data-flex-basis=&#34;202px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;第一次握手：由客户端向服务器发起加密通信请求，也就是 ClientHello 请求。
+&lt;ul&gt;
+&lt;li&gt;客户端支持的 TLS 协议版本，如 TLS 1.2 版本。&lt;/li&gt;
+&lt;li&gt;客户端生产的随机数 &lt;strong&gt;&lt;code&gt;（Client Random）&lt;/code&gt;&lt;/strong&gt; ，后面用于生成「会话秘钥」条件之一。&lt;/li&gt;
+&lt;li&gt;客户端支持的密码套件列表，如 RSA 加密算法。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;第二次握手：服务器收到客户端请求后，向客户端发出响应，也就是 SeverHello 响应
+&lt;ul&gt;
+&lt;li&gt;确认 TLS 协议版本，如果浏览器不支持，则关闭加密通信。&lt;/li&gt;
+&lt;li&gt;服务器生产的随机数 &lt;strong&gt;&lt;code&gt;（Server Random）&lt;/code&gt;&lt;/strong&gt; ，也是后面用于生产「会话秘钥」条件之一。&lt;/li&gt;
+&lt;li&gt;确认的密码套件列表，如 RSA 加密算法。&lt;/li&gt;
+&lt;li&gt;服务器的数字证书，包含被CA私钥加密过的服务器公钥。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;第三次握手：客户端收到服务器的回应之后，通过浏览器或者操作系统中的 CA 公钥，确认服务器的数字证书的真实性。客户端会&lt;strong&gt;从数字证书中取出服务器的公钥&lt;/strong&gt;，然后使用它加密报文，向服务器发送如下信息：
+&lt;ul&gt;
+&lt;li&gt;一个随机数 &lt;strong&gt;&lt;code&gt;（pre-master key）&lt;/code&gt;&lt;/strong&gt; ：该随机数由客户端生成，并被服务器公钥加密。&lt;/li&gt;
+&lt;li&gt;会话密钥： 客户端这边&lt;strong&gt;已经拥有三个随机数&lt;/strong&gt;：客户端随机数，服务器随机数和 &lt;strong&gt;&lt;code&gt;pre_master_key&lt;/code&gt;&lt;/strong&gt; ，用这三个随机数进行计算得到一个&lt;strong&gt;会话秘钥&lt;/strong&gt;&amp;quot;。此时客户端通知服务端，后面会用这个会话秘钥进行对称机密通信。&lt;/li&gt;
+&lt;li&gt;内容摘要：客户端会把迄今为止的通信数据内容生成一个摘要，用 &lt;strong&gt;会话秘钥&lt;/strong&gt; 加密一下，发给服务器做校验，此时客户端这边的握手流程就结束了，因此也叫&lt;strong&gt;Finished报文&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;第四次握手：服务器收到客户端的第三个随机数 &lt;strong&gt;&lt;code&gt;（pre-master key）&lt;/code&gt;&lt;/strong&gt; 之后，通过协商的加密算法，计算出本次通信的 &lt;strong&gt;会话秘钥&lt;/strong&gt; 。
+&lt;ul&gt;
+&lt;li&gt;会话密钥：服务端此时拿到客户端传来的 &lt;strong&gt;&lt;code&gt;pre_master_key&lt;/code&gt;&lt;/strong&gt;（虽然被服务器公钥加密过，但服务器有私钥，能解密获得原文），集齐三个随机数，跟客户端一样，用这三个随机数通过同样的算法获得一个&amp;rdquo;&lt;strong&gt;会话秘钥&lt;/strong&gt;&amp;quot;。此时服务器告诉客户端，后面会用这个&amp;quot;会话秘钥&amp;quot;进行加密通信。&lt;/li&gt;
+&lt;li&gt;服务器握手结束通知，表示服务器的握手阶段已经结束。这一项同时把之前所有内容的发生的数据做个摘要，用来供客户端校验。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;dns域名解析协议&#34;&gt;DNS（域名解析协议）
+&lt;/h2&gt;&lt;p&gt;DNS的全称是Domain Name System（域名系统），它是互联网中用于将域名转换为对应IP地址的分布式数据库系统。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;DNS 是应用层协议，基于 UDP 协议之上，端口为 53&lt;/strong&gt; 。&lt;/p&gt;
+&lt;h3 id=&#34;dns服务器&#34;&gt;DNS服务器
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;根 DNS 服务器：根 DNS 服务器提供 TLD 服务器的 IP 地址。目前世界上只有 13 组根服务器，我国境内目前仍没有根服务器。&lt;/li&gt;
+&lt;li&gt;顶级域 DNS 服务器（TLD 服务器）：顶级域是指域名的后缀，如&lt;code&gt;com&lt;/code&gt;、&lt;code&gt;org&lt;/code&gt;、&lt;code&gt;net&lt;/code&gt;和&lt;code&gt;edu&lt;/code&gt;等。国家也有自己的顶级域，如&lt;code&gt;uk&lt;/code&gt;、&lt;code&gt;fr&lt;/code&gt;和&lt;code&gt;ca&lt;/code&gt;。TLD 服务器提供了权威 DNS 服务器的 IP 地址。&lt;/li&gt;
+&lt;li&gt;权威 DNS 服务器：在因特网上具有公共可访问主机的每个组织机构必须提供公共可访问的 DNS 记录，这些记录将这些主机的名字映射为 IP 地址。&lt;/li&gt;
+&lt;li&gt;本地 DNS 服务器：每个 ISP（互联网服务提供商）都有一个自己的本地 DNS 服务器。当主机发出 DNS 请求时，该请求被发往本地 DNS 服务器，它起着代理的作用，并将该请求转发到 DNS 层次结构中。严格说来，不属于 DNS 层级结构&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/5.jpg&#34;
+	width=&#34;621&#34;
+	height=&#34;420&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;DNS 树状结构&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;147&#34;
+		data-flex-basis=&#34;354px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;域名解析过程&#34;&gt;域名解析过程
+&lt;/h3&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/DNS-process.png&#34;
+	width=&#34;496&#34;
+	height=&#34;539&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;迭代式域名解析过程&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;92&#34;
+		data-flex-basis=&#34;220px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;域名解析请求&lt;/strong&gt;：用户在浏览器中输入一个域名，浏览器首先检查本地缓存（如果有的话）是否存有该域名的 IP 地址。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;本地DNS解析&lt;/strong&gt;：如果本地缓存中没有所需的 IP 地址，浏览器会向配置的 &lt;strong&gt;本地 DNS 服务器&lt;/strong&gt; 发送请求。若存在则直接返回&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;根DNS解析&lt;/strong&gt; ：如果 &lt;strong&gt;本地DNS服务器&lt;/strong&gt; 中没有所需的 IP 地址，&lt;strong&gt;本地 DNS 服务器&lt;/strong&gt; 向 &lt;strong&gt;根DNS服务器&lt;/strong&gt; 发出请求，查询 &lt;strong&gt;根DNS&lt;/strong&gt; 以获取 &lt;strong&gt;顶级域（TLD）的 DNS&lt;/strong&gt; 地址。 &lt;strong&gt;根DNS&lt;/strong&gt; 负责将 &lt;strong&gt;顶级域DNS&lt;/strong&gt; 的IP地址发回到 &lt;strong&gt;本地DNS&lt;/strong&gt; 。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;顶级域DNS解析&lt;/strong&gt; ：&lt;strong&gt;本地DNS&lt;/strong&gt; 向 &lt;strong&gt;顶级域DNS&lt;/strong&gt; 发出请求，查询 &lt;strong&gt;顶级域DNS&lt;/strong&gt; 以获取 &lt;strong&gt;权威DNS&lt;/strong&gt; 地址。 &lt;strong&gt;顶级域DNS&lt;/strong&gt; 负责将 &lt;strong&gt;权威DNS&lt;/strong&gt; 的IP地址发回到 &lt;strong&gt;本地DNS&lt;/strong&gt; 。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;权威DNS解析&lt;/strong&gt; ：&lt;strong&gt;本地DNS&lt;/strong&gt; 向 &lt;strong&gt;权威DNS&lt;/strong&gt; 发出请求，查询 &lt;strong&gt;权威DNS&lt;/strong&gt; 以获取 &lt;strong&gt;域名对应的IP地址&lt;/strong&gt; 。 &lt;strong&gt;权威DNS&lt;/strong&gt; 负责将 &lt;strong&gt;域名对应的IP地址&lt;/strong&gt; 发回到 &lt;strong&gt;本地DNS&lt;/strong&gt; 。&lt;/li&gt;
+&lt;li&gt;浏览器缓存该 IP 地址以供后续请求使用，并通过 IP 地址连接到目标服务器以访问网站内容&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;rpc远程过程调用&#34;&gt;RPC（&lt;strong&gt;远程过程调用&lt;/strong&gt;）
+&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;RPC&lt;/strong&gt;（&lt;strong&gt;R&lt;/strong&gt;emote &lt;strong&gt;P&lt;/strong&gt;rocedure &lt;strong&gt;C&lt;/strong&gt;all），又叫做&lt;strong&gt;远程过程调用&lt;/strong&gt;。它本身并不是一个具体的协议，而是一种&lt;strong&gt;调用方式&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;服务发现&#34;&gt;服务发现
+&lt;/h3&gt;&lt;p&gt;在 &lt;strong&gt;HTTP&lt;/strong&gt; 中，你知道服务的域名，就可以通过 &lt;strong&gt;DNS 服务&lt;/strong&gt;去解析得到它背后的 IP 地址，默认 80 端口。&lt;/p&gt;
+&lt;p&gt;而 &lt;strong&gt;RPC&lt;/strong&gt; 的话，就有些区别，一般会有专门的&lt;strong&gt;中间服务&lt;/strong&gt;去保存服务名和IP信息，比如 &lt;strong&gt;Consul 或者 Etcd，甚至是 Redis&lt;/strong&gt;。想要访问某个服务，就去这些中间服务去获得 IP 和端口信息。由于 DNS 也是服务发现的一种，所以也有基于 DNS 去做服务发现的组件，比如&lt;strong&gt;CoreDNS&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;底层连接形式&#34;&gt;底层连接形式
+&lt;/h3&gt;&lt;p&gt;主流的 &lt;strong&gt;HTTP/1.1&lt;/strong&gt; 协议为例，其默认在建立底层 TCP 连接之后会一直保持这个连接（&lt;strong&gt;Keep Alive&lt;/strong&gt;），之后的请求和响应都会复用这条连接。&lt;/p&gt;
+&lt;p&gt;而 &lt;strong&gt;RPC&lt;/strong&gt; 协议，也跟 HTTP 类似，也是通过建立 TCP 长链接进行数据交互，但不同的地方在于，RPC 协议一般还会再建个&lt;strong&gt;连接池&lt;/strong&gt;，在请求量大的时候，建立多条连接放在池内，要发数据的时候就从池里取一条连接出来，&lt;strong&gt;用完放回去，下次再复用&lt;/strong&gt;，可以说非常环保。&lt;/p&gt;
+&lt;h2 id=&#34;websocket&#34;&gt;WebSocket
+&lt;/h2&gt;&lt;p&gt;WebSocket 适用于需要实时通信和双向数据流的场景，而 HTTP 更适合于传统的客户端与服务器之间的短时请求响应场景。&lt;/p&gt;
+&lt;p&gt;WebSocket 是一种基于 TCP 连接的全双工通信协议，即客户端和服务器可以同时发送和接收数据。客户端和服务器仅需一次握手，两者之间就直接可以创建持久性的连接，并进行双向数据传输。&lt;/p&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;全双工和半双工的概念&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;全双工&lt;/strong&gt; ：&lt;strong&gt;同一时间里&lt;/strong&gt;，&lt;strong&gt;双方&lt;/strong&gt;都可以&lt;strong&gt;主动&lt;/strong&gt;向对方发送数据。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;半双工&lt;/strong&gt; ：&lt;strong&gt;同一时间里&lt;/strong&gt;，客户端和服务器&lt;strong&gt;只能有一方主动&lt;/strong&gt;发数据&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h3 id=&#34;与http的区别&#34;&gt;与HTTP的区别
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;WebSocket 是一种双向实时通信协议，客户端和服务器建立持久连接后，双方可以随时发送消息，直到主动关闭连接&lt;/li&gt;
+&lt;li&gt;HTTP 是一种单向通信协议。HTTP 协议基于请求/响应模型，下的通信只能由客户端发起，服务器无法主动通知客户端&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;http轮询和长轮询&#34;&gt;HTTP轮询和长轮询
+&lt;/h3&gt;&lt;p&gt;为了实现类似服务器主动发送消息给客户端的场景，有HTTP轮询和长轮询两种实现方案&lt;/p&gt;
+&lt;h4 id=&#34;http轮询&#34;&gt;HTTP轮询
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;网页的前端代码里不断定时发 HTTP 请求到服务器，服务器收到请求后给客户端响应消息。&lt;/strong&gt;。这是一种伪实现。本质上并不是服务器主动发消息到客户端，而是客户端自己不断偷偷请求服务器，只是用户无感知而已。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;缺点&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;消耗带宽，同时也会增加下游服务器的负担。&lt;/li&gt;
+&lt;li&gt;使用体验上会出现 &lt;strong&gt;明显的卡顿&lt;/strong&gt; ，用户需要等个 1~2 秒，正好才触发下一次 HTTP 请求&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;长轮询&#34;&gt;长轮询
+&lt;/h4&gt;&lt;p&gt;将HTTP 请求的 &lt;strong&gt;超时时间设置的很大&lt;/strong&gt; ，比如 30 秒，&lt;strong&gt;在这 30 秒内只要服务器收到了请求，就立马返回给客户端。如果超时，那就立马发起下一次请求。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;这样就减少了 HTTP 请求的个数，并且由于大部分情况下，响应也是及时的。&lt;/p&gt;
+&lt;h3 id=&#34;websocket握手过程&#34;&gt;WebSocket握手过程
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;客户端向服务器发送一个 HTTP 请求，请求头中包含 &lt;strong&gt;&lt;code&gt;Upgrade: websocket&lt;/code&gt;&lt;/strong&gt; 和 &lt;strong&gt;&lt;code&gt;Sec-WebSocket-Key&lt;/code&gt;&lt;/strong&gt; 等字段，表示要求升级协议为 &lt;strong&gt;WebSocket&lt;/strong&gt; ；
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Upgrade: websocket&lt;/code&gt;&lt;/strong&gt; ：请求升级协议到 &lt;strong&gt;WebSocket&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Sec-WebSocket-Key&lt;/code&gt;&lt;/strong&gt;  ：&lt;strong&gt;随机生成的 base64 码&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;服务器收到这个请求后，会进行升级协议的操作，如果支持 WebSocket，它将回复一个 HTTP 101 状态码，响应头中包含 ，&lt;strong&gt;&lt;code&gt;Connection: Upgrade&lt;/code&gt;&lt;/strong&gt; 和 &lt;strong&gt;&lt;code&gt;Sec-WebSocket-Accept: xxx&lt;/code&gt;&lt;/strong&gt; 等字段、表示成功升级到 WebSocket 协议。
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Connection: Upgrade&lt;/code&gt;&lt;/strong&gt; ：支持协议切换&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Sec-WebSocket-Accept&lt;/code&gt;&lt;/strong&gt; ：根据客户端生成的 &lt;strong&gt;&lt;code&gt;Sec-WebSocket-Key&lt;/code&gt;&lt;/strong&gt; ，用 &lt;strong&gt;公开的&lt;/strong&gt; 算法变成另一段字符串&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;客户端也用同样的&lt;strong&gt;公开算法&lt;/strong&gt;将 &lt;strong&gt;&lt;code&gt;Sec-WebSocket-Key&lt;/code&gt;&lt;/strong&gt; 转成另一段字符串，如果这段字符串跟服务器传回来的 &lt;strong&gt;&lt;code&gt;Sec-WebSocket-Accept&lt;/code&gt;&lt;/strong&gt; &lt;strong&gt;一致&lt;/strong&gt;，那验证通过。客户端和服务器之间建立了一个 WebSocket 连接，可以进行双向的数据传输。&lt;/li&gt;
+&lt;li&gt;数据以帧（frames）的形式进行传送，WebSocket 的每条消息可能会被切分成多个数据帧（最小单位）。发送端会将消息切割成多个帧发送给接收端，接收端接收消息帧，并将关联的帧重新组装成完整的消息。&lt;/li&gt;
+&lt;li&gt;客户端或服务器可以主动发送一个关闭帧，表示要断开连接。另一方收到后，也会回复一个关闭帧，然后双方关闭 TCP 连接。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;tomcat服务器&#34;&gt;Tomcat服务器
+&lt;/h2&gt;&lt;h3 id=&#34;基本使用&#34;&gt;基本使用
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;启动Tomcat服务器&lt;/strong&gt;：双击Tomcat服务器目录下的bin\startup.bat&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;关闭Tomcat服务器&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;CTRL+C&lt;/strong&gt;：正常关闭&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;直接关闭运行窗口&lt;/strong&gt;：强制关闭&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;双击Tomcat服务器目录下的bin\shutdown.bat&lt;/strong&gt;：正常关闭&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;部署项目&lt;/strong&gt;：将应用放入webapps目录下&lt;/p&gt;
+&lt;h3 id=&#34;tomcat服务器的目录结构&#34;&gt;Tomcat服务器的目录结构
+&lt;/h3&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;8
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Tomcat/
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;|--bin（可执行文件）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;|--conf（配置文件）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;|--lib（Tomcat依赖的jar包）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;|--logs（日志文件）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;|--temp（测试代码资源）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;|--webapps（应用发布目录）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;|--resource（工作目录）
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%92%8Chttp%E5%8D%8F%E8%AE%AE/Tomcat%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84.png&#34;
+	width=&#34;240&#34;
+	height=&#34;162&#34;
+	
+	loading=&#34;lazy&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;148&#34;
+		data-flex-basis=&#34;355px&#34;
+	
+&gt;&lt;/p&gt;
+</description>
+        </item>
+        <item>
         <title>网络分层模型</title>
         <link>https://Tyritic.github.io/p/%E7%BD%91%E7%BB%9C%E5%88%86%E5%B1%82%E6%A8%A1%E5%9E%8B/</link>
         <pubDate>Thu, 06 Jun 2024 21:09:15 +0800</pubDate>
