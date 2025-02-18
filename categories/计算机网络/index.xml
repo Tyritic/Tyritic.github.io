@@ -504,6 +504,89 @@
 &lt;li&gt;&lt;strong&gt;syn cookie&lt;/strong&gt;：在收到 SYN 包后，服务器根据一定的方法，以数据包的源地址、端口等信息为参数计算出一个 cookie 值作为自己的 SYNACK 包的序列号，回复 SYN+ACK 后，服务器并不立即分配资源进行处理，等收到发送方的 ACK 包后，重新根据数据包的源地址、端口计算该包中的确认序列号是否正确，如果正确则建立连接，否则丢弃该包。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;SYN Proxy 防火墙&lt;/strong&gt;：服务器防火墙会对收到的每一个 SYN 报文进行代理和回应，并保持半连接。等发送方将 ACK 包返回后，再重新构造 SYN 包发到服务器，建立真正的 TCP 连接。&lt;/li&gt;
 &lt;/ul&gt;
+&lt;h3 id=&#34;tcp连接的断开四次挥手&#34;&gt;TCP连接的断开—四次挥手
+&lt;/h3&gt;&lt;h4 id=&#34;挥手过程&#34;&gt;挥手过程
+&lt;/h4&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E4%BC%A0%E8%BE%93%E5%B1%82%E5%8D%8F%E8%AE%AE/format,png-20230309230614791.png&#34;
+	width=&#34;753&#34;
+	height=&#34;794&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;客户端主动关闭连接 —— TCP 四次挥手&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;94&#34;
+		data-flex-basis=&#34;227px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;第一次挥手
+&lt;ul&gt;
+&lt;li&gt;客户端主动关闭连接，发送 FIN 包。服务器收到 FIN 后，表示不再接收数据，但仍可能继续发送数据。
+&lt;ul&gt;
+&lt;li&gt;客户端进入 &lt;strong&gt;&lt;code&gt;FIN_WAIT_1&lt;/code&gt;&lt;/strong&gt; 状态&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;第二次挥手
+&lt;ul&gt;
+&lt;li&gt;服务器发送 ACK 包，确认已收到 FIN。在收到 FIN 报文的时候，TCP 协议栈会为 FIN 包插入一个文件结束符 EOF 到接收缓冲区中，服务端应用程序可以通过 read 调用来感知这个 FIN 包，这个 EOF 会被&lt;strong&gt;放在已排队等候的其他已接收的数据之后&lt;/strong&gt;，所以必须要得继续 read 接收缓冲区已接收的数据；&lt;/li&gt;
+&lt;li&gt;双方状态
+&lt;ul&gt;
+&lt;li&gt;服务器进入 &lt;strong&gt;&lt;code&gt;CLOSE_WAIT&lt;/code&gt;&lt;/strong&gt; 状态&lt;/li&gt;
+&lt;li&gt;客户端进入 &lt;strong&gt;&lt;code&gt;FIN_WAIT_2&lt;/code&gt;&lt;/strong&gt; 状态。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;第三次挥手
+&lt;ul&gt;
+&lt;li&gt;服务器完成所有数据传输后，发送 FIN 包。客户端收到 FIN 后，准备关闭连接。
+&lt;ul&gt;
+&lt;li&gt;服务端进入 &lt;strong&gt;&lt;code&gt;LAST_ACK&lt;/code&gt;&lt;/strong&gt; 状态&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;第四次挥手
+&lt;ul&gt;
+&lt;li&gt;客户端发送最后一个 ACK 包，等待可能迟到的 FIN 包。服务器收到 ACK 后，关闭连接。客户端在 TIME_WAIT 计时结束后（2MSL），正式关闭连接。&lt;/li&gt;
+&lt;li&gt;双方状态
+&lt;ul&gt;
+&lt;li&gt;服务端进入 &lt;strong&gt;&lt;code&gt;CLOSED&lt;/code&gt;&lt;/strong&gt; 状态&lt;/li&gt;
+&lt;li&gt;客户端进入 &lt;strong&gt;&lt;code&gt;TIME_WAIT&lt;/code&gt;&lt;/strong&gt; 状态&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;四次握手的必要性&#34;&gt;四次握手的必要性
+&lt;/h4&gt;&lt;p&gt;主要是为了&lt;strong&gt;确保数据完整性&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;TCP 是一个全双工协议，也就是说双方都要关闭，每一方都向对方发送 FIN 和回应 ACK。&lt;/p&gt;
+&lt;p&gt;客户端发起连接断开，代表客户端没数据要发送的，但是服务端可能还有数据没有返回给客户端。&lt;/p&gt;
+&lt;p&gt;所以一个 FIN + ACK 代表一方结束数据的传输，因此需要两对 FIN + ACK，加起来就是四次通信。&lt;/p&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;四次握手变成三次握手的情况&lt;/p&gt;
+&lt;p&gt;如果 Client 发送 FIN 给 server 的时候 server 已经没数据发送给 Client 了并且开启了 TCP 延迟确认机制，&lt;strong&gt;那么 Server 就可以将 ACK （第二次挥手）和它的 FIN（第三次挥手） 合并传输一起发给 Client&lt;/strong&gt; ，这样一来就变成三次挥手&lt;/p&gt;
+&lt;p&gt;TCP延迟确认机制&lt;/p&gt;
+&lt;p&gt;当发送没有携带数据的 ACK，它的网络效率也是很低的，因为它也有 40 个字节的 IP 头 和 TCP 头，但却没有携带数据报文。 为了解决 ACK 传输效率低问题，所以就衍生出了 &lt;strong&gt;TCP 延迟确认&lt;/strong&gt;。 TCP 延迟确认的策略：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当有响应数据要发送时，ACK 会随着响应数据一起立刻发送给对方&lt;/li&gt;
+&lt;li&gt;当没有响应数据要发送时，ACK 将会延迟一段时间，以等待是否有响应数据可以一起发送&lt;/li&gt;
+&lt;li&gt;如果在延迟等待发送 ACK 期间，对方的第二个数据报文又到达了，这时就会立刻发送 ACK&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
 </description>
         </item>
         <item>
