@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="zh-cn" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Interceptor组件">
-<title>Interceptor</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Redis为什么读写高效">
+<title>Redis的读写效率</title>
 
-<link rel='canonical' href='https://Tyritic.github.io/p/interceptor/'>
+<link rel='canonical' href='https://Tyritic.github.io/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87/'>
 
-<link rel="stylesheet" href="/scss/style.min.00fdb13873a10c0d571b0a082e72c57836d458957efcda9eaef694985da2c45f.css"><meta property='og:title' content="Interceptor">
-<meta property='og:description' content="Interceptor组件">
-<meta property='og:url' content='https://Tyritic.github.io/p/interceptor/'>
+<link rel="stylesheet" href="/scss/style.min.00fdb13873a10c0d571b0a082e72c57836d458957efcda9eaef694985da2c45f.css"><meta property='og:title' content="Redis的读写效率">
+<meta property='og:description' content="Redis为什么读写高效">
+<meta property='og:url' content='https://Tyritic.github.io/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开发' /><meta property='article:published_time' content='2024-11-07T15:49:32&#43;08:00'/><meta property='article:modified_time' content='2024-11-07T16:29:32&#43;08:00'/>
-<meta name="twitter:title" content="Interceptor">
-<meta name="twitter:description" content="Interceptor组件">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='数据库' /><meta property='article:published_time' content='2025-02-24T17:30:12&#43;08:00'/><meta property='article:modified_time' content='2025-02-24T13:42:24&#43;00:00'/>
+<meta name="twitter:title" content="Redis的读写效率">
+<meta name="twitter:description" content="Redis为什么读写高效">
     <link rel="shortcut icon" href="/favicon.ico" />
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -287,10 +287,14 @@
         <div class="widget--toc">
             <nav id="TableOfContents">
   <ol>
-    <li><a href="#简介">简介</a></li>
-    <li><a href="#具体实现">具体实现</a></li>
-    <li><a href="#拦截路径">拦截路径</a></li>
-    <li><a href="#执行流程">执行流程</a></li>
+    <li><a href="#redis性能强大的原因">Redis性能强大的原因</a></li>
+    <li><a href="#单线程模型">单线程模型</a>
+      <ol>
+        <li><a href="#使用原因">使用原因</a></li>
+        <li><a href="#io多路复用机制">IO多路复用机制</a></li>
+        <li><a href="#多线程的引入">多线程的引入</a></li>
+      </ol>
+    </li>
   </ol>
 </nav>
         </div>
@@ -309,8 +313,8 @@
     
     <header class="article-category">
         
-            <a href="/categories/springboot/" style="background-color: #2a9d8f; color: #fff;">
-                SpringBoot
+            <a href="/categories/redis/" style="background-color: #2a9d8f; color: #fff;">
+                Redis
             </a>
         
     </header>
@@ -318,12 +322,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/p/interceptor/">Interceptor</a>
+            <a href="/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87/">Redis的读写效率</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            Interceptor组件
+            Redis为什么读写高效
         </h3>
         
     </div>
@@ -344,7 +348,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                <time class="article-time--published">2024-11-07</time>
+                <time class="article-time--published">2025-02-24</time>
             </div>
         
 
@@ -367,7 +371,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：605 字
+                     字数统计：734 字
                 </time>
             </div>
 
@@ -385,276 +389,23 @@
     <section class="article-content">
     
     
-    <h2 id="简介">简介
-</h2><p>Spring框架中提供的，用来动态拦截控制器方法的执行。
-<strong>作用</strong>:拦截请求，在指定的方法调用前后，根据业务需要执行预先设定的代码。</p>
-<h2 id="具体实现">具体实现
-</h2><ol>
-<li>
-<p>定义<strong>Interceptor</strong>类，实现<strong>HandlerInterceptor</strong>接口并重写方法</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="nd">@Component</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">LoginCheckInterceptor</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">HandlerInterceptor</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nd">@0verride</span><span class="w"> </span><span class="c1">//目标资源方法执行前执行，放回true:放行，返回false:不放行</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">prehandle</span><span class="p">(</span><span class="n">HttpServletRequest</span><span class="w"> </span><span class="n">reg</span><span class="p">,</span><span class="w"> </span><span class="n">HttpServletResponse</span><span class="w"> </span><span class="n">resp</span><span class="p">,</span><span class="w"> </span><span class="n">object</span><span class="w"> </span><span class="n">handler</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&#34;preHandle ...&#34;</span><span class="p">);</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nd">@Override</span><span class="w"> </span><span class="c1">//目标资源方法执行后执行</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">postHandle</span><span class="p">(</span><span class="n">HttpservletRequest</span><span class="w"> </span><span class="n">req</span><span class="p">,</span><span class="w"> </span><span class="n">HttpServletResponse</span><span class="w"> </span><span class="n">resp</span><span class="p">,</span><span class="w"> </span><span class="n">object</span><span class="w"> </span><span class="n">handler</span><span class="p">,</span><span class="w"> </span><span class="n">ModelAndview</span><span class="w"> </span><span class="n">modelAndview</span><span class="p">){</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">       </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&#34;postHandle..&#34;</span><span class="p">);</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nd">@0verride</span><span class="w"> </span><span class="c1">//视图渲染完毕后执行，最后执行</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">afterCompletion</span><span class="w"> </span><span class="p">(</span><span class="n">HttSservietReguest</span><span class="w"> </span><span class="n">reg</span><span class="p">,</span><span class="w"> </span><span class="n">HttpServletResponse</span><span class="w"> </span><span class="n">resp</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">handler</span><span class="p">,</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="n">ex</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">&#34;aftercompletion ...&#34;</span><span class="p">);</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div></li>
-<li>
-<p>注册拦截器</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="nd">@Configuration</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">webConfig</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">WebMvcConfigurer</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nd">@Autowired</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="kd">private</span><span class="w"> </span><span class="n">LoginCheckInterceptor</span><span class="w"> </span><span class="n">logincheckInterceptor</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nd">@Override</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">addInterceptors</span><span class="p">(</span><span class="n">InterceptorRegistry</span><span class="w"> </span><span class="n">registry</span><span class="p">){</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">registry</span><span class="p">.</span><span class="na">addInterceptor</span><span class="w"> </span><span class="p">(</span><span class="n">logincheckInterceptor</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">.</span><span class="na">addPathPatterns</span><span class="p">(</span><span class="s">&#34;拦截路径&#34;</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">.</span><span class="na">excludePathPatterns</span><span class="p">(</span><span class="s">&#34;放行路径&#34;</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div></li>
-</ol>
-<h2 id="拦截路径">拦截路径
-</h2><p>拦截器可以根据需求，配置不同的拦截路径:</p>
-<div class="table-wrapper"><table>
-  <thead>
-      <tr>
-          <th style="text-align: center">拦截路径</th>
-          <th style="text-align: center">含义</th>
-          <th style="text-align: center">示例</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td style="text-align: center">/*</td>
-          <td style="text-align: center">所有的一级路径</td>
-          <td style="text-align: center">/depts</td>
-      </tr>
-      <tr>
-          <td style="text-align: center">/**</td>
-          <td style="text-align: center">任意级路径</td>
-          <td style="text-align: center">/depts，/depts/1</td>
-      </tr>
-      <tr>
-          <td style="text-align: center">/depts/*</td>
-          <td style="text-align: center">/depts下的一级路径</td>
-          <td style="text-align: center">/depts/1</td>
-      </tr>
-      <tr>
-          <td style="text-align: center">/depts/**</td>
-          <td style="text-align: center">/depts下的任意级路径</td>
-          <td style="text-align: center">/depts/emp/1</td>
-      </tr>
-  </tbody>
-</table></div>
-<h2 id="执行流程">执行流程
-</h2><p><img src="/p/interceptor/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20241107162538.png"
-	width="737"
-	height="266"
-	
-	loading="lazy"
-	
-	
-		class="gallery-image" 
-		data-flex-grow="277"
-		data-flex-basis="664px"
-	
-></p>
-<ol>
-<li>请求先进入过滤器还未进入Spring容器中</li>
-<li>经过过滤器的校验后进入DispatcherServlet</li>
-<li>请求到达拦截器进行校验</li>
-</ol>
-<style type="text/css">
-   
-  .notice {
-    --title-color: #fff;
-    --title-background-color: #6be;
-    --content-color: #444;
-    --content-background-color: #e7f2fa;
-  }
-
-  .notice.info {
-    --title-background-color: #fb7;
-    --content-background-color: #fec;
-  }
-
-  .notice.tip {
-    --title-background-color: #5a5;
-    --content-background-color: #efe;
-  }
-
-  .notice.warning {
-    --title-background-color: #c33;
-    --content-background-color: #fee;
-  }
-
-   
-  @media (prefers-color-scheme: dark) {
-    .notice {
-      --title-color: #fff;
-      --title-background-color: #069;
-      --content-color: #ddd;
-      --content-background-color: #023;
-    }
-
-    .notice.info {
-      --title-background-color: #a50;
-      --content-background-color: #420;
-    }
-
-    .notice.tip {
-      --title-background-color: #363;
-      --content-background-color: #121;
-    }
-
-    .notice.warning {
-      --title-background-color: #800;
-      --content-background-color: #400;
-    }
-  }
-
-  body.dark .notice {
-    --title-color: #fff;
-    --title-background-color: #069;
-    --content-color: #ddd;
-    --content-background-color: #023;
-  }
-
-  body.dark .notice.info {
-    --title-background-color: #a50;
-    --content-background-color: #420;
-  }
-
-  body.dark .notice.tip {
-    --title-background-color: #363;
-    --content-background-color: #121;
-  }
-
-  body.dark .notice.warning {
-    --title-background-color: #800;
-    --content-background-color: #400;
-  }
-
-   
-  .notice {
-    width: 100%;  
-    max-width: 600px;  
-    padding: 18px;
-    line-height: 24px;
-    margin-bottom: 24px;
-    border-radius: 4px;
-    color: var(--content-color);
-    background: var(--content-background-color);
-  }
-
-  .notice p:last-child {
-    margin-bottom: 0;
-  }
-
-   
-  .notice-title {
-    margin: -18px -18px 12px;
-    padding: 4px 18px;
-    border-radius: 4px 4px 0 0;
-    font-weight: 700;
-    color: var(--title-color);
-    background: var(--title-background-color);
-  }
-
-   
-  .icon-notice {
-    display: inline-flex;
-    align-self: center;
-    margin-right: 8px;
-  }
-
-  .icon-notice img,
-  .icon-notice svg {
-    height: 1em;
-    width: 1em;
-    fill: currentColor;
-  }
-
-  .icon-notice img,
-  .icon-notice.baseline svg {
-    top: 0.125em;
-    position: relative;
-  }
-</style><div
-  class="notice tip"
-  
->
-  <p class="notice-title">
-    <span class="icon-notice baseline">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
-  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
-</svg>
-
-    </span>提示</p><ul>
-<li>接口规范不同:
-<ul>
-<li>过滤器需要实现Filter接口</li>
-<li>拦截器需要实现Handlerinterceptor接口。</li>
+    <h2 id="redis性能强大的原因">Redis性能强大的原因
+</h2><ul>
+<li><strong>基于内存的数据存储</strong> ：Redis 将数据存储在内存中，提供快速的读写速度，使得数据的读写操作避开了磁盘 I/O。而内存的访问速度远超硬盘。相比于传统的磁盘数据库，内存访问速度快得多。</li>
+<li><strong>单线程模型</strong> ：Redis 使用单线程事件驱动模型，避免了多线程上下文切换和竞争条件，提高了并发处理效率。</li>
+<li><strong>高效的数据结构</strong> ：Redis 提供多种高效的数据结构（如字符串、哈希、列表、集合等），这些结构经过优化，能够快速完成各种操作</li>
+<li><strong>IO多路复用</strong> ：基于 Linux 的 select/epoll 机制。该机制允许内核中同时存在多个监听套接字和已连接套接字，内核会一直监听这些套接字上的连接请求或者数据请求，一旦有请求到达，就会交给 Redis 处理，就实现了所谓的 Redis 单个线程处理多个 IO 读写的请求。</li>
 </ul>
-</li>
-<li>拦截范围不同:
-<ul>
-<li>Filter会拦截所有的资源</li>
-<li>Interceptor只会拦截Spring环境中的资源。</li>
+<h2 id="单线程模型">单线程模型
+</h2><h3 id="使用原因">使用原因
+</h3><ul>
+<li>Redis 的大部分操作<strong>都在内存中完成</strong>，并且采用了高效的数据结构，因此 Redis 瓶颈可能是机器的内存或者网络带宽，而并非 CPU，既然 CPU 不是瓶颈，那么自然就采用单线程的解决方案了。</li>
+<li>Redis 采用单线程模型可以<strong>避免了多线程之间的竞争</strong>，省去了多线程切换带来的时间和性能上的开销，而且也不会导致死锁问题。</li>
 </ul>
-</li>
-</ul></div>
-
+<h3 id="io多路复用机制">IO多路复用机制
+</h3><p>IO 多路复用机制是指一个线程处理多个 IO 流，就是 select/epoll 机制。简单来说，在 Redis 只运行单线程的情况下，该机制允许内核中，同时存在多个监听 Socket 和已连接 Socket。内核会一直监听这些 Socket 上的连接请求或数据请求。一旦有请求到达，就会交给 Redis 线程处理，这就实现了一个 Redis 线程处理多个 IO 流的效果。</p>
+<h3 id="多线程的引入">多线程的引入
+</h3><p>随着数据规模的增长、请求量的增多，Redis 的执行瓶颈主要在于⽹络 I/O。引入多线程处理可以提高网络 I/O处理速度。在 Redis 6.0 中，多线程主要用来处理网络 IO 操作，命令解析和执行仍然是单线程完成，这样既可以发挥多核 CPU 的优势，又能避免锁和上下文切换带来的性能损耗。</p>
 
 </section>
 
@@ -663,7 +414,7 @@
     
     <section class="article-tags">
         
-            <a href="/tags/%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91/">后端开发</a>
+            <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a>
         
     </section>
 
@@ -678,11 +429,35 @@
 
 
         <span>
-            最后更新于 2024-11-07 16:29 &#43;0800
+            最后更新于 2025-02-24 13:42 UTC
         </span>
     </section></footer>
 
 
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI&#43;WdtXRGWt2kTvGFasHpSy3SV"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG&#43;vnGctmUb0ZY0l8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"integrity="sha384-&#43;VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4&#43;/RRE05"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+        renderMathInElement(document.body, {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ],
+            ignoredClasses: ["gist"]
+        });})
+</script>
     
 </article>
 
@@ -697,64 +472,12 @@
             
                 
 <article class="">
-    <a href="/p/springmvc/">
+    <a href="/p/redis%E5%9F%BA%E7%A1%80/">
         
         
 
         <div class="article-details">
-            <h2 class="article-title">SpringMVC</h2>
-        </div>
-    </a>
-</article>
-
-            
-                
-<article class="">
-    <a href="/p/springboot%E6%95%B4%E5%90%88springdoc-openapi/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">SpringBoot整合Springdoc-OpenApi</h2>
-        </div>
-    </a>
-</article>
-
-            
-                
-<article class="">
-    <a href="/p/resttemplate/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">RestTemplate</h2>
-        </div>
-    </a>
-</article>
-
-            
-                
-<article class="">
-    <a href="/p/springboot%E7%83%AD%E9%83%A8%E7%BD%B2%E5%92%8C%E6%97%A5%E5%BF%97/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">SpringBoot热部署和日志</h2>
-        </div>
-    </a>
-</article>
-
-            
-                
-<article class="">
-    <a href="/p/maven%E9%AB%98%E7%BA%A7/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">Maven高级</h2>
+            <h2 class="article-title">Redis基础</h2>
         </div>
     </a>
 </article>
