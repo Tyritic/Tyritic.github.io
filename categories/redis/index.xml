@@ -7,6 +7,672 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh-cn</language>
         <copyright>Tyritic</copyright><atom:link href="https://Tyritic.github.io/categories/redis/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>Redis中的Zset</title>
+        <link>https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84zset/</link>
+        <pubDate>Wed, 26 Feb 2025 19:53:16 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84zset/</guid>
+        <description>&lt;h2 id=&#34;zset的定义&#34;&gt;ZSet的定义
+&lt;/h2&gt;&lt;p&gt;Redis的ZSet是一个可排序的set集合，与Java中的TreeSet有些类似，但底层数据结构却差别很大。ZSet中的每一个元素都带有一个score属性，可以基于score属性对元素排序，底层的实现是一个跳表（SkipList）加 hash表。ZSet具备下列特性：可排序元素不重复查询速度快&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84zset/zset.png&#34;
+	width=&#34;1226&#34;
+	height=&#34;616&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;ZSet&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;199&#34;
+		data-flex-basis=&#34;477px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h2 id=&#34;常用命令&#34;&gt;常用命令
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;查看
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;ZSCORE key member&lt;/code&gt;&lt;/strong&gt; ：返回有序集合key中元素member的分值&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;ZCARD key&lt;/code&gt;&lt;/strong&gt;  ：返回有序集合key中元素个数&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;ZRANGE key start stop [WITHSCORES]&lt;/code&gt;&lt;/strong&gt; ：正序获取有序集合key从start下标到stop下标的元素&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;ZRANGEBYSCORE key min max [WITHSCORES] [LIMIT offset count]&lt;/code&gt;&lt;/strong&gt; ：返回有序集合中指定分数区间内的成员，分数由低到高排序。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;ZCOUNT key min max&lt;/code&gt;&lt;/strong&gt; ：计算有序集合中指定分数区间的成员数量。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;加入元素
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;ZADD KEY_NAME SCORE1 VALUE1.. SCOREN VALUEN&lt;/code&gt;&lt;/strong&gt; ：将一个或多个成员元素及其分数值加入到有序集当中&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;删除元素
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;ZREM key member [member ...]&lt;/code&gt;&lt;/strong&gt; ：移除有序集中的一个或多个成员，不存在的成员将被忽略。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;底层实现&#34;&gt;底层实现
+&lt;/h2&gt;&lt;p&gt;Redis 中的 &lt;strong&gt;ZSet（有序集合，Sorted Set）&lt;/strong&gt; 是一种由 &lt;strong&gt;跳表（Skip List）&lt;/strong&gt; 和 &lt;strong&gt;哈希表（Hash Table）&lt;/strong&gt; 组成的数据结构。ZSet 结合了集合（Set）的特性和排序功能，能够存储具有唯一性的成员，并根据成员的分数（score）进行排序。&lt;/p&gt;
+&lt;p&gt;ZSet 的实现由两个核心数据结构组成：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;跳表（Skip List）&lt;/strong&gt;：用于存储数据的排序和快速查找。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;哈希表（Hash Table）&lt;/strong&gt;：用于存储成员与其分数的映射，提供快速查找。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;跳表的实现原理&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;跳表是在链表基础上改进过来的，实现了一种「多层」的有序链表&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84zset/1719804939236-89f12a47-b851-4d06-a5f3-399e1119db57.png&#34;
+	width=&#34;1164&#34;
+	height=&#34;287&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;跳表原理&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;405&#34;
+		data-flex-basis=&#34;973px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;跳表的查找复杂度就是 $O(logN)$。&lt;/p&gt;
+&lt;p&gt;跳表是一个带有层级关系的链表，而且每一层级可以包含多个节点，每一个节点通过指针连接起来，实现这一特性就是靠跳表节点结构体中的&lt;strong&gt;zskiplistLevel 结构体类型的 level 数组&lt;/strong&gt;。&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>Redis中的Set</title>
+        <link>https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84set/</link>
+        <pubDate>Wed, 26 Feb 2025 19:19:37 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84set/</guid>
+        <description>&lt;h2 id=&#34;set的定义&#34;&gt;set的定义
+&lt;/h2&gt;&lt;p&gt;Set 类型是一个无序并唯一的键值集合，它的存储顺序不会按照插入的先后顺序进行存储。&lt;img src=&#34;https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84set/set.png&#34;
+	width=&#34;1268&#34;
+	height=&#34;654&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;示意图&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;193&#34;
+		data-flex-basis=&#34;465px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h2 id=&#34;set的常见命令&#34;&gt;set的常见命令
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;添加元素
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;SADD KEY_NAME VALUE1..VALUEN&lt;/code&gt;&lt;/strong&gt; ：将一个或多个成员元素加入到集合中，已经存在于集合的成员元素将被忽略。
+&lt;ul&gt;
+&lt;li&gt;被添加到集合中的新元素的数量&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;SMOVE SOURCE DESTINATION MEMBER&lt;/code&gt;&lt;/strong&gt;  ：将指定成员 member 元素从 source 集合移动到 destination 集合。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;移除元素
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;SPOP key [count]&lt;/code&gt;&lt;/strong&gt; ：移除集合中的指定 key 的一个或多个随机元素
+&lt;ul&gt;
+&lt;li&gt;被移除的随机元素。 当集合不存在或是空集时，返回 nil 。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;SREM KEY MEMBER1..MEMBERN&lt;/code&gt;&lt;/strong&gt; ：移除集合中的一个或多个成员元素，不存在的成员元素会被忽略。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;获取元素
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;SMEMBERS key&lt;/code&gt;&lt;/strong&gt; ：返回集合中的所有成员&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;SISMEMBER KEY VALUE&lt;/code&gt;&lt;/strong&gt;  ：判断成员元素是否是集合的成员&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;集合运算
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;SDIFF FIRST_KEY OTHER_KEY1..OTHER_KEYN&lt;/code&gt;&lt;/strong&gt;  ：计算差集
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;SDIFFSTORE destination key [key ...]&lt;/code&gt;&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;SINTER KEY KEY1..KEYN&lt;/code&gt;&lt;/strong&gt; ：计算交集
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;SINTERSTORE destination key [key ...]&lt;/code&gt;&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;SUNION KEY KEY1..KEYN&lt;/code&gt;&lt;/strong&gt; ：计算并集&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;SUNIONSTORE destination key [key ...]&lt;/code&gt;&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;底层实现&#34;&gt;底层实现
+&lt;/h2&gt;&lt;p&gt;Set 类型的底层数据结构是由&lt;strong&gt;哈希表或整数集合&lt;/strong&gt;实现的：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果集合中的元素都是整数且元素个数小于 &lt;code&gt;512&lt;/code&gt; （默认值，&lt;code&gt;set-maxintset-entries&lt;/code&gt;配置）个，Redis 会使用&lt;strong&gt;整数集合&lt;/strong&gt;作为 Set 类型的底层数据结构；&lt;/li&gt;
+&lt;li&gt;如果集合中的元素不满足上面条件，则 Redis 使用&lt;strong&gt;哈希表&lt;/strong&gt;作为 Set 类型的底层数据结构。&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        <item>
+        <title>Redis中的Hash</title>
+        <link>https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84hash/</link>
+        <pubDate>Wed, 26 Feb 2025 17:00:26 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84hash/</guid>
+        <description>&lt;h2 id=&#34;hash的定义&#34;&gt;Hash的定义
+&lt;/h2&gt;&lt;p&gt;Hash 是一个键值对（key - value）集合，其中 value 的形式如： &lt;code&gt;value=[{field1，value1}，...{fieldN，valueN}]&lt;/code&gt;。Hash 适合用于存储对象。&lt;img src=&#34;https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84hash/hash.png&#34;
+	width=&#34;1240&#34;
+	height=&#34;888&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;img&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;139&#34;
+		data-flex-basis=&#34;335px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h2 id=&#34;常用命令&#34;&gt;常用命令
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;设置键值对&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;HSET KEY_NAME FIELD VALUE&lt;/code&gt;&lt;/strong&gt; ：为哈希表中的字段赋值
+&lt;ul&gt;
+&lt;li&gt;如果字段是哈希表中的一个新建字段，并且值设置成功，返回 1 。 如果哈希表中域字段已经存在且旧值已被新值覆盖，返回 0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;HMSET KEY_NAME FIELD1 VALUE1 ...FIELDN VALUEN&lt;/code&gt;&lt;/strong&gt; ：同时将多个 field-value (字段-值)对设置到哈希表中。
+&lt;ul&gt;
+&lt;li&gt;如果命令执行成功，返回 OK 。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;查看&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;HGET KEY_NAME FIELD_NAME&lt;/code&gt;&lt;/strong&gt;  ：返回哈希表中指定字段的值
+&lt;ul&gt;
+&lt;li&gt;返回给定字段的值。如果给定的字段或 key 不存在时，返回 nil 。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;HKEYS key&lt;/code&gt;&lt;/strong&gt; ：获取哈希表中的所有域（field）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;HMGET KEY_NAME FIELD1...FIELDN&lt;/code&gt;&lt;/strong&gt; ：返回哈希表中，一个或多个给定字段的值。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;HGETALL KEY_NAME&lt;/code&gt;&lt;/strong&gt; ：返回哈希表中，所有的字段和值。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;HEXISTS KEY_NAME FIELD_NAME&lt;/code&gt;&lt;/strong&gt;  ：查看哈希表的指定字段是否存在。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;删除&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;HDEL KEY_NAME FIELD1.. FIELDN&lt;/code&gt;&lt;/strong&gt;  ：删除哈希表 key 中的一个或多个指定字段，不存在的字段将被忽略。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;底层实现&#34;&gt;底层实现
+&lt;/h2&gt;&lt;p&gt;Hash 类型的底层数据结构是由 &lt;strong&gt;压缩列表或哈希表&lt;/strong&gt; 实现的：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果哈希类型元素个数小于 &lt;code&gt;512&lt;/code&gt; 个（默认值，可由 &lt;code&gt;hash-max-ziplist-entries&lt;/code&gt; 配置），所有值小于 &lt;code&gt;64&lt;/code&gt; 字节（默认值，可由 &lt;code&gt;hash-max-ziplist-value&lt;/code&gt; 配置）的话，Redis 会使用 &lt;strong&gt;压缩列表&lt;/strong&gt; 作为 Hash 类型的底层数据结构；&lt;/li&gt;
+&lt;li&gt;如果哈希类型元素不满足上面条件，Redis 会使用 &lt;strong&gt;哈希表&lt;/strong&gt; 作为 Hash 类型的 底层数据结构。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;后面版本使用 &lt;strong&gt;ListPack&lt;/strong&gt; 实现&lt;/p&gt;
+&lt;style type=&#34;text/css&#34;&gt;
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+&lt;/style&gt;&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;
+  &lt;p&gt;ListPack 是 Redis 内部的一种数据结构，用于高效存储短小的字符串或整数集合。它是一种 &lt;strong&gt;紧凑型的序列化数据结构&lt;/strong&gt; ，旨在减少内存占用和提升性能。直接以字节序列的形式存储数据。&lt;/p&gt;
+  &lt;/div&gt;
+
+&lt;h2 id=&#34;扩容机制&#34;&gt;扩容机制
+&lt;/h2&gt;&lt;p&gt;Redis的哈希扩容是渐进式的&lt;/p&gt;
+&lt;p&gt;在正常服务请求阶段，插入的数据，都会写入到「哈希表 1」，此时的「哈希表 2 」 并没有被分配空间。&lt;/p&gt;
+&lt;p&gt;随着数据逐步增多，触发了 rehash 操作，这个过程分为三步：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;给「哈希表 2」 分配空间，一般会比「哈希表 1」 大 2 倍；&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;将「哈希表 1 」的数据迁移到「哈希表 2」 中；&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;在 rehash 进行期间，每次哈希表元素进行新增、删除、查找或者更新操作时，Redis 除了会执行对应的操作之外，还会顺序将「哈希表 1 」中索引位置上的所有 key-value 迁移到「哈希表 2」 上&lt;/strong&gt;；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;迁移完成后，「哈希表 1 」的空间会被释放，并把「哈希表 2」 设置为「哈希表 1」，然后在「哈希表 2」 新创建一个空白的哈希表，为下次 rehash 做准备。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://cdn.xiaolincoding.com//picgo/image-20240725232528097.png&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;rehash的过程&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在进行渐进式 rehash 的过程中，会有两个哈希表，所以在渐进式 rehash 进行期间，哈希表元素的删除、查找、更新等操作都会在这两个哈希表进行。查找操作时先会在「哈希表 1」 里面进行查找，如果没找到，就会继续到哈希表 2 里面进行找到。&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>Redis中的List</title>
+        <link>https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84list/</link>
+        <pubDate>Wed, 26 Feb 2025 16:28:56 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84list/</guid>
+        <description>&lt;h2 id=&#34;list类型定义&#34;&gt;List类型定义
+&lt;/h2&gt;&lt;p&gt;List 列表是简单的字符串列表，&lt;strong&gt;按照插入顺序排序&lt;/strong&gt;，可以从头部或尾部向 List 列表添加元素。&lt;/p&gt;
+&lt;p&gt;列表的最大长度为 &lt;code&gt;2^32 - 1&lt;/code&gt;，也即每个列表支持超过 &lt;code&gt;40 亿&lt;/code&gt;个元素。&lt;/p&gt;
+&lt;p&gt;特点与LinkedList一致&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;有序&lt;/li&gt;
+&lt;li&gt;元素可以重复&lt;/li&gt;
+&lt;li&gt;插入和删除快&lt;/li&gt;
+&lt;li&gt;查询速度一般&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;常见命令&#34;&gt;常见命令
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;获取元素
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;LINDEX KEY_NAME INDEX_POSITION&lt;/code&gt;&lt;/strong&gt; ：通过索引获取列表中的元素。你也可以使用负数下标，以 -1 表示列表的最后一个元素， -2 表示列表的倒数第二个元素&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;插入元素
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;LPUSH KEY_NAME VALUE1.. VALUEN&lt;/code&gt;&lt;/strong&gt; ：将一个或多个值插入到列表头部。 如果 key 不存在，一个空列表会被创建并执行 LPUSH 操作。 当 key 存在但不是列表类型时，返回一个错误。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;LPUSHX KEY_NAME VALUE1.. VALUEN&lt;/code&gt;&lt;/strong&gt; ：将一个值插入到已存在的列表头部，列表不存在时操作无效。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;LINSERT key BEFORE|AFTER pivot value&lt;/code&gt;&lt;/strong&gt; ：将值 value 插入到列表 key 当中，位于值 pivot 之前或之后。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;RPUSH KEY_NAME VALUE1..VALUEN&lt;/code&gt;&lt;/strong&gt; ：将一个或多个值插入到列表的尾部(最右边)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;RPUSHX KEY_NAME VALUE1..VALUEN&lt;/code&gt;&lt;/strong&gt; ：将一个值插入到已存在的列表尾部(最右边)。如果列表不存在，操作无效&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;BRPOPLPUSH LIST1 ANOTHER_LIST TIMEOUT&lt;/code&gt;&lt;/strong&gt;  ：Redis Brpoplpush 命令从列表中取出最后一个元素，并插入到另外一个列表的头部； 如果列表没有元素会阻塞列表直到等待超时或发现可弹出元素为止。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;删除元素
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;BLPOP LIST1 LIST2 .. LISTN TIMEOUT&lt;/code&gt;&lt;/strong&gt; ：移出并获取列表的第一个元素， 如果列表没有元素会阻塞列表直到等待超时或发现可弹出元素为止
+&lt;ul&gt;
+&lt;li&gt;如果列表为空，返回一个 nil 。 否则，返回一个含有两个元素的列表，第一个元素是被弹出元素所属的 key ，第二个元素是被弹出元素的值。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;BRPOP LIST1 LIST2 .. LISTN TIMEOUT&lt;/code&gt;&lt;/strong&gt; ：移出并获取列表的最后一个元素， 如果列表没有元素会阻塞列表直到等待超时或发现可弹出元素为止。
+&lt;ul&gt;
+&lt;li&gt;假如在指定时间内没有任何元素被弹出，则返回一个 nil 和等待时长。 反之，返回一个含有两个元素的列表，第一个元素是被弹出元素所属的 key ，第二个元素是被弹出元素的值。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Lpop KEY_NAME&lt;/code&gt;&lt;/strong&gt; ：移除并返回列表的第一个元素&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;RPOP KEY_NAME&lt;/code&gt;&lt;/strong&gt; ：用于移除列表的最后一个元素，返回值为移除的元素&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;底层实现原理&#34;&gt;底层实现原理
+&lt;/h2&gt;&lt;p&gt;List 类型的底层数据结构是由 &lt;strong&gt;双向链表或压缩列表&lt;/strong&gt; 实现的：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果列表的元素个数小于 &lt;code&gt;512&lt;/code&gt; 个（默认值，可由 &lt;code&gt;list-max-ziplist-entries&lt;/code&gt; 配置），列表每个元素的值都小于 &lt;code&gt;64&lt;/code&gt; 字节（默认值，可由 &lt;code&gt;list-max-ziplist-value&lt;/code&gt; 配置），Redis 会使用 &lt;strong&gt;压缩列表（ziplist）&lt;/strong&gt; 作为 List 类型的底层数据结构；&lt;/li&gt;
+&lt;li&gt;如果列表的元素不满足上面的条件，Redis 会使用&lt;strong&gt;双向链表&lt;/strong&gt;作为 List 类型的底层数据结构&lt;/li&gt;
+&lt;/ul&gt;
+&lt;style type=&#34;text/css&#34;&gt;
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+&lt;/style&gt;&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Ziplist&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;简单、紧凑、连续存储，适用于小数据量场景，但对大量数据或频繁的修改操作不太友好。&lt;/li&gt;
+&lt;li&gt;适合小数据量场景，例如短列表、小哈希表等，因为它的内存紧凑，可以大幅减少内存使用&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Quicklist&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;通过将链表和 Ziplist 结合，既实现了链表的灵活操作，又能节省内存&lt;/li&gt;
+&lt;li&gt;Quicklist 是为了替代纯链表而设计的，适用于需要频繁对列表进行插入、删除、查找等操作的场景，并且数据量可能较大。它在存储多个元素时，既保留了链表的灵活性，又具备压缩列表的内存优势。&lt;/li&gt;
+&lt;li&gt;Quicklist 由 list 和 ziplist 结合而成，它是一个由 ziplist 充当节点的双向链表。&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h2 id=&#34;应用场景&#34;&gt;应用场景
+&lt;/h2&gt;&lt;h3 id=&#34;简单消息队列&#34;&gt;简单消息队列
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;消息保序性：使用 LPUSH + RPOP&lt;img src=&#34;https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84list/list%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97.png&#34;
+	width=&#34;1642&#34;
+	height=&#34;374&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;img&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;439&#34;
+		data-flex-basis=&#34;1053px&#34;
+	
+&gt;
+&lt;ul&gt;
+&lt;li&gt;生产者使用 &lt;code&gt;LPUSH key value[value...]&lt;/code&gt; 将消息插入到队列的头部，如果 key 不存在则会创建一个空的队列再插入消息。&lt;/li&gt;
+&lt;li&gt;消费者使用 &lt;code&gt;RPOP key&lt;/code&gt; 依次读取队列的消息，先进先出。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;消息重复性：&lt;strong&gt;自行为每个消息生成一个全局唯一ID&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;消息可靠性：&lt;strong&gt;让消费者程序从一个 List 中读取消息，同时，Redis 会把这个消息再插入到另一个 List（可以叫作备份 List）留存&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        <item>
+        <title>Redis中的String</title>
+        <link>https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84string/</link>
+        <pubDate>Wed, 26 Feb 2025 15:51:21 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84string/</guid>
+        <description>&lt;h2 id=&#34;string的定义&#34;&gt;String的定义
+&lt;/h2&gt;&lt;p&gt;字符串是最基础的数据类型，value 可以是：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;字符串（简单的字符串、复杂的字符串（例如 JSON、XML））&lt;/li&gt;
+&lt;li&gt;数字 （整数、浮点数）&lt;/li&gt;
+&lt;li&gt;是二进制（图片、音频、视频），但最大不能超过 512MB。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;string的常见命令&#34;&gt;String的常见命令
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;设置键值对&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;SET KEY_NAME VALUE&lt;/code&gt;&lt;/strong&gt; ：设置给定 key 的值。如果 key 已经存储其他值， SET 就覆写旧值，且无视类型。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;GETSET KEY_NAME VALUE&lt;/code&gt;&lt;/strong&gt; ：设置指定 key 的值，并返回 key 的旧值&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;SETEX KEY_NAME TIMEOUT VALUE&lt;/code&gt;&lt;/strong&gt; ：为指定的 key 设置值及其过期时间。如果 key 已经存在， SETEX 命令将会替换旧的值。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;MSET key1 value1 key2 value2 .. keyN valueN&lt;/code&gt;&lt;/strong&gt;  :同时设置一个或多个 key-value 对&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;根据键查找值： &lt;strong&gt;&lt;code&gt;GET KEY_NAME&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;返回 key 的值，如果 key 不存在时，返回 nil。 如果 key 不是字符串类型，那么返回一个错误。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;获取指定 key 所储存的字符串值的长度：&lt;strong&gt;&lt;code&gt;STRLEN KEY_NAME&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;string的底层实现&#34;&gt;String的底层实现
+&lt;/h2&gt;&lt;p&gt;Redis 中的 String 类型底层实现主要基于 SDS（Simple Dynamic String 简单动态字符串）结构，并结合 int、embstr、raw 等不同的编码方式进行优化存储。&lt;/p&gt;
+&lt;h3 id=&#34;sds的结构&#34;&gt;SDS的结构
+&lt;/h3&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84string/image-20240725232549832.png&#34;
+	width=&#34;1470&#34;
+	height=&#34;728&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;SDS数据结构&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;201&#34;
+		data-flex-basis=&#34;484px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;en，记录了字符串长度&lt;/strong&gt;。这样获取字符串长度的时候，只需要返回这个成员变量值就行，时间复杂度只需要 O（1）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;alloc，分配给字符数组的空间长度&lt;/strong&gt;。这样在修改字符串的时候，可以通过 &lt;code&gt;alloc - len&lt;/code&gt; 计算出剩余的空间大小，可以用来判断空间是否满足修改需求，如果不满足的话，就会自动将 SDS 的空间扩展至执行修改所需的大小，然后才执行实际的修改操作，所以使用 SDS 既不需要手动修改 SDS 的空间大小，也不会出现前面所说的缓冲区溢出的问题。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;flags，用来表示不同类型的 SDS&lt;/strong&gt;。一共设计了 5 种类型，分别是 sdshdr5、sdshdr8、sdshdr16、sdshdr32 和 sdshdr64，后面在说明区别之处。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;buf[]，字符数组，用来保存实际数据&lt;/strong&gt;。不仅可以保存字符串，也可以保存二进制数据。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;编码方式&#34;&gt;编码方式
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;如果一个字符串对象保存的是整数值，并且这个整数值可以用&lt;code&gt;long&lt;/code&gt;类型来表示，那么字符串对象会将整数值保存在字符串对象结构的&lt;code&gt;ptr&lt;/code&gt;属性里面（将&lt;code&gt;void*&lt;/code&gt;转换成 long），并将字符串对象的编码设置为&lt;code&gt;int&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;如果字符串对象保存的是一个短字符串，那么字符串对象将使用一个简单动态字符串（SDS）来保存这个字符串，并将对象的编码设置为&lt;code&gt;embstr&lt;/code&gt;， &lt;code&gt;embstr&lt;/code&gt;编码是专门用于保存短字符串的一种优化编码方式&lt;/li&gt;
+&lt;li&gt;如果字符串对象保存的是一个长字符串，那么字符串对象将使用一个简单动态字符串（SDS）来保存这个字符串，并将对象的编码设置为&lt;code&gt;raw&lt;/code&gt;：&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        <item>
         <title>Redis的读写效率</title>
         <link>https://Tyritic.github.io/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87/</link>
         <pubDate>Mon, 24 Feb 2025 17:30:12 +0800</pubDate>
@@ -27,6 +693,158 @@
 &lt;/ul&gt;
 &lt;h3 id=&#34;io多路复用机制&#34;&gt;IO多路复用机制
 &lt;/h3&gt;&lt;p&gt;IO 多路复用机制是指一个线程处理多个 IO 流，就是 select/epoll 机制。简单来说，在 Redis 只运行单线程的情况下，该机制允许内核中，同时存在多个监听 Socket 和已连接 Socket。内核会一直监听这些 Socket 上的连接请求或数据请求。一旦有请求到达，就会交给 Redis 线程处理，这就实现了一个 Redis 线程处理多个 IO 流的效果。&lt;/p&gt;
+&lt;p&gt;这里“多路”指的是多个网络连接客户端，“复用”指的是复用同一个线程(单进程)。&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87/1720433058791-94f03cb5-e89c-45ed-ba34-88a0dac99d98.png&#34;
+	width=&#34;1137&#34;
+	height=&#34;500&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;IO多路复用&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;227&#34;
+		data-flex-basis=&#34;545px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;一个 socket 客户端与服务端连接时，会生成对应一个套接字描述符(套接字描述符是文件描述符的一种)，每一个 socket 网络连接其实都对应一个文件描述符。&lt;/li&gt;
+&lt;li&gt;多个客户端与服务端连接时，Redis 使用 I/O 多路复用程序 将客户端 socket 对应的 FD 注册到监听列表(一个队列)中。当客户端执行 read、write 等操作命令时，I/O 多路复用程序会将命令封装成一个事件，并绑定到对应的 FD 上。&lt;/li&gt;
+&lt;li&gt;文件事件处理器使用 I/O 多路复用模块同时监控多个文件描述符（fd）的读写情况，当 accept、read、write 和 close 文件事件产生时，文件事件处理器就会回调 FD 绑定的事件处理器进行处理相关命令操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;style type=&#34;text/css&#34;&gt;
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+&lt;/style&gt;&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;select，epoll和epoll的实现原理&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;select 使用位图管理 fd，每次调用都需要将 fd 集合从用户态复制到内核态。最大支持 1024 个文件描述符。&lt;/li&gt;
+&lt;li&gt;poll 使用动态数组管理 fd，突破了 select 的数量限制。&lt;/li&gt;
+&lt;li&gt;epoll 使用红黑树和链表管理 fd，每次调用只需要将 fd 集合从用户态复制到内核态一次，不需要重复复制。&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
 &lt;h3 id=&#34;多线程的引入&#34;&gt;多线程的引入
 &lt;/h3&gt;&lt;p&gt;随着数据规模的增长、请求量的增多，Redis 的执行瓶颈主要在于⽹络 I/O。引入多线程处理可以提高网络 I/O处理速度。在 Redis 6.0 中，多线程主要用来处理网络 IO 操作，命令解析和执行仍然是单线程完成，这样既可以发挥多核 CPU 的优势，又能避免锁和上下文切换带来的性能损耗。&lt;/p&gt;
 </description>
@@ -113,7 +931,7 @@
       &lt;tr&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;使用场景&lt;/strong&gt;&lt;/td&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;数据结构固定&lt;br&gt;相关业务对数据安全性，一致性要求较高&lt;/td&gt;
-          &lt;td style=&#34;text-align: center&#34;&gt;数据结构不固定&lt;br/&gt;对一致性、安全性要求不高2)&lt;br/&gt;对性能要求&lt;/td&gt;
+          &lt;td style=&#34;text-align: center&#34;&gt;数据结构不固定&lt;br/&gt;对一致性、安全性要求不高&lt;br/&gt;对性能要求&lt;/td&gt;
       &lt;/tr&gt;
   &lt;/tbody&gt;
 &lt;/table&gt;
@@ -308,6 +1126,145 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
+&lt;style type=&#34;text/css&#34;&gt;
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+&lt;/style&gt;&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;Key的层级结构&lt;/p&gt;
+&lt;p&gt;在 &lt;strong&gt;Redis&lt;/strong&gt; 中，&lt;strong&gt;Key 的层级格式&lt;/strong&gt; 其实是&lt;strong&gt;一种命名约定&lt;/strong&gt;，并没有真正的“层级”结构（不像关系型数据库中的表或目录结构）。&lt;/p&gt;
+&lt;p&gt;通常使用 &lt;code&gt;:&lt;/code&gt; 分隔层级&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;namespace:object_type:id:field
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;/div&gt;
+
 &lt;h3 id=&#34;数据库命令&#34;&gt;数据库命令
 &lt;/h3&gt;&lt;p&gt;Redis默认有16个数据库，默认使用编号为0的数据库&lt;/p&gt;
 &lt;ul&gt;
