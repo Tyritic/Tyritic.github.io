@@ -7,7 +7,665 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh-cn</language>
         <copyright>Tyritic</copyright>
-        <lastBuildDate>Fri, 28 Feb 2025 13:17:06 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Wed, 05 Mar 2025 16:27:43 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>Redis的缓存设计</title>
+        <link>https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1/</link>
+        <pubDate>Sat, 01 Mar 2025 19:56:40 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1/</guid>
+        <description>&lt;h2 id=&#34;redis的缓存&#34;&gt;Redis的缓存
+&lt;/h2&gt;&lt;p&gt;Redis最常见的用途就是作为缓存系统。通过将热门数据存储在内存中，可以极大地提高访问速度，减轻数据库负载，这对于需要快速响应时间的应用程序非常重要。&lt;/p&gt;
+&lt;p&gt;用户的数据一般都是存储于数据库，数据库的数据是落在磁盘上的，磁盘的读写速度很慢了。当用户的请求，都访问数据库的话，请求数量一上来，数据库很容易就崩溃的了，所以为了避免用户直接访问数据库，会用 Redis 作为缓存层。&lt;/p&gt;
+&lt;p&gt;因为 Redis 是内存数据库，我们可以将数据库的数据缓存在 Redis 里，相当于数据缓存在内存，内存的读写速度比硬盘快好几个数量级，这样大大提高了系统性能。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1/37e4378d2edcb5e217b00e5f12973efd-20230309232858764.png&#34;
+	width=&#34;377&#34;
+	height=&#34;686&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;缓存系统设计&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;54&#34;
+		data-flex-basis=&#34;131px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h2 id=&#34;缓存雪崩&#34;&gt;缓存雪崩
+&lt;/h2&gt;&lt;h3 id=&#34;定义&#34;&gt;定义
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;缓存雪崩&lt;/strong&gt;：指多个缓存数据在同一时间过期或者Redis宕机，导致大量请求同时访问数据库，从而造成数据库瞬间负载激增。&lt;/p&gt;
+&lt;p&gt;通常为了保证缓存中的数据与数据库中的数据一致性，会给 Redis 里的数据设置过期时间，当缓存数据过期后，用户访问的数据如果不在缓存里，业务系统需要重新生成缓存，因此就会访问数据库，并将数据更新到 Redis 里，这样后续请求都可以直接命中缓存。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1/e2b8d2eb5536aa71664772457792ec40-20230309232851699.png&#34;
+	width=&#34;692&#34;
+	height=&#34;438&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;工作流程&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;157&#34;
+		data-flex-basis=&#34;379px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;那么，当 &lt;strong&gt;大量缓存数据在同一时间过期（失效）或者 Redis 故障宕机&lt;/strong&gt; 时，如果此时有大量的用户请求，都无法在 Redis 中处理，于是全部请求都直接访问数据库，从而导致数据库的压力骤增，严重的会造成数据库宕机，从而形成一系列连锁反应，造成整个系统崩溃。&lt;/p&gt;
+&lt;h3 id=&#34;数据大量过期的应对方法&#34;&gt;数据大量过期的应对方法
+&lt;/h3&gt;&lt;h4 id=&#34;均匀设置过期时间&#34;&gt;均匀设置过期时间
+&lt;/h4&gt;&lt;p&gt;如果要给缓存数据设置过期时间，应该避免将大量的数据设置成同一个过期时间。我们可以在对缓存数据设置过期时间时， &lt;strong&gt;给这些数据的过期时间加上一个随机数&lt;/strong&gt; ，这样就保证数据不会在同一时间过期。&lt;/p&gt;
+&lt;h4 id=&#34;互斥锁&#34;&gt;互斥锁
+&lt;/h4&gt;&lt;p&gt;当业务线程在处理用户请求时， &lt;strong&gt;如果发现访问的数据不在 Redis 里，就加个互斥锁，保证同一时间内只有一个请求来构建缓存&lt;/strong&gt; （从数据库读取数据，再将数据更新到 Redis 里），当缓存构建完成后，再释放锁。未能获取互斥锁的请求，要么等待锁释放后重新读取缓存，要么就返回空值或者默认值。&lt;/p&gt;
+&lt;p&gt;实现互斥锁的时候，最好设置&lt;strong&gt;超时时间&lt;/strong&gt;，不然第一个请求拿到了锁，然后这个请求发生了某种意外而一直阻塞，一直不释放锁，这时其他请求也一直拿不到锁，整个系统就会出现无响应的现象。&lt;/p&gt;
+&lt;h3 id=&#34;redis故障宕机的应对方法&#34;&gt;Redis故障宕机的应对方法
+&lt;/h3&gt;&lt;h4 id=&#34;服务熔断和请求限流机制&#34;&gt;服务熔断和请求限流机制
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;服务熔断机制&lt;/strong&gt; ：因为 Redis 故障宕机而导致缓存雪崩问题时， &lt;strong&gt;暂停业务应用对缓存服务的访问，直接返回错误&lt;/strong&gt; ，不用再继续访问数据库，从而降低对数据库的访问压力，保证数据库系统的正常运行，然后等到 Redis 恢复正常后，再允许业务应用访问缓存服务。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;请求限流&lt;/strong&gt; ：&lt;strong&gt;只将少部分请求发送到数据库进行处理，再多的请求就在入口直接拒绝服务&lt;/strong&gt; ，等到 Redis 恢复正常并把缓存预热完后，再解除请求限流的机制。
+&lt;ul&gt;
+&lt;li&gt;令牌桶算法&lt;/li&gt;
+&lt;li&gt;漏斗算法&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;style type=&#34;text/css&#34;&gt;
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+&lt;/style&gt;&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;令牌桶算法的基本概念&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;令牌桶（Token Bucket）&lt;/strong&gt;：一个固定容量的桶，用于存放令牌。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;令牌生成速率（Rate）&lt;/strong&gt;：令牌按固定速率 &lt;strong&gt;r&lt;/strong&gt;（个/秒）加入桶中。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;桶的最大容量（Capacity）&lt;/strong&gt;：最多可存放的令牌数量，超过部分被丢弃。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;令牌桶算法的算法流程&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;系统初始化&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;令牌桶被创建，初始令牌数 &lt;strong&gt;&lt;code&gt;C&lt;/code&gt;&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;每秒会 &lt;strong&gt;自动生成 &lt;code&gt;r &lt;/code&gt; 个新令牌&lt;/strong&gt;，但总令牌数不会超过 &lt;strong&gt;&lt;code&gt;C&lt;/code&gt;&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;请求到来&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;如果桶内 &lt;code&gt;T &amp;gt; 0&lt;/code&gt;&lt;/strong&gt;，则允许请求通过，并消耗 1 个令牌。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;如果桶内 &lt;code&gt;T == 0&lt;/code&gt;&lt;/strong&gt;，请求被 &lt;strong&gt;拒绝（限流）&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;令牌自动填充&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;每 &lt;code&gt;1/r&lt;/code&gt; 秒，系统会向桶内添加 &lt;strong&gt;新令牌&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;新增的令牌 &lt;strong&gt;不会超过桶的最大容量&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;突发流量处理&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当桶内 &lt;strong&gt;有足够令牌时&lt;/strong&gt;，可支持短时间 &lt;strong&gt;高并发请求&lt;/strong&gt;（比如 10 个请求瞬间到来）。&lt;/li&gt;
+&lt;li&gt;但当桶内令牌 &lt;strong&gt;耗尽&lt;/strong&gt; 时，系统会 &lt;strong&gt;严格按照 &lt;code&gt;r&lt;/code&gt; 速率处理请求&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h4 id=&#34;多级缓存&#34;&gt;多级缓存
+&lt;/h4&gt;&lt;p&gt;对于关键数据，除了在主缓存中存储，还可以在备用缓存中保存一份。当主缓存不可用时，可以快速切换到备用缓存，确保系统的稳定性和可用性。&lt;/p&gt;
+&lt;h4 id=&#34;构建redis集群&#34;&gt;构建Redis集群
+&lt;/h4&gt;&lt;p&gt;服务熔断或请求限流机制是缓存雪崩发生后的应对方案，可以通过 &lt;strong&gt;主从节点的方式构建 Redis 缓存高可靠集群&lt;/strong&gt;。如果 Redis 缓存的主节点故障宕机，从节点可以切换成为主节点，继续提供缓存服务，避免了由于 Redis 故障宕机而导致的缓存雪崩问题。&lt;/p&gt;
+&lt;p&gt;Redis 集群（Redis cluster）是通过多个 Redis 实例组成的，&lt;strong&gt;每个实例存储部分的数据（即每个实例之间的数据是不重复的）&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;具体是采用哈希槽（Hash Slot）机制来分配数据，将整个键空间划分为 16384 个槽（slots）。每个 Redis 实例负责一定范围的哈希槽，数据的 key 经过哈希函数计算后对 16384 取余即可定位到对应的节点。&lt;/p&gt;
+&lt;p&gt;客户端在发送请求时，会通过集群的任意节点进行连接，如果该节点存储了对应的数据则直接返回，反之该节点会根据请求的键值计算哈希槽并路由到正确的节点。&lt;/p&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;信息同步机制&lt;/p&gt;
+&lt;p&gt;Redis 集群内每个节点都会保存集群的完整拓扑信息，包括每个节点的 ID、IP 地址、端口、负责的哈希槽范围等。节点之间使用 &lt;strong&gt;&lt;code&gt;Gossip&lt;/code&gt;&lt;/strong&gt; 协议进行状态交换，以保持集群的一致性和故障检测。每个节点会周期性地发送 PING 和 PONG 消息，交换集群信息，使得集群信息得以同步。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;状态报告&lt;/strong&gt; ：每个节点在特定的时间间隔内，向随机选择的其他节点发送其自身的状态信息，包括节点的主从关系、槽位分布等。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;信息更新&lt;/strong&gt; ：接收到状态信息的节点会根据所接收到的数据更新自己的状态，并将更新后的状态继续传播给其他节点。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;节点检测&lt;/strong&gt;：通过周期性交换状态信息，节点可以检测到其他节点的存活状态。如果某个节点未能在预定时间内响应，则该节点会被标记为故障节点。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;容错处理&lt;/strong&gt; ：在检测到节点故障后，集群中的其他节点可以采取措施（如重新分配槽位）以保持系统的高可用性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;节点路由机制&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;每个节点会拥有一部分的槽位，然后对应的键值会根据其本身的 key，映射到一个哈希槽中，其主要流程如下：
+&lt;ul&gt;
+&lt;li&gt;根据键值的 key，按照 CRC 16 算法计算一个 16 bit 的值，然后将 16 bit 的值对 16384 进行取余运算，最后得到一个对应的哈希槽编号。&lt;/li&gt;
+&lt;li&gt;根据每个节点分配的哈希槽区间，对应编号的数据落在对应的区间上，就能找到对应的分片实例。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h2 id=&#34;缓存击穿&#34;&gt;缓存击穿
+&lt;/h2&gt;&lt;h3 id=&#34;定义-1&#34;&gt;定义
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;缓存击穿&lt;/strong&gt;：指某个热点数据在缓存中失效，导致大量请求直接访问数据库。此时，由于瞬间的高并发，可能导致数据库崩溃。&lt;/p&gt;
+&lt;h3 id=&#34;应对方案&#34;&gt;应对方案
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;互斥锁方案，保证同一时间只有一个业务线程更新缓存，未能获取互斥锁的请求，要么等待锁释放后重新读取缓存，要么就返回空值或者默认值。&lt;/li&gt;
+&lt;li&gt;热点数据永不过期。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;缓存穿透&#34;&gt;缓存穿透
+&lt;/h2&gt;&lt;h3 id=&#34;定义-2&#34;&gt;定义
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;缓存穿透&lt;/strong&gt;：指查询一个不存在（ &lt;strong&gt;既不在缓存中，也不在数据库中&lt;/strong&gt; ）的数据，缓存中没有相应的记录，每次请求都会去数据库查询，造成数据库负担加重。&lt;/p&gt;
+&lt;h3 id=&#34;应对方案-1&#34;&gt;应对方案
+&lt;/h3&gt;&lt;h4 id=&#34;限制非法请求&#34;&gt;限制非法请求
+&lt;/h4&gt;&lt;p&gt;当有大量请求访问不存在的数据的时候，也会发生缓存穿透，因此在 API 入口处我们要判断求请求参数是否合理，请求参数是否含有非法值、请求字段是否存在，如果判断出是恶意请求就直接返回错误，避免进一步访问缓存和数据库。&lt;/p&gt;
+&lt;h4 id=&#34;缓存空值&#34;&gt;缓存空值
+&lt;/h4&gt;&lt;p&gt;当发现缓存穿透的现象时，可以针对查询的数据，在缓存中设置一个空值或者默认值，这样后续请求就可以从缓存中读取到空值或者默认值，返回给应用，而不会继续查询数据库。&lt;/p&gt;
+&lt;h4 id=&#34;布隆过滤器&#34;&gt;布隆过滤器
+&lt;/h4&gt;&lt;p&gt;在写入数据库数据时，使用布隆过滤器做个标记，然后在用户请求到来时，业务线程确认缓存失效后，可以通过查询布隆过滤器快速判断数据是否存在，如果不存在，就不用通过查询数据库来判断数据是否存在。即使发生了缓存穿透，大量请求只会查询 Redis 和布隆过滤器，而不会查询数据库，保证了数据库能正常运行&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>Redis的持久化策略</title>
+        <link>https://Tyritic.github.io/p/redis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96%E7%AD%96%E7%95%A5/</link>
+        <pubDate>Sat, 01 Mar 2025 16:36:44 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/redis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96%E7%AD%96%E7%95%A5/</guid>
+        <description>&lt;h2 id=&#34;主要的持久化机制&#34;&gt;主要的持久化机制
+&lt;/h2&gt;&lt;p&gt;Redis 提供两种主要的持久化机制：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;RDB（Redis Database）快照&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;RDB 是通过生成某一时刻的数据快照来实现持久化的，可以在特定时间间隔内保存数据的快照。&lt;/li&gt;
+&lt;li&gt;适合灾难恢复和备份，能生成紧凑的二进制文件，但可能会在崩溃时丢失最后一次快照之后的数据。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;AOF（Append Only File）日志&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;AOF 通过将每个写操作追加到日志文件中实现持久化，支持将所有写操作记录下来以便恢复。&lt;/li&gt;
+&lt;li&gt;数据恢复更为精确，但文件体积较大，重写时可能会消耗更多资源。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;aof持久化机制&#34;&gt;AOF持久化机制
+&lt;/h2&gt;&lt;p&gt;AOF 持久化机制是指 &lt;strong&gt;将 Redis 写命令以追加的形式写入到磁盘中的 AOF 文件&lt;/strong&gt; ，AOF 文件记录了 Redis 在内存中的操作过程，只要在 Redis 重启后重新执行 AOF 文件中的写命令即可将数据恢复到内存中。&lt;/p&gt;
+&lt;h3 id=&#34;执行过程&#34;&gt;执行过程
+&lt;/h3&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96%E7%AD%96%E7%95%A5/6f0ab40396b7fc2c15e6f4487d3a0ad7.png&#34;
+	width=&#34;902&#34;
+	height=&#34;332&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;AOF持久化&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;271&#34;
+		data-flex-basis=&#34;652px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;实际上Redis先执行写操作命令后，才将该命令记录到 AOF 日志里&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;当 AOF 持久化机制被启用时，Redis 服务器会将接收到的所有写命令追加到 AOF 缓冲区的末尾。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;根据写回策略将缓冲区中的命令刷新到磁盘的 AOF 文件中，此时数据并没有写入到硬盘，而是拷贝到了内核缓冲区 page cache，等待内核将数据写入硬盘；&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;随着 AOF 文件的不断增长，Redis 会启用重写机制来生成一个更小的 AOF 文件&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;当 Redis 服务器重启时，会读取 AOF 文件中的所有命令并重新执行它们，以恢复重启前的内存状态。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;优缺点&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;优点
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;避免额外的检查开销。&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;因为如果先将写操作命令记录到 AOF 日志里，再执行该命令的话，如果当前的命令语法有问题，那么如果不进行命令语法检查，该错误的命令记录到 AOF 日志里后，Redis 在使用日志恢复数据时，就可能会出错。&lt;/li&gt;
+&lt;li&gt;而如果先执行写操作命令再记录日志的话，只有在该命令执行成功后，才将命令记录到 AOF 日志里，这样就不用额外的检查开销，保证记录在 AOF 日志里的命令都是可执行并且正确的。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;不会阻塞当前写操作命令的执行&lt;/strong&gt; ：因为当写操作命令执行成功后，才会将命令记录到 AOF 日志。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;缺点
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;丢失的风险&lt;/strong&gt; ：执行写操作命令和记录日志是两个过程，那当 Redis 在还没来得及将命令写入到硬盘时，服务器发生宕机了，这个数据就会有丢失风险&lt;/li&gt;
+&lt;li&gt;由于写操作命令执行成功后才记录到 AOF 日志，所以不会阻塞当前写操作命令的执行，但是 &lt;strong&gt;可能会给「下一个」命令带来阻塞风险&lt;/strong&gt; 。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;恢复速度慢&lt;/strong&gt; ：因为记录了每一个写操作，所以AOF文件通常比RDB文件更大，消耗更多的磁盘空间。并且，频繁的磁盘IO操作可能会对Redis的写入性能造成一定影响。而且，当问个文件体积过大时，AOF会进行重写操作，AOF如果没有开启AOF重写或者重写频率较低，恢复过程可能较慢，因为它需要重放所有的操作命令。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;写回策略&#34;&gt;写回策略
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Always&lt;/strong&gt; ：每次写操作命令执行完后，同步将 AOF 日志数据写回硬盘；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Everysec&lt;/strong&gt; ：每次写操作命令执行完后，先将命令写入到 AOF 文件的内核缓冲区，然后每隔一秒将缓冲区里的内容写回到硬盘；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;No&lt;/strong&gt; ：不由 Redis 控制写回硬盘的时机，转交给操作系统控制写回的时机，也就是每次写操作命令执行完后，先将命令写入到 AOF 文件的内核缓冲区，再由操作系统决定何时将缓冲区内容写回硬盘。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;三种写回策略的缺点&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Always 策略：可以最大程度保证数据不丢失，但是由于它每执行一条写操作命令就同步将 AOF 内容写回硬盘，所以是不可避免会影响主进程的性能；&lt;/li&gt;
+&lt;li&gt;No 策略：是交由操作系统来决定何时将 AOF 日志内容写回硬盘，相比于 Always 策略性能较好，但是操作系统写回硬盘的时机是不可预知的，如果 AOF 日志内容没有写回硬盘，一旦服务器宕机，就会丢失不定数量的数据。&lt;/li&gt;
+&lt;li&gt;Everysec 策略：是折中的一种方式，避免了 Always 策略的性能开销，也比 No 策略更能避免数据丢失，当然如果上一秒的写操作命令日志没有写回到硬盘，发生了宕机，这一秒内的数据自然也会丢失。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;重写机制&#34;&gt;重写机制
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;主进程在通过 &lt;code&gt;fork&lt;/code&gt; 系统调用生成 bgrewriteaof 子进程时，操作系统会把主进程的「&lt;strong&gt;页表&lt;/strong&gt;」复制一份给子进程，这个页表记录着虚拟地址和物理地址映射关系，而不会复制物理内存，也就是说，两者的虚拟空间不同，但其对应的物理空间是同一个。&lt;/li&gt;
+&lt;li&gt;当父进程或者子进程在向这个内存发起写操作时，CPU 就会触发 &lt;strong&gt;写保护中断&lt;/strong&gt; ，这个写保护中断是由于违反权限导致的，然后操作系统会在「写保护中断处理函数」里进行 &lt;strong&gt;物理内存的复制&lt;/strong&gt; ，并重新设置其内存映射关系，将父子进程的内存读写权限设置为 &lt;strong&gt;可读写&lt;/strong&gt; ，最后才会对内存进行写操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;重写 AOF 日志过程中，如果主进程修改了已经存在 key-value，此时这个 key-value 数据在子进程的内存数据就跟主进程的内存数据不一致了。为了解决这个问题，Redis 设置了一个 &lt;strong&gt;AOF 重写缓冲区&lt;/strong&gt;，这个缓冲区在创建 bgrewriteaof 子进程之后开始使用。&lt;/p&gt;
+&lt;p&gt;在重写 AOF 期间，当 Redis 执行完一个写命令之后，它会 &lt;strong&gt;同时将这个写命令写入到 「AOF 缓冲区」和 「AOF 重写缓冲区」&lt;/strong&gt; 。&lt;/p&gt;
+&lt;p&gt;当子进程完成 AOF 重写工作后，会向主进程发送一条信号，信号是进程间通讯的一种方式，且是异步的。&lt;/p&gt;
+&lt;p&gt;主进程收到该信号后，会调用一个信号处理函数，该函数主要做以下工作：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;将 AOF 重写缓冲区中的所有内容追加到新的 AOF 的文件中，使得新旧两个 AOF 文件所保存的数据库状态一致；&lt;/li&gt;
+&lt;li&gt;新的 AOF 的文件进行改名，覆盖现有的 AOF 文件。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;rdb持久化机制&#34;&gt;RDB持久化机制
+&lt;/h2&gt;&lt;p&gt;RDB 持久化通过创建快照来获取内存某个时间点上的副本，利用快照可以进行方便地进行主从复制。&lt;/p&gt;
+&lt;p&gt;redis.conf 文件可以配置在 x 秒内如果至少有 y 个 key 发生变化就会触发命令进行持久化操作。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;优点
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;恢复速度快&lt;/strong&gt; ： RDB通过快照的形式保存某一时刻的数据状态，文件体积小，备份和恢复的速度非常快。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;服务性能影响小&lt;/strong&gt; ：RDB是在主线程之外通过fork子进程来进行的，不会阻塞服务器处理命令请求，对Redis服务的性能影响较小。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;文件小&lt;/strong&gt; ：由于是定期快照，RDB文件通常比AOF文件小得多。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;缺点
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;数据丢失&lt;/strong&gt; ：RDB方式在两次快照之间，如果Redis服务器发生故障，这段时间的数据将会丢失。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;数据不一致&lt;/strong&gt; ：如果在RDB创建快照到恢复期间有写操作，恢复后的数据可能与故障前的数据不完全一致&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;生成rdb快照的过程&#34;&gt;生成RDB快照的过程
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;执行了 save 命令，就会在主线程生成 RDB 文件，由于和执行操作命令在同一个线程，所以如果写入 RDB 文件的时间太长，&lt;strong&gt;会阻塞主线程&lt;/strong&gt;；&lt;/li&gt;
+&lt;li&gt;执行了 bgsave 命令，会创建一个子进程来生成 RDB 文件，这样可以&lt;strong&gt;避免主线程的阻塞&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;使用bgsave命令的流程&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;检查子进程（检查是否存在 AOF/RDB 的子进程正在进行），如果有返回错误&lt;/li&gt;
+&lt;li&gt;触发持久化，调用 rdbSaveBackground&lt;/li&gt;
+&lt;li&gt;开始 fork，子进程执行 rdb 操作，同时主进程响应其他操作。&lt;/li&gt;
+&lt;li&gt;RDB 完成后，替换原来的旧 RDB 文件，子进程退出。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;生成rdb快照的请求处理&#34;&gt;生成RDB快照的请求处理
+&lt;/h3&gt;&lt;p&gt;在 Redis 生成 RDB 文件时是异步的（使用 bgsave 命令），&lt;strong&gt;采用了 fork 子进程的方式来进行快照操作&lt;/strong&gt;。生成 RDB 文件的过程由子进程执行，主进程继续处理客户端请求，所以可以保证 Redis 在生成快照的过程中依然对外提供服务，不会影响正常请求。&lt;/p&gt;
+&lt;p&gt;在生成过程中依然能正常进行数据修改&lt;/p&gt;
+&lt;p&gt;主要原理就是 &lt;strong&gt;写时复制&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当主进程 &lt;code&gt;fork&lt;/code&gt; 出一个子进程后，并不会把主进程的所有内存数据重新复制一份给子进程，而是让主进程和子进程共享相同的内存页面。底层的实现仅仅复制了&lt;strong&gt;页表&lt;/strong&gt;，但映射的物理内存还是同一个。&lt;/li&gt;
+&lt;li&gt;当主进程接收到写的请求时，主进程会将对应数据所在的页复制一份，对复制的副本进行修改。此时子进程指向的还是老的页，因此数据没有变化。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;rdb和aof的选择&#34;&gt;RDB和AOF的选择
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;如果需要尽可能减少数据丢失，AOF 是更好的选择。尤其是在频繁写入的环境下，设置 AOF 每秒同步可以最大限度减少数据丢失。&lt;/li&gt;
+&lt;li&gt;如果性能是首要考虑，RDB 可能更适合。RDB 的快照生成通常对性能影响较小，并且数据恢复速度快。&lt;/li&gt;
+&lt;li&gt;如果系统需要经常重启，并且希望系统重启后快速恢复，RDB 可能是更好的选择。虽然 AOF 也提供了良好的恢复能力，但重写 AOF 文件可能会比较慢。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;bigkey问题&#34;&gt;BigKey问题
+&lt;/h2&gt;&lt;p&gt;Redis 中的 &amp;ldquo;big Key&amp;rdquo; 是指一个内存空间占用比较大的键（Key）&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;工作线程阻塞&lt;/strong&gt; ：由于 Redis 单线程执行命令，操作大 Key 时耗时较长，从而导致 Redis 出现其它命令阻塞的问题。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;网络阻塞&lt;/strong&gt; ：大 Key 对资源的占用巨大，在你进行网络 I/O 传输的时候，导致你获取过程中产生的网络流量较大，从而产生网络传输时间延长甚至网络传输发现阻塞的现象&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;客户端超时&lt;/strong&gt; ：因为操作大 Key 时耗时较长，可能导致客户端等待超时。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;对持久化的影响&#34;&gt;对持久化的影响
+&lt;/h3&gt;&lt;h4 id=&#34;对aof的影响&#34;&gt;对AOF的影响
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;对写回策略的影响&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;当使用 Always 策略的时候：如果写入是一个大 Key，主线程在执行 fsync() 函数的时候，阻塞的时间会比较久，因为当写入的数据量很大的时候，数据同步到硬盘这个过程是很耗时的。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;当使用 Everysec 策略的时候，由于是异步执行 fsync() 函数，所以大 Key 持久化的过程（数据同步磁盘）不会影响主线程。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;当使用 No 策略的时候，由于永不执行 fsync() 函数，所以大 Key 持久化的过程不会影响主线程。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;对AOF重写的影响&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当 AOF 日志写入了很多的大 Key，AOF 日志文件的大小会很大，那么很快就会触发 &lt;strong&gt;AOF 重写机制&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;创建子进程的途中，由于要复制父进程的页表等数据结构，阻塞的时间跟页表的大小有关，页表越大，阻塞的时间也越长；&lt;/li&gt;
+&lt;li&gt;创建完子进程后，如果父进程修改了共享数据中的大 Key，就会发生写时复制，这期间会拷贝物理内存，由于大 Key 占用的物理内存会很大，那么在复制物理内存这一过程，就会比较耗时，所以有可能会阻塞父进程。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;对rdb的影响&#34;&gt;对RDB的影响
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;创建子进程的途中，由于要复制父进程的页表等数据结构，阻塞的时间跟页表的大小有关，页表越大，阻塞的时间也越长；&lt;/li&gt;
+&lt;li&gt;创建完子进程后，如果父进程修改了共享数据中的大 Key，就会发生写时复制，这期间会拷贝物理内存，由于大 Key 占用的物理内存会很大，那么在复制物理内存这一过程，就会比较耗时，所以有可能会阻塞父进程。&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        <item>
+        <title>Redis的Java客户端和与SpringBoot的集成</title>
+        <link>https://Tyritic.github.io/p/redis%E7%9A%84java%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E4%B8%8Espringboot%E7%9A%84%E9%9B%86%E6%88%90/</link>
+        <pubDate>Thu, 27 Feb 2025 16:57:13 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/redis%E7%9A%84java%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E4%B8%8Espringboot%E7%9A%84%E9%9B%86%E6%88%90/</guid>
+        <description>&lt;h2 id=&#34;redis的java客户端&#34;&gt;Redis的Java客户端
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Jedis&lt;/code&gt;&lt;/strong&gt; 适用于简单的同步操作和单线程环境。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Lettuce&lt;/code&gt;&lt;/strong&gt; 适用于高并发、高性能和多线程环境，尤其是需要异步和响应式编程的场景。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Redisson&lt;/code&gt;&lt;/strong&gt; 适用于复杂的分布式系统，提供丰富的分布式对象和服务，简化开发。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;jedis&#34;&gt;Jedis
+&lt;/h3&gt;&lt;p&gt;Jedis 是一款比较经典的 Java 客户端了，提供了比较全面的 Redis 命令。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;简单易用：提供了直观的 API，使得开发者能够方便地与 Redis 进行交互。&lt;/li&gt;
+&lt;li&gt;使用广泛：在 Java 社区中被广泛采用，有丰富的文档和示例可供参考。&lt;/li&gt;
+&lt;li&gt;性能良好：在大多数情况下能够提供高效的 Redis 操作。&lt;/li&gt;
+&lt;li&gt;功能丰富：支持常见的 Redis 操作，如字符串、列表、哈希、集合等数据结构的操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;缺点&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;线程安全问题：线程不安全，每个线程需独立使用 Jedis 实例。&lt;/li&gt;
+&lt;li&gt;不支持自动重连：在网络异常或 Redis 服务器重启时，需要手动处理重连。&lt;/li&gt;
+&lt;li&gt;阻塞操作：同步的 API，因此高并发下可能会发生阻塞&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;lettuce&#34;&gt;Lettuce
+&lt;/h3&gt;&lt;p&gt;Lettuce 其相对于 Jedis，其最突出的点就是线程安全，且其扩展性较高，它支持异步和响应式 API，底层基于 Netty 实现。&lt;/p&gt;
+&lt;p&gt;Lettuce 具有以下优点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;多线程安全&lt;/strong&gt; ：在多线程环境中可以安全使用。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;自动重连&lt;/strong&gt; ：当网络连接出现问题时，能够自动重新连接。&lt;/li&gt;
+&lt;li&gt;支持多种编程模型：同步、异步、响应式，适应不同的应用场景&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;redisson&#34;&gt;Redisson
+&lt;/h3&gt;&lt;p&gt;Redisson 是一个高级的 Redis 客户端，提供分布式和并行编程的支持，提供了丰富的分布式对象和服务，底层也是基于 Netty 实现通信。&lt;/p&gt;
+&lt;p&gt;优点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;高级特性&lt;/strong&gt; ：支持分布式锁、缓存、队列等常见场景。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;支持集群&lt;/strong&gt; ：支持 Redis 集群模式，适应大规模分布式应用。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;线程安全&lt;/strong&gt; ：无需手动处理多线程问题。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;springboot集成redis&#34;&gt;SpringBoot集成Redis
+&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;SpringData&lt;/code&gt;&lt;/strong&gt; 是Spring中数据操作的模块，包含对各种数据库的集成，其中对Redis的集成模块 &lt;strong&gt;&lt;code&gt;SpringDataRedis&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;提供了对不同Redis客户端的整合（Lettuce和Jedis）&lt;/li&gt;
+&lt;li&gt;提供了RedisTemplate统一API来操作Redis&lt;/li&gt;
+&lt;li&gt;支持Redis的发布订阅模型&lt;/li&gt;
+&lt;li&gt;支持Redis哨兵和Redis集群&lt;/li&gt;
+&lt;li&gt;支持基于Lettuce的响应式编程&lt;/li&gt;
+&lt;li&gt;支持基于JDK、JSON、字符串、Spring对象的数据序列化及反序列化&lt;/li&gt;
+&lt;li&gt;支持基于Redis的JDKCollection实现&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;使用过程&#34;&gt;使用过程
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;引入对应依赖&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;9
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-xml&#34; data-lang=&#34;xml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c&#34;&gt;&amp;lt;!--Redis依赖--&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;    
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;org.springframework.boot&lt;span class=&#34;nt&#34;&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;    
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;spring-boot-starter-data-redis&lt;span class=&#34;nt&#34;&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c&#34;&gt;&amp;lt;!--连接池依赖--&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;    
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;org.apache.commons&lt;span class=&#34;nt&#34;&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;    
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;commons-pool2&lt;span class=&#34;nt&#34;&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;修改 &lt;strong&gt;&lt;code&gt;application.yml&lt;/code&gt;&lt;/strong&gt; 的spring.data.redis的字段配置连接信息&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;将 &lt;strong&gt;&lt;code&gt;RedisTemplate&lt;/code&gt;&lt;/strong&gt; 进行依赖注入和泛型&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;常用方法&#34;&gt;常用方法
+&lt;/h3&gt;&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th style=&#34;text-align: center&#34;&gt;&lt;strong&gt;API&lt;/strong&gt;&lt;/th&gt;
+          &lt;th&gt;&lt;strong&gt;返回值类型&lt;/strong&gt;&lt;/th&gt;
+          &lt;th&gt;&lt;strong&gt;说明&lt;/strong&gt;&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;redisTemplate&lt;/strong&gt;.opsForValue()&lt;/td&gt;
+          &lt;td&gt;ValueOperations&lt;/td&gt;
+          &lt;td&gt;操作String类型数据&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;redisTemplate&lt;/strong&gt;.opsForHash()&lt;/td&gt;
+          &lt;td&gt;HashOperations&lt;/td&gt;
+          &lt;td&gt;操作Hash类型数据&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;redisTemplate&lt;/strong&gt;.opsForList()&lt;/td&gt;
+          &lt;td&gt;ListOperations&lt;/td&gt;
+          &lt;td&gt;操作List类型数据&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;redisTemplate&lt;/strong&gt;.opsForSet()&lt;/td&gt;
+          &lt;td&gt;SetOperations&lt;/td&gt;
+          &lt;td&gt;操作Set类型数据&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;redisTemplate&lt;/strong&gt;.opsForZSet()&lt;/td&gt;
+          &lt;td&gt;ZSetOperations&lt;/td&gt;
+          &lt;td&gt;操作SortedSet类型数据&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;redisTemplate&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;&lt;/td&gt;
+          &lt;td&gt;通用的命令&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id=&#34;对象序列化&#34;&gt;对象序列化
+&lt;/h3&gt;&lt;p&gt;RedisTemplate可以接收任意Object作为值写入Redis，只不过写入前会把Object序列化为字节形式，默认是采用JDK序列化&lt;/p&gt;
+&lt;p&gt;缺点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;可读性差&lt;/li&gt;
+&lt;li&gt;内存占用较大&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;自定义序列化&#34;&gt;自定义序列化
+&lt;/h4&gt;&lt;p&gt;RedisTemplate可以自定义序列化方式。设置一个配置类来自定义RedisTemplate的序列方式&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;通常对key采用string序列化&lt;/li&gt;
+&lt;li&gt;对value采用json序列化&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;15
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;16
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nd&#34;&gt;@Bean&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RedisTemplate&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nf&#34;&gt;redisTemplate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RedisConnectionFactory&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;redisConnectionFactory&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;kd&#34;&gt;throws&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;UnknownHostException&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;	
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;// 创建Template&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RedisTemplate&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Object&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;redisTemplate&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RedisTemplate&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;    
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;// 设置连接工厂   &lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;redisTemplate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;setConnectionFactory&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;redisConnectionFactory&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;// 设置序列化工具 &lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;GenericJackson2JsonRedisSerializer&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;jsonRedisSerializer&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;GenericJackson2JsonRedisSerializer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;// key和 hashKey采用 string序列化   &lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;redisTemplate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;setKeySerializer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RedisSerializer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;string&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;());&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;redisTemplate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;setHashKeySerializer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RedisSerializer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;string&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;());&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;// value和 hashValue采用 JSON序列化    &lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;	&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;redisTemplate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;setValueSerializer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;jsonRedisSerializer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;redisTemplate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;setHashValueSerializer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;jsonRedisSerializer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;return&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;redisTemplate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;保存结果&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;{&amp;#34;@class&amp;#34;:&amp;#34;org.example.redisdemo.pojo.User&amp;#34;,&amp;#34;name&amp;#34;:&amp;#34;zhangsan&amp;#34;,&amp;#34;age&amp;#34;:18,&amp;#34;id&amp;#34;:1}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h4 id=&#34;使用stringredistemplate&#34;&gt;使用StringRedisTemplate
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;使用StringRedisTemplate&lt;/li&gt;
+&lt;li&gt;写入Redis时，使用 &lt;strong&gt;&lt;code&gt;ObjectMapping&lt;/code&gt;&lt;/strong&gt; 手动把对象序列化为JSON&lt;/li&gt;
+&lt;li&gt;读取Redis时，&lt;strong&gt;&lt;code&gt;ObjectMapping&lt;/code&gt;&lt;/strong&gt;  手动把读取到的JSON反序列化为对象&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        <item>
         <title>Redis的读写效率</title>
         <link>https://Tyritic.github.io/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87/</link>
         <pubDate>Mon, 24 Feb 2025 17:30:12 +0800</pubDate>
@@ -3020,7 +3678,7 @@
 &lt;p&gt;编写sql语句&lt;/p&gt;
 &lt;ol&gt;
 &lt;li&gt;
-&lt;p&gt;在mapper文件夹下编写接口，用@Mapper修饰&lt;/p&gt;
+&lt;p&gt;在mapper文件夹下编写接口，用 &lt;strong&gt;&lt;code&gt;@Mapper&lt;/code&gt;&lt;/strong&gt; 修饰&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
 &lt;p&gt;在每一个函数上根据操作名使用对应的注解修饰sql语句&lt;/p&gt;
