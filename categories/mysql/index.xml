@@ -7,6 +7,181 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh-cn</language>
         <copyright>Tyritic</copyright><atom:link href="https://Tyritic.github.io/categories/mysql/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>MySQL的慢查询和性能调优</title>
+        <link>https://Tyritic.github.io/p/mysql%E7%9A%84%E6%85%A2%E6%9F%A5%E8%AF%A2%E5%92%8C%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/</link>
+        <pubDate>Sun, 09 Mar 2025 18:35:25 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/mysql%E7%9A%84%E6%85%A2%E6%9F%A5%E8%AF%A2%E5%92%8C%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/</guid>
+        <description>&lt;h2 id=&#34;慢查询&#34;&gt;慢查询
+&lt;/h2&gt;&lt;p&gt;慢 SQL 就是执行时间较长的 SQL 语句，MySQL 中 long_query_time 默认值是 10 秒，也就是执行时间超过 10 秒的 SQL 语句会被记录到慢查询日志中。&lt;/p&gt;
+&lt;h3 id=&#34;慢sql日志的启用&#34;&gt;慢SQL日志的启用
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;修改配置文件中慢SQL日志的开关和慢SQL日志的时间&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;show processlist&lt;/code&gt;&lt;/strong&gt; ：查看当前正在执行的 SQL 语句，找出执行时间较长的 SQL&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;sql的性能调优策略&#34;&gt;SQL的性能调优策略
+&lt;/h2&gt;&lt;h3 id=&#34;避免使用不必要的列&#34;&gt;避免使用不必要的列
+&lt;/h3&gt;&lt;p&gt;尽量避免使用 &lt;code&gt;select *&lt;/code&gt;，只查询需要的列，减少数据传输量&lt;/p&gt;
+&lt;h3 id=&#34;使用join优化&#34;&gt;使用JOIN优化
+&lt;/h3&gt;&lt;p&gt;对于 JOIN 操作，可以通过优化子查询、小表驱动大表、适当增加冗余字段、避免 join 太多表等方式来进行优化。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;尽量减少使用子查询，特别是在 select 列表和 where 子句中的子查询，往往会导致性能问题，因为它们可能会为每一行外层查询执行一次子查询。&lt;/li&gt;
+&lt;li&gt;小表驱动大表：在执行 JOIN 操作时，应尽量让行数较少的表（小表）驱动行数较多的表（大表），这样可以减少查询过程中需要处理的数据量。&lt;/li&gt;
+&lt;li&gt;避免使用JOIN关联太多表，&lt;/li&gt;
+&lt;li&gt;不要使用 join 关联太多的表，最多不要超过 3 张表。因为 join 太多表会降低查询的速度，返回的数据量也会变得非常大，不利于后续的处理。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;索引优化&#34;&gt;索引优化
+&lt;/h2&gt;&lt;p&gt;参考往期博客&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>MySQL的锁机制</title>
+        <link>https://Tyritic.github.io/p/mysql%E7%9A%84%E9%94%81%E6%9C%BA%E5%88%B6/</link>
+        <pubDate>Sun, 09 Mar 2025 18:30:04 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/mysql%E7%9A%84%E9%94%81%E6%9C%BA%E5%88%B6/</guid>
+        <description>&lt;h2 id=&#34;锁的类型&#34;&gt;锁的类型
+&lt;/h2&gt;&lt;p&gt;MySQL中的锁，按照锁的粒度分，分为以下三类：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;全局锁：锁定数据库中的所有表。&lt;/li&gt;
+&lt;li&gt;表级锁：每次操作锁住整张表。&lt;/li&gt;
+&lt;li&gt;行级锁：每次操作锁住对应的行数据。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;全局锁&#34;&gt;全局锁
+&lt;/h2&gt;&lt;h3 id=&#34;相关的sql语句&#34;&gt;相关的SQL语句
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;使用全局锁&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;flush&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;tables&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;with&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;read&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;lock&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;释放全局锁&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;unlock&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;tables&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;使用效果&#34;&gt;使用效果
+&lt;/h3&gt;&lt;p&gt;执行后，&lt;strong&gt;整个数据库就处于只读状态了&lt;/strong&gt;，这时其他线程执行以下操作，都会被阻塞：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;对数据的增删改操作，比如 insert、delete、update等语句；&lt;/li&gt;
+&lt;li&gt;对表结构的更改操作，比如 alter table、drop table 等语句。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;应用场景&#34;&gt;应用场景
+&lt;/h3&gt;&lt;p&gt;全局锁主要应用于做 &lt;strong&gt;全库逻辑备份&lt;/strong&gt; ，这样在备份数据库期间，不会因为数据或表结构的更新，而出现备份文件的数据与预期的不一样。&lt;/p&gt;
+&lt;h3 id=&#34;缺点和解决方案&#34;&gt;缺点和解决方案
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;缺点&lt;/strong&gt; ：使用全局锁，意味着整个数据库都是只读状态。那么如果数据库里有很多数据，备份就会花费很多的时间，关键是备份期间，业务只能读数据，而不能更新数据，这样会造成业务停滞。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;解决方案&lt;/strong&gt; ：将事务隔离级别改为可重复读，在备份数据库的同时开启事务。底层原理是开启事务，会先创建 Read View，然后整个事务执行期间都在用这个 Read View，而且由于 MVCC 的支持，备份期间业务依然可以对数据进行更新操作。因为在可重复读的隔离级别下，即使其他事务更新了表的数据，也不会影响备份数据库时的 Read View&lt;/p&gt;
+&lt;h2 id=&#34;表级锁&#34;&gt;表级锁
+&lt;/h2&gt;&lt;p&gt;表级锁，每次操作锁住整张表。锁定粒度大，发生锁冲突的概率最高，并发度最低&lt;/p&gt;
+&lt;h3 id=&#34;表锁&#34;&gt;表锁
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;读锁：允许多个事务同时读取被锁定的表，但不允许任何事务进行写操作。&lt;/li&gt;
+&lt;li&gt;写锁：允许一个事务对表进行读写操作，其他事务不能对该表进行任何操作（读或写）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;表锁除了会限制别的线程的读写外，也会限制本线程接下来的读写操作。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;读锁：允许当前会话读取被锁定的表，但阻止其他会话对这些表进行写操作，同时 &lt;strong&gt;本线程不能访问其他表&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;写锁：允许当前会话对表进行读写操作，但阻止其他会话对这些表进行任何操作（读或写）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;应用场景&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在进行大规模的数据导入、导出或删除操作时，为了防止其他事务对数据进行并发操作，可以使用表锁。&lt;/li&gt;
+&lt;li&gt;在进行表结构变更（如添加列、修改列类型）时，为了确保变更期间没有其他事务访问或修改该表，可以使用表锁。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;元数据锁mdl&#34;&gt;元数据锁（MDL）
+&lt;/h3&gt;&lt;p&gt;不需要显示的使用 MDL，因为当我们对数据库表进行操作时，会自动给这个表加上 MDL&lt;/p&gt;
+&lt;p&gt;读锁 (MDL_SHARED)：当一个事务需要读取表的元数据时（如执行 SELECT 操作），会获取读锁。 多个事务可以同时持有读锁，不会互相阻塞。&lt;/p&gt;
+&lt;p&gt;写锁 (MDL_EXCLUSIVE)：当一个事务需要修改表的元数据时（如执行 ALTER TABLE 操作），会获取写锁。 写锁会阻塞其他任何读锁和写锁，确保独占访问。&lt;/p&gt;
+&lt;p&gt;MDL 是为了保证当用户对表执行 CRUD 操作时，防止其他线程对这个表结构做了变更。&lt;/p&gt;
+&lt;p&gt;锁的释放时机：锁在事务提交后才会释放，这意味着 &lt;strong&gt;事务执行期间，MDL 是一直持有的&lt;/strong&gt;&lt;/p&gt;
+&lt;h3 id=&#34;意向锁&#34;&gt;意向锁
+&lt;/h3&gt;&lt;p&gt;假设业务上用到了表锁，那么表锁和行锁之间肯定会冲突，当 InnoDB 加表锁的时候，需要判断表里面是否已经有行锁？因此&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在使用 InnoDB 引擎的表里对某些记录加上共享锁之前，需要先在表级别加上一个意向共享锁&lt;/li&gt;
+&lt;li&gt;在使用 InnoDB 引擎的表里对某些纪录加上独占锁之前，需要先在表级别加上一个意向独占锁&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如果没有意向锁，那么加独占表锁时，就需要遍历表里所有记录，查看是否有记录存在独占锁，这样效率会很慢。&lt;/p&gt;
+&lt;p&gt;那么有了意向锁，由于在对记录加独占锁前，先会加上表级别的意向独占锁，那么在加独占表锁时，直接查该表是否有意向独占锁，如果有就意味着表里已经有记录被加了独占锁，这样就不用去遍历表里的记录。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;意向共享锁和意向独占锁是表级锁，不会和行级的共享锁和独占锁发生冲突，而且意向锁之间也不会发生冲突，只会和共享表锁和独占表锁发生冲突。&lt;/strong&gt;&lt;/p&gt;
+&lt;h2 id=&#34;行级锁&#34;&gt;行级锁
+&lt;/h2&gt;&lt;h3 id=&#34;记录锁&#34;&gt;记录锁
+&lt;/h3&gt;&lt;h4 id=&#34;相关sql语句&#34;&gt;相关SQL语句
+&lt;/h4&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;o&#34;&gt;//&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;对读取的记录加共享锁&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;select&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;...&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;lock&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;in&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;share&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;mode&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;//&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;对读取的记录加独占锁&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;select&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;...&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;for&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;update&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;记录锁顾名思义就是锁住当前的记录，它是作用到索引上的。以 &lt;strong&gt;记录锁总是锁定索引记录&lt;/strong&gt; 。&lt;/p&gt;
+&lt;h3 id=&#34;间隙锁&#34;&gt;间隙锁
+&lt;/h3&gt;&lt;p&gt;Gap Lock 称为间隙锁，只存在于可重复读隔离级别，目的是为了解决可重复读隔离级别下幻读的现象。间隙锁用于在范围查询时锁定记录之间的“间隙”，防止其他事务在该范围内插入新记录&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;间隙锁之间是兼容的，即两个事务可以同时持有包含共同间隙范围的间隙锁，并不存在互斥关系，因为间隙锁的目的是防止插入幻影记录而提出的&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;临键锁&#34;&gt;临键锁
+&lt;/h3&gt;&lt;p&gt;临键锁是记录锁和间隙锁的组合，锁定一个范围，并且锁定记录本身。临键指的是间隙加上它右边的记录组成的 &lt;strong&gt;左开右闭区间&lt;/strong&gt;&lt;/p&gt;
+&lt;h3 id=&#34;插入意向锁&#34;&gt;插入意向锁
+&lt;/h3&gt;&lt;p&gt;一个事务在插入一条记录的时候，需要判断插入位置是否已被其他事务加了间隙锁（next-key lock 也包含间隙锁）。&lt;/p&gt;
+&lt;p&gt;如果有的话，插入操作就会发生 &lt;strong&gt;阻塞&lt;/strong&gt; ，直到拥有间隙锁的那个事务提交为止（释放间隙锁的时刻），在此期间会生成一个 &lt;strong&gt;插入意向锁&lt;/strong&gt; ，表明有事务想在某个区间插入新记录，但是现在处于等待状态。&lt;/p&gt;
+&lt;p&gt;判断到插入的位置已经被事务 A 加了间隙锁，于是事务会生成一个插入意向锁，然后将锁的状态设置为等待状态&lt;/p&gt;
+&lt;h2 id=&#34;行级锁的加锁机制&#34;&gt;行级锁的加锁机制
+&lt;/h2&gt;&lt;h3 id=&#34;加锁的sql语句&#34;&gt;加锁的SQL语句
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;update 和 delete 操作都会加行级锁，且锁的类型都是独占锁(X型锁)&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;普通的 select 语句是不会对记录加锁的
+&lt;ul&gt;
+&lt;li&gt;in share mode ：加读锁&lt;/li&gt;
+&lt;li&gt;for update：加写锁&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;加锁机制&#34;&gt;加锁机制
+&lt;/h3&gt;&lt;p&gt;加锁的对象是 &lt;strong&gt;索引&lt;/strong&gt; ，加锁的基本单位是 &lt;strong&gt;临键锁&lt;/strong&gt; ，它是由记录锁和间隙锁组合而成的，临键锁是前开后闭区间，而间隙锁是前开后开区间。&lt;/p&gt;
+&lt;h4 id=&#34;唯一索引等值查询&#34;&gt;唯一索引等值查询
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;当查询的记录是存在的，在索引树上定位到这一条记录后，将该记录的索引中的 next-key lock 会 &lt;strong&gt;退化成记录锁&lt;/strong&gt;。
+&lt;ul&gt;
+&lt;li&gt;由于主键具有唯一性，所以 &lt;strong&gt;其他事务插入的时候，会因为冲突，导致无法插入新记录&lt;/strong&gt; 。这样事务 A 在多次查询 id = 1 的记录的时候，不会出现前后两次查询的结果集不同，也就避免了幻读的问题。&lt;/li&gt;
+&lt;li&gt;由于对唯一索引加了记录锁，&lt;strong&gt;其他事务无法删除该记录&lt;/strong&gt; ，这样事务 A 在多次查询 记录的时候，不会出现前后两次查询的结果集不同，也就避免了幻读的问题&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;当查询的记录是不存在的，在索引树找到第一条大于该查询记录的记录后，将该记录的索引中的 next-key lock 会 &lt;strong&gt;退化成间隙锁&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;唯一索引范围查询&#34;&gt;唯一索引范围查询
+&lt;/h4&gt;&lt;p&gt;当唯一索引进行范围查询时，&lt;strong&gt;会对每一个扫描到的索引加 next-key 锁，然后如果遇到下面这些情况，会退化成记录锁或者间隙锁&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;情况一：针对「大于等于」的范围查询，因为存在等值查询的条件，那么如果等值查询的记录是存在于表中，那么该记录的索引中的 next-key 锁会&lt;strong&gt;退化成记录锁&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;情况二：针对「小于或者小于等于」的范围查询，要看条件值的记录是否存在于表中：
+&lt;ul&gt;
+&lt;li&gt;当条件值的记录不在表中，那么不管是「小于」还是「小于等于」条件的范围查询，&lt;strong&gt;扫描到终止范围查询的记录时，该记录的索引的 next-key 锁会退化成间隙锁&lt;/strong&gt;，其他扫描到的记录，都是在这些记录的索引上加 next-key 锁。&lt;/li&gt;
+&lt;li&gt;当条件值的记录在表中，如果是「小于」条件的范围查询，&lt;strong&gt;扫描到终止范围查询的记录时，该记录的索引的 next-key 锁会退化成间隙锁&lt;/strong&gt;，其他扫描到的记录，都是在这些记录的索引上加 next-key 锁；如果「小于等于」条件的范围查询，扫描到终止范围查询的记录时，该记录的索引 next-key 锁不会退化成间隙锁。其他扫描到的记录，都是在这些记录的索引上加 next-key 锁。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        <item>
         <title>MySQL存储引擎</title>
         <link>https://Tyritic.github.io/p/mysql%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/</link>
         <pubDate>Sat, 04 Jan 2025 15:59:42 +0800</pubDate>
@@ -29,9 +204,74 @@
 &gt;&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;连接层：最上层是一些客户端和链接服务，主要完成一些类似于连接处理、授权认证、及相关的安全方案。服务器也会为安全接入的每个客户端验证它所具有的操作权限。&lt;/li&gt;
-&lt;li&gt;服务层：第二层架构主要完成大多数的核心服务功能，如SQL接口，并完成缓存的查询，SQL的分析和优化，部分内置函数的执行。所有跨存储引擎的功能也在这一层实现，如 过程、函数等。&lt;/li&gt;
+&lt;li&gt;服务层：第二层架构主要完成大多数的核心服务功能。 &lt;strong&gt;负责建立连接、分析和执行 SQL&lt;/strong&gt; ，如SQL接口，并完成缓存的查询，SQL的分析和优化，部分内置函数的执行。所有跨存储引擎的功能也在这一层实现，如 过程、函数等。&lt;/li&gt;
 &lt;li&gt;引擎层：存储引擎真正的负责了MySQL中数据的存储和提取，服务器通过API和存储引擎进行通信。不同的存储引擎具有不同的功能，这样我们可以根据自己的需要，来选取合适的存储引擎。&lt;/li&gt;
 &lt;li&gt;存储层：主要是将数据存储在文件系统之上，并完成与存储引擎的交互&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;语句执行过程&#34;&gt;语句执行过程
+&lt;/h2&gt;&lt;h3 id=&#34;连接器&#34;&gt;连接器
+&lt;/h3&gt;&lt;h4 id=&#34;连接过程&#34;&gt;连接过程
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;先连接 MySQL 服务，然后才能执行 SQL 语句&lt;/li&gt;
+&lt;li&gt;连接的过程需要先经过 TCP 三次握手，因为 MySQL 是基于 TCP 协议进行传输的&lt;/li&gt;
+&lt;li&gt;如果 MySQL 服务正常运行，完成 TCP 连接的建立后，连接器就要开始验证你的用户名和密码&lt;/li&gt;
+&lt;li&gt;如果用户密码都没有问题，连接器就会获取该用户的权限，然后保存起来，后续该用户在此连接里的任何操作，都会基于连接开始时读到的权限进行权限逻辑的判断。&lt;/li&gt;
+&lt;li&gt;所以，如果一个用户已经建立了连接，即使管理员中途修改了该用户的权限，也不会影响已经存在连接的权限。修改完成后，只有再新建的连接才会使用新的权限设置。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;连接类型&#34;&gt;连接类型
+&lt;/h4&gt;&lt;p&gt;MySQL 的连接也跟 HTTP 一样，有短连接和长连接的概念&lt;/p&gt;
+&lt;p&gt;使用长连接的好处就是可以减少建立连接和断开连接的过程，所以一般使用长连接。&lt;/p&gt;
+&lt;p&gt;但是，使用长连接后可能会占用内存增多，因为 MySQL 在执行查询过程中临时使用内存管理连接对象，这些连接对象资源只有在连接断开时才会释放。如果长连接累计很多，将导致 MySQL 服务占用内存太大，有可能会被系统强制杀掉，这样会发生 MySQL 服务异常重启的现象。&lt;/p&gt;
+&lt;h3 id=&#34;查询缓存&#34;&gt;查询缓存
+&lt;/h3&gt;&lt;p&gt;连接器得工作完成后，客户端就可以向 MySQL 服务发送 SQL 语句了，MySQL 服务收到 SQL 语句后，就会解析出 SQL 语句的第一个字段获得语句类型。&lt;/p&gt;
+&lt;p&gt;如果 SQL 是查询语句（select 语句），MySQL 就会先去查询缓存（ Query Cache ）里查找缓存数据，看看之前有没有执行过这一条命令，查询缓存是以 key-value 形式保存在内存中的，key 为 SQL 查询语句，value 为 SQL 语句查询的结果。&lt;/p&gt;
+&lt;p&gt;如果查询的语句命中查询缓存，那么就会直接返回 value 给客户端。如果查询的语句没有命中查询缓存中，那么就要往下继续执行，等执行完后，查询的结果就会被存入查询缓存中。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;注意&lt;/strong&gt; ：MYSQL8.0后不使用查询缓存&lt;/p&gt;
+&lt;h3 id=&#34;解析sql语句&#34;&gt;解析SQL语句
+&lt;/h3&gt;&lt;p&gt;在正式执行 SQL 查询语句之前， MySQL 会先对 SQL 语句做解析。解析器只负责检查语法和构建语法树，但是不会去查表或者字段存不存在。&lt;/p&gt;
+&lt;h3 id=&#34;执行sql语句&#34;&gt;执行SQL语句
+&lt;/h3&gt;&lt;h4 id=&#34;预处理&#34;&gt;预处理
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;检查 SQL 查询语句中的表或者字段是否存在；&lt;/li&gt;
+&lt;li&gt;将 &lt;code&gt;select *&lt;/code&gt; 中的 &lt;code&gt;*&lt;/code&gt; 符号，扩展为表上的所有列&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;优化器&#34;&gt;优化器
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;优化器主要负责将 SQL 查询语句的执行方案确定下来&lt;/strong&gt;，比如在表里面有多个索引的时候，优化器会基于查询成本的考虑，来决定选择使用哪个索引。&lt;/p&gt;
+&lt;h4 id=&#34;执行器&#34;&gt;执行器
+&lt;/h4&gt;&lt;p&gt;在执行的过程中，执行器就会和存储引擎交互了&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;主键索引查询
+&lt;ul&gt;
+&lt;li&gt;执行器第一次查询，会调用 read_first_record 函数指针指向的函数，因为优化器选择的访问类型为 const，这个函数指针被指向为 InnoDB 引擎索引查询的接口，把条件 &lt;code&gt;id = 1&lt;/code&gt; 交给存储引擎，&lt;strong&gt;让存储引擎定位符合条件的第一条记录&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;存储引擎通过主键索引的 B+ 树结构定位到 id = 1的第一条记录，如果记录是不存在的，就会向执行器上报记录找不到的错误，然后查询结束。如果记录是存在的，就会将记录返回给执行器；&lt;/li&gt;
+&lt;li&gt;执行器从存储引擎读到记录后，接着判断记录是否符合查询条件，如果符合则发送给客户端，如果不符合则跳过该记录。&lt;/li&gt;
+&lt;li&gt;执行器查询的过程是一个 while 循环，所以还会再查一次，但是这次因为不是第一次查询了，所以会调用 read_record 函数指针指向的函数，因为优化器选择的访问类型为 const，这个函数指针被指向为一个永远返回 - 1 的函数，所以当调用该函数的时候，执行器就退出循环，也就是结束查询了。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;全表扫描
+&lt;ul&gt;
+&lt;li&gt;执行器第一次查询，会调用 read_first_record 函数指针指向的函数，因为优化器选择的访问类型为 all，这个函数指针被指向为 InnoDB 引擎全扫描的接口，&lt;strong&gt;让存储引擎读取表中的第一条记录&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;执行器会判断读到的这条记录的 name 是不是 iphone，如果不是则跳过；如果是则将记录发给客户的（Server 层每从存储引擎读到一条记录就会发送给客户端，）。&lt;/li&gt;
+&lt;li&gt;执行器查询的过程是一个 while 循环，所以还会再查一次，会调用 read_record 函数指针指向的函数，因为优化器选择的访问类型为 all，read_record 函数指针指向的还是 InnoDB 引擎全扫描的接口，所以接着向存储引擎层要求继续读刚才那条记录的下一条记录，存储引擎把下一条记录取出后就将其返回给执行器（Server层），执行器继续判断条件，不符合查询条件即跳过该记录，否则发送到客户端；&lt;/li&gt;
+&lt;li&gt;一直重复上述过程，直到存储引擎把表中的所有记录读完，然后向执行器（Server层） 返回了读取完毕的信息；&lt;/li&gt;
+&lt;li&gt;执行器收到存储引擎报告的查询完毕的信息，退出循环，停止查询。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;索引下推（对联合索引的you&amp;rsquo;hua
+&lt;ul&gt;
+&lt;li&gt;Server 层首先调用存储引擎的接口定位到满足查询条件的第一条二级索引记录，也就是定位到 age &amp;gt; 20 的第一条记录；&lt;/li&gt;
+&lt;li&gt;存储引擎定位到二级索引后，&lt;strong&gt;先不执行回表&lt;/strong&gt; 操作，而是先判断一下该索引中包含的列（reward列）的条件（reward 是否等于 100000）是否成立。如果 &lt;strong&gt;条件不成立&lt;/strong&gt; ，则直接 &lt;strong&gt;跳过该二级索引&lt;/strong&gt; 。如果 &lt;strong&gt;成立&lt;/strong&gt; ，则 &lt;strong&gt;执行回表&lt;/strong&gt; 操作，将完成记录返回给 Server 层。&lt;/li&gt;
+&lt;li&gt;Server 层在判断其他的查询条件（本次查询没有其他条件）是否成立，如果成立则将其发送给客户端；否则跳过该记录，然后向存储引擎索要下一条记录。&lt;/li&gt;
+&lt;li&gt;如此往复，直到存储引擎把表中的所有记录读完。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;总结&#34;&gt;总结
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;通过连接器校验权限&lt;/li&gt;
+&lt;li&gt;利用分析器进行 SQL 语句的词法分析和语法分析，构建解析树&lt;/li&gt;
+&lt;li&gt;使用优化器选择合适的索引和表连接顺序，最终选择一个最佳的执行计划&lt;/li&gt;
+&lt;li&gt;利用执行器，调用引擎层查询数据，返回结果集给客户端&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2 id=&#34;存储引擎简介&#34;&gt;存储引擎简介
 &lt;/h2&gt;&lt;p&gt;存储引擎就是存储数据、建立索引、更新/查询数据等技术的实现方式。存储引擎是基于表的，而不是基于库的，所以不同表可以使用不同的存储引擎&lt;/p&gt;
@@ -61,14 +301,64 @@
 &lt;/h3&gt;&lt;p&gt;InnoDB是一种兼顾高可靠性和高性能的通用存储引擎，在 MySQL5.5之后，InnoDB是默认的 MySOL存储引擎。&lt;/p&gt;
 &lt;h4 id=&#34;特点&#34;&gt;特点
 &lt;/h4&gt;&lt;ul&gt;
-&lt;li&gt;DML操作遵循ACID模型，支持&lt;strong&gt;事务&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;行级锁&lt;/strong&gt;，提高并发访问性能&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;支持外键&lt;/strong&gt; FOREIGN KEY约束，保证数据的完整性和正确性&lt;/li&gt;
+&lt;li&gt;DML操作遵循ACID模型，支持 &lt;strong&gt;事务&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;行级锁&lt;/strong&gt; ，提高并发访问性能&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;支持外键&lt;/strong&gt;  约束，保证数据的完整性和正确性&lt;/li&gt;
+&lt;li&gt;数据以 &lt;strong&gt;聚集索引&lt;/strong&gt; 的方式存储，提高检索效率。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h4 id=&#34;对应的磁盘文件&#34;&gt;对应的磁盘文件
 &lt;/h4&gt;&lt;p&gt;innoDB引擎的每张表都会对应这样一个表空间文件：xxx.ibd（xxx代表的是表名）&lt;/p&gt;
 &lt;p&gt;存储该表的表结构（frm、sdi）、数据和索引&lt;/p&gt;
 &lt;p&gt;参数：innodb_file_per_table&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/mysql%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/image-20250308164940401.png&#34;
+	width=&#34;1061&#34;
+	height=&#34;439&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;逻辑存储结构&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;241&#34;
+		data-flex-basis=&#34;580px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;表空间 : InnoDB存储引擎逻辑结构的最高层，ibd文件其实就是表空间文件，在表空间中可以包含多个Segment段。&lt;/li&gt;
+&lt;li&gt;段 : 表空间是由各个段组成的， 常见的段有数据段、索引段、回滚段等。InnoDB中对于段的管理，都是引擎自身完成，不需要人为对其控制，一个段中包含多个区。&lt;/li&gt;
+&lt;li&gt;区 : 区是表空间的单元结构，每个区的大小为1M。 默认情况下， InnoDB存储引擎页大小为16K， 即一个区中一共有64个连续的页。&lt;/li&gt;
+&lt;li&gt;页 : 页是组成区的最小单元，页也是InnoDB 存储引擎磁盘管理的最小单元，每个页的大小默认为 16KB。为了保证页的连续性，InnoDB 存储引擎每次从磁盘申请 4-5 个区。&lt;/li&gt;
+&lt;li&gt;行 : InnoDB 存储引擎是面向行的，也就是说数据是按行进行存放的，在每一行中除了定义表时所指定的字段以外，还包含两个隐藏字段&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;myisam&#34;&gt;MyISAM
+&lt;/h3&gt;&lt;p&gt;MyISAM是MySQL早期的默认存储引擎。&lt;/p&gt;
+&lt;h4 id=&#34;特点-1&#34;&gt;特点
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;不支持事务，不支持外键&lt;/li&gt;
+&lt;li&gt;支持表锁，不支持行锁&lt;/li&gt;
+&lt;li&gt;访问速度快&lt;/li&gt;
+&lt;li&gt;MyISAM 写入性能差。因为不支持行锁，只有表锁，所以写入的时候会对整张表加锁&lt;/li&gt;
+&lt;li&gt;MyISAM 为非聚簇索引，索引和数据分开存储，索引保存的是数据文件的指针。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;对应的磁盘文件-1&#34;&gt;对应的磁盘文件
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;xxx.sdi：存储表结构信息&lt;/li&gt;
+&lt;li&gt;xxx.MYD: 存储数据&lt;/li&gt;
+&lt;li&gt;xxx.MYI: 存储索引&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;memory&#34;&gt;Memory
+&lt;/h3&gt;&lt;h4 id=&#34;特点-2&#34;&gt;特点
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;数据存储在内存中，速度快，但数据在服务器重启后丢失。&lt;/li&gt;
+&lt;li&gt;适用于临时数据存储或快速缓存。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;存储引擎的选择&#34;&gt;存储引擎的选择
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;大多数情况下，使用默认的 InnoDB ，InnoDB 可以提供事务、行级锁、外键、B+ 树索引等能力。&lt;/li&gt;
+&lt;li&gt;MyISAM 适合读更多的场景。&lt;/li&gt;
+&lt;li&gt;MEMORY 适合临时表，数据量不大的情况。由于数据都存放在内存，所以速度非常快。&lt;/li&gt;
+&lt;/ul&gt;
 </description>
         </item>
         <item>
@@ -78,7 +368,7 @@
         
         <guid>https://Tyritic.github.io/p/mysql%E7%B4%A2%E5%BC%95/</guid>
         <description>&lt;h2 id=&#34;基本概念&#34;&gt;基本概念
-&lt;/h2&gt;&lt;p&gt;索引(index)：帮助数据库 高效获取数据的数据结构&lt;/p&gt;
+&lt;/h2&gt;&lt;p&gt;索引(index)：帮助数据库高效获取数据的数据结构，索引和数据就是位于存储引擎中&lt;/p&gt;
 &lt;p&gt;优点&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;提高数据查询的效率，降低数据库的I0成本，&lt;/li&gt;
@@ -90,20 +380,6 @@
 &lt;li&gt;索引大大提高了查询效率，同时却也降低了insert、
 update、delete的效率。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;索引结构&#34;&gt;索引结构
-&lt;/h2&gt;&lt;p&gt;MySQL数据库支持的索引结构有很多，如:Hash索引、B+Tree索引、Full-Text索引等。我们平常所说的索引，如果没有特别指明，都是指默认的 B+Tree 结构组织的索引。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/mysql%E7%B4%A2%E5%BC%95/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20241104193948.png&#34;
-	width=&#34;1600&#34;
-	height=&#34;729&#34;
-	
-	loading=&#34;lazy&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;219&#34;
-		data-flex-basis=&#34;526px&#34;
-	
-&gt;&lt;/p&gt;
 &lt;h2 id=&#34;索引操作&#34;&gt;索引操作
 &lt;/h2&gt;&lt;p&gt;创建索引&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
@@ -263,6 +539,239 @@ update、delete的效率。&lt;/li&gt;
 &lt;li&gt;添加唯一约束时，数据库实际上会添加唯一索引。&lt;/li&gt;
 &lt;/ul&gt;&lt;/div&gt;
 
+&lt;h2 id=&#34;索引加速查询的原理&#34;&gt;索引加速查询的原理
+&lt;/h2&gt;&lt;p&gt;数据库文件是存储在磁盘上的，磁盘 I/O 是数据库操作中最耗时的部分之一。没有索引时，数据库会进行全表扫描（Sequential Scan），这意味着它必须读取表中的每一行数据来查找匹配的行（时间效率为 O(n)）。当表的数据量非常大时，就会导致大量的磁盘 I/O 操作。&lt;/p&gt;
+&lt;p&gt;有了索引，就可以直接跳到索引指示的数据位置，而不必扫描整张表，从而大大减少了磁盘 I/O 操作的次数。&lt;/p&gt;
+&lt;h2 id=&#34;索引分类&#34;&gt;索引分类
+&lt;/h2&gt;&lt;h3 id=&#34;按数据结构分类&#34;&gt;按数据结构分类
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;B+Tree 索引 ：通过树形结构存储数据，适用于范围查询（如 &lt;code&gt;BETWEEN&lt;/code&gt;）和精确查询（如 &lt;code&gt;=&lt;/code&gt;），支持有序数据的快速查找、排序和聚合操作。是 MySQL 默认的索引类型，常用于 &lt;strong&gt;InnoDB&lt;/strong&gt; 和 &lt;strong&gt;MyISAM&lt;/strong&gt; 引擎。&lt;/li&gt;
+&lt;li&gt;HASH 索引：基于哈希表的结构，适用于等值查询（如 &lt;code&gt;=&lt;/code&gt;），查询速度非常快，但不支持范围查询（如 &lt;code&gt;&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;&lt;/code&gt;）。哈希索引不存储数据的顺序，常用于 &lt;strong&gt;Memory&lt;/strong&gt; 引擎。&lt;/li&gt;
+&lt;li&gt;Full-Text 索引 ：用于全文搜索，将全文分词，通过存储词与文档的映射，支持模糊匹配和关键字搜索。特别适合用于大文本字段，如 &lt;code&gt;TEXT&lt;/code&gt; 类型的列，用于查找包含特定词语的记录。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://cdn.xiaolincoding.com/gh/xiaolincoder/mysql/%E7%B4%A2%E5%BC%95/%E7%B4%A2%E5%BC%95%E5%88%86%E7%B1%BB.drawio.png&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;存储引擎对索引的支持情况&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;在创建表时，InnoDB 存储引擎会根据不同的场景选择不同的列作为索引：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果有主键，默认会使用主键作为聚簇索引的索引键（key）；&lt;/li&gt;
+&lt;li&gt;如果没有主键，就选择第一个不包含 NULL 值的唯一列作为聚簇索引的索引键（key）；&lt;/li&gt;
+&lt;li&gt;在上面两个都没有的情况下，InnoDB 将自动生成一个隐式自增 id 列作为聚簇索引的索引键（key）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;创建的主键索引和二级索引默认使用的是 B+Tree 索引&lt;/strong&gt;。&lt;/p&gt;
+&lt;h4 id=&#34;b树索引&#34;&gt;B+树索引
+&lt;/h4&gt;&lt;p&gt;B+ 树是 B 树的升级版。具有以下特点&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;而且每个节点里的数据是 &lt;strong&gt;按主键顺序存放&lt;/strong&gt; 的。每一层父节点的索引值都会出现在下层子节点的索引值中&lt;/li&gt;
+&lt;li&gt;B+ 树中的非叶子节点都不存储数据，只存储索引。&lt;/li&gt;
+&lt;li&gt;叶子节点中存储了所有的数据，并且构成了一个从小到大的有序双向链表，使得在完成一次树的遍历定位到范围查询的起点后，可以直接通过叶子节点间的指针顺序访问整个查询范围内的所有记录，而无需对树进行多次遍历。这在处理大范围的查询时特别高效。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://cdn.tobebetterjavaer.com/stutymore/mysql-20240312092745.png&#34;
+	
+	
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;B&amp;#43;树索引结构&#34;
+	
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;一棵三层的 B+ 树在 MySQL 中可以存储大约 &lt;strong&gt;2000 万条记录&lt;/strong&gt; 。&lt;/p&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;为什么选择B+树作为索引的数据结构&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;高效的查找性能&lt;/strong&gt;：B+ 树是一种自平衡树，每个叶子节点到根节点的路径长度相同，B+ 树在插入和删除节点时会进行分裂和合并操作，以保持树的平衡，但它又会有一定的冗余节点，使得删除的时候树结构的变化小，更高效。查找、插入、删除等操作的时间复杂度为 O(log n)，能够保证在大数据量情况下也能有较快的响应时间。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;树的高度增长不会过快，使得查询磁盘的 I/O 次数减少&lt;/strong&gt;：B+ 树不像红黑树，数据越多树的高度增长就越快。它是多叉树，&lt;strong&gt;非叶子节点仅保存主键或索引值和页面指针&lt;/strong&gt;，使得每一页能容纳更多的记录，因此内存中就能存放更多索引，容易命中缓存，使得查询磁盘的 I/O 次数减少。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;范围查询能力强&lt;/strong&gt;：B+ 树特别适合范围查询。因为叶子节点通过链表链接，从根节点定位到叶子节点查找到范围的起点之后，只需要顺序扫描链表即可遍历后续的数据，非常高效&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;B树和B+树的区别以及不使用B树作为索引的原因&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;节点结构不同&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;B 树每个节点都存储了完整的数据&lt;/li&gt;
+&lt;li&gt;B+ 树非叶子节点仅存储 key 和指针，完整数据存储在叶子节点。这使得 B+ 树可以在内存中存放更多索引页，减少磁盘查询次数。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;叶子节点的独立性&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;B+ 树叶子组成了链表，便于区间查找。&lt;/li&gt;
+&lt;li&gt;B 树的叶子节点都是独立的&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;查询效率的稳定性&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;B+ 树查询时间更平均、稳定，都需要从根节点扫描到叶子节点。&lt;/li&gt;
+&lt;li&gt;B 树的检索的过程相当于对范围内的每个节点的关键字做二分查找，可能还没有到达叶子节点，检索就结束了。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;查询过程&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;数据从根节点找起，根据比较数据键值与节点中存储的索引键值，确定数据落在哪个区间，从而确定分支，从上到下最终定位到叶子节点&lt;/li&gt;
+&lt;li&gt;叶子节点存储实际的数据行记录，但是一页有 16kb 大小，存储的数据行不止一条&lt;/li&gt;
+&lt;li&gt;叶子节点中数据行以组的形式划分，利用 &lt;strong&gt;页目录&lt;/strong&gt; 结构，通过二分查找可以定位到对应的组&lt;/li&gt;
+&lt;li&gt;定位组后，利用链表遍历就可以找到对应的数据行&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;hash索引&#34;&gt;Hash索引
+&lt;/h4&gt;&lt;p&gt;基于哈希表的结构，适用于等值查询（如 &lt;code&gt;=&lt;/code&gt;），查询速度非常快，但不支持范围查询（如 &lt;code&gt;&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;&lt;/code&gt;）。哈希索引不存储数据的顺序，常用于 &lt;strong&gt;Memory&lt;/strong&gt; 引擎。&lt;/p&gt;
+&lt;h3 id=&#34;按物理存储分类&#34;&gt;按物理存储分类
+&lt;/h3&gt;&lt;p&gt;从物理存储的角度来看，索引分为聚集索引和辅助索引&lt;/p&gt;
+&lt;h4 id=&#34;聚集索引&#34;&gt;聚集索引
+&lt;/h4&gt;&lt;p&gt;聚集索引就是索引结构和数据一起存放的索引，InnoDB 中的主键索引就属于聚簇索引。&lt;/p&gt;
+&lt;p&gt;在聚集索引中，它的叶子节点中包含整条记录，可以直接访问完整数据。在整个数据库有且只有一个&lt;/p&gt;
+&lt;h4 id=&#34;非聚集索引&#34;&gt;非聚集索引
+&lt;/h4&gt;&lt;p&gt;非聚集索引就是索引结构和数据分开存放的索引。MySQL 的 MyISAM 引擎，不管主键还是非主键，使用的都是非聚簇索引。&lt;/p&gt;
+&lt;p&gt;对于非聚集索引，它的叶子节点只包含主键值和索引值。&lt;/p&gt;
+&lt;p&gt;通过非聚簇索引查找记录的过程（回表）&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;找到二级索引中的 B+Tree 的索引值，找到对应的叶子节点，&lt;/li&gt;
+&lt;li&gt;要先找到主键，然后通过主键再到聚簇索引中找到对应的记录行&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;当非聚集索引同时是 &lt;strong&gt;覆盖索引&lt;/strong&gt; 时就不需要回表。比如使用该二级索引去查找主键&lt;/p&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;回表&lt;/p&gt;
+&lt;p&gt;回表是指在使用二级索引（非聚簇索引）作为条件进行查询时，由于二级索引中只存储了索引字段的值和对应的主键值，无法得到其它数据。如果要查询数据行中的其它数据，需要根据主键去聚簇索引查找实际的数据行&lt;/p&gt;
+&lt;p&gt;覆盖索引&lt;/p&gt;
+&lt;p&gt;覆盖索引：一个二级索引包含（或者说覆盖）所有需要查询的字段的值，从而使查询可以仅通过访问二级索引而不需要访问实际的表数据（主键索引）。&lt;/p&gt;
+&lt;p&gt;表现为查询的数据是能在二级索引的 B+Tree 的叶子节点里查询到&lt;/p&gt;&lt;/div&gt;
+
+&lt;h3 id=&#34;按字段特性分类&#34;&gt;按字段特性分类
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;主键索引：建立在主键字段上的索引，通常在创建表的时候一起创建，一张表最多只有一个主键索引，索引列的值不允许有空值。&lt;/li&gt;
+&lt;li&gt;唯一索引：建立在 UNIQUE 字段上的索引，一张表可以有多个唯一索引，索引列的值必须唯一，但是允许有空值。&lt;/li&gt;
+&lt;li&gt;普通索引：普通索引就是建立在普通字段上的索引，既不要求字段为主键，也不要求字段为 UNIQUE。&lt;/li&gt;
+&lt;li&gt;前缀索引：对文本的前几个字符创建索引，相比普通索引建立的数据更小&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;按字段个数分类&#34;&gt;按字段个数分类
+&lt;/h3&gt;&lt;p&gt;从字段个数的角度来看，索引分为单列索引、联合索引（复合索引）。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;建立在单列上的索引称为单列索引，比如主键索引；&lt;/li&gt;
+&lt;li&gt;建立在多列上的索引称为联合索引&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;联合索引&#34;&gt;联合索引
+&lt;/h4&gt;&lt;p&gt;联合索引：通过将多个字段组合成一个索引&lt;/p&gt;
+&lt;p&gt;联合索引的匹配过程遵循最左前缀匹配原则&lt;/p&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;最左匹配原则&lt;/p&gt;
+&lt;p&gt;最左前缀匹配原则指的是在使用 &lt;strong&gt;联合索引&lt;/strong&gt; 时，查询条件必须从索引的最左侧开始匹配。MySQL 会根据索引中的字段顺序，从左到右依次匹配查询条件中的字段。如果查询条件与索引中的最左侧字段相匹配，那么 MySQL 就会使用索引来过滤数据。最左匹配原则会一直向右匹配，直到遇到范围查询 &lt;strong&gt;（如 &amp;gt;、&amp;lt;）&lt;/strong&gt; 就会停止匹配。&lt;strong&gt;但是在范围查询字段的后面的字段无法用到联合索引。注意，对于 &amp;gt;=、&amp;lt;=、BETWEEN、like 前缀匹配的范围查询，并不会停止匹配&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;假设有一个联合索引&lt;code&gt;(column1, column2, column3)&lt;/code&gt;，其从左到右的所有前缀为&lt;code&gt;(column1)&lt;/code&gt;、&lt;code&gt;(column1, column2)&lt;/code&gt;、&lt;code&gt;(column1, column2, column3)&lt;/code&gt;（创建 1 个联合索引相当于创建了 3 个索引），包含这些列的所有查询都会走索引而不会全表扫描。&lt;/p&gt;
+&lt;p&gt;底层原理：因为联合索引在 B+ 树中的排列方式遵循“从左到右”的顺序，例如联合索引&lt;code&gt; (first_name, last_name, age)&lt;/code&gt; 会按照 &lt;code&gt;(first_name, last_name, age) &lt;/code&gt;的顺序在 B+ 树中进行排序&lt;/p&gt;&lt;/div&gt;
+
+&lt;p&gt;根据最左匹配原则，建立联合索引时的字段顺序，对索引效率也有很大影响。越靠前的字段被用于索引过滤的概率越高，实际开发工作中 &lt;strong&gt;建立联合索引时，要把区分度大的字段排在前面，这样区分度大的字段越有可能被更多的 SQL 使用到&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;对联合索引的优化：&lt;strong&gt;索引下推&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;索引下推（Index Condition Pushdown, ICP）是一种减少回表查询，提高查询效率的技术。它允许 MySQL 在使用索引查找数据时，将部分查询条件下推到存储引擎层过滤，从而减少需要从表中读取的数据行，减少了 IO（本该由 Server 层做操作，交由存储引擎层因此叫做 “下推” ） 。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;使用了聚簇索引（主键）查询，索引下推也不会生效，因为其是对于非聚簇索引来进行减少回表次数。&lt;/strong&gt;&lt;/p&gt;
+&lt;h2 id=&#34;建立索引的适用情况&#34;&gt;建立索引的适用情况
+&lt;/h2&gt;&lt;h3 id=&#34;选择合适的字段建立索引&#34;&gt;选择合适的字段建立索引
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;不为 NULL 的字段&lt;/strong&gt; ：索引字段的数据应该尽量不为 NULL，因为对于数据为 NULL 的字段，数据库较难优化。如果字段频繁被查询，但又避免不了为 NULL，建议使用 0,1,true,false 这样语义较为清晰的短值或短字符作为替代。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;被频繁查询的字段&lt;/strong&gt; ：我们创建索引的字段应该是查询操作非常频繁的字段。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;被作为条件查询的字段&lt;/strong&gt; ：被作为 WHERE 条件查询的字段，应该被考虑建立索引。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;频繁需要排序的字段&lt;/strong&gt; ：索引已经排序，这样查询可以利用索引的排序，加快排序查询时间。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;被经常频繁用于连接的字段&lt;/strong&gt; ：经常用于连接的字段可能是一些外键列，对于外键列并不一定要建立外键，只是说该列涉及到表与表的关系。对于频繁被连接查询的字段，可以考虑建立索引，提高多表连接查询的效率。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;不需要创建索引的情况&#34;&gt;不需要创建索引的情况
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;字段中存在大量重复数据，不需要创建索引，比如性别字段，只有男女，如果数据库表中，男女的记录分布均匀，那么无论搜索哪个值都可能得到一半的数据。因为 MySQL 还有一个查询优化器，查询优化器发现某个值出现在表的数据行中的百分比很高的时候，它一般会忽略索引，进行全表扫描。&lt;/li&gt;
+&lt;li&gt;表数据太少的时候，不需要创建索引；&lt;/li&gt;
+&lt;li&gt;经常更新的字段不用创建索引，比如不要对电商项目的用户余额建立索引，因为索引字段频繁修改，由于要维护 B+Tree的有序性，那么就需要频繁的重建索引，这个过程是会影响数据库性能的。&lt;/li&gt;
+&lt;li&gt;长文本字段（非常长的 varchar 或 JSON、BLOB 和 TEXT 类型，这些类型的列通常包含大量数据）
+&lt;ul&gt;
+&lt;li&gt;数据量大排序时都无法用内存排，只能利用磁盘文件，排序很慢。&lt;/li&gt;
+&lt;li&gt;数据量大，每个页能存放的行数就少，扫描查询可能会涉及大量的 I/O。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;&lt;strong&gt;索引并不是越多越好&lt;/strong&gt;。因为索引&lt;strong&gt;不论从时间还是空间上都是有一定成本的&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;从时间上&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;每次对表中的数据进行增删改(INSERT、UPDATE 或 DELETE)的时候，索引也必须被更新，这会增加写入操作的开销。例如删除了一个 name 为面试鸭的记录，不仅主键索引上需要修改，如果 name 字段有索引，那么 name 索引也需要修改，所以 &lt;strong&gt;索引越多需要修改的地方也就越多，时间开销就大了&lt;/strong&gt;，并且 B+ 树可能会有页分裂、合并等操作，时间开销就会更大。&lt;/li&gt;
+&lt;li&gt;MySQL 有个查询优化器，它需要分析当前的查询，选择最优的计划，这过程就需要考虑选择哪个索引的查询成本低。如果索引过多，那么会导致优化器耗费更多的时间在选择上。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;从空间上&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;每建立一个二级索引，都需要新建一个 B+ 树，默认每个数据页都是 16kb，如果数据量很大，索引又很多，占用的空间可不小。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h2 id=&#34;索引失效的情况和排查&#34;&gt;索引失效的情况和排查
+&lt;/h2&gt;&lt;h3 id=&#34;索引失效情况&#34;&gt;索引失效情况
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;创建了组合索引，但查询条件未遵守最左匹配原则;&lt;/li&gt;
+&lt;li&gt;在索引列上进行计算、函数、类型转换等操作;&lt;/li&gt;
+&lt;li&gt;以 % 开头的 LIKE 查询比如 &lt;code&gt;LIKE &#39;%abc&#39;&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;查询条件中使用 OR，且 OR 的前后条件中有一个列没有索引，涉及的索引都不会被使用到&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;索引失效排查方法&#34;&gt;索引失效排查方法
+&lt;/h3&gt;&lt;p&gt;使用 &lt;code&gt;EXPLAIN&lt;/code&gt; 命令，通过在查询前加上&lt;code&gt;EXPLAIN&lt;/code&gt;，可以查看 MySQL 选择的执行计划，了解是否使用了索引、使用了哪个索引、估算的行数等信息。&lt;/p&gt;
+&lt;p&gt;主要观察 &lt;code&gt;EXPLAIN&lt;/code&gt; 结果以下几点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;type（访问类型）：这个属性显示了查询使用的访问方法，例如 &lt;code&gt;ALL&lt;/code&gt;、&lt;code&gt;index&lt;/code&gt;、&lt;code&gt;range &lt;/code&gt;等。当查询使用索引时，这个属性通常会显示为 &lt;code&gt;index&lt;/code&gt; 或 &lt;code&gt;range&lt;/code&gt; ，表示查询使用了索引访问。如果这个值是 &lt;code&gt;ALL&lt;/code&gt; ，则表示查询执行了全表扫描，没有使用索引。&lt;/li&gt;
+&lt;li&gt;key（使用的索引）：这个属性显示了查询使用的索引，如果查询使用了索引，则会显示索引的名称。如果这个值是 &lt;code&gt;NULL&lt;/code&gt;，则表示查询没有使用索引。&lt;/li&gt;
+&lt;li&gt;rows（扫描的行数）：这个属性显示了查询扫描的行数，需要评估下扫描量。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;索引优化方法&#34;&gt;索引优化方法
+&lt;/h2&gt;&lt;h3 id=&#34;前缀索引优化&#34;&gt;前缀索引优化
+&lt;/h3&gt;&lt;p&gt;前缀索引：使用某个字段中字符串的前几个字符建立索引。使用前缀索引是为了减小索引字段大小，可以增加一个索引页中存储的索引值，有效提高索引的查询速度。在一些大字符串的字段作为索引时，使用前缀索引可以帮助我们减小索引项的大小。&lt;/p&gt;
+&lt;h3 id=&#34;覆盖索引优化&#34;&gt;覆盖索引优化
+&lt;/h3&gt;&lt;p&gt;覆盖索引是指 SQL 中 query 的所有字段，在索引 B+Tree 的叶子节点上都能找得到的那些索引，从二级索引中查询得到记录，而不需要通过聚簇索引查询获得，可以避免回表的操作。&lt;/p&gt;
+&lt;h3 id=&#34;主键尽量自增&#34;&gt;主键尽量自增
+&lt;/h3&gt;&lt;p&gt;主键索引最好是自增的：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果我们使用自增主键，那么每次插入的新数据就会按顺序添加到当前索引节点的位置，不需要移动已有的数据，当页面写满，就会自动开辟一个新页面。因为每次 &lt;strong&gt;插入一条新记录，都是追加操作，不需要重新移动数据&lt;/strong&gt; ，因此这种插入数据的方法效率非常高。&lt;/li&gt;
+&lt;li&gt;如果使用非自增主键，由于每次插入主键的索引值都是随机的，因此每次插入新的数据时，就可能会插入到现有数据页中间的某个位置，这将不得不移动其它数据来满足新数据的插入，甚至需要从一个页面复制数据到另外一个页面，我们通常将这种情况称为 &lt;strong&gt;页分裂&lt;/strong&gt; 。页分裂还有可能会造成大量的内存碎片，导致索引结构不紧凑，从而影响查询效率。&lt;/li&gt;
+&lt;/ul&gt;
 </description>
         </item>
         <item>
@@ -438,43 +947,155 @@ update、delete的效率。&lt;/li&gt;
 &lt;li&gt;隔离性（lsolation）：数据库系统提供的隔离机制，保证事务在不受外部并发操作影响的独立环境下运行&lt;/li&gt;
 &lt;li&gt;持久性（Durability）：事务一旦提交或回滚，它对数据库中的数据的改变就是永久的&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;并发事务问题&#34;&gt;并发事务问题
-&lt;/h2&gt;&lt;ul&gt;
-&lt;li&gt;脏读：一个事务读到另外一个事务还没有提交的数据。&lt;/li&gt;
-&lt;li&gt;不可重复读：一个事务先后读取同一条记录，但两次读取的数据不同，称之为不可重复读。&lt;/li&gt;
-&lt;li&gt;幻读：一个事务按照条件查询数据时，没有对应的数据行，但是在插入数据时，又发现这行数据已经存在，好像出现了幻影”。&lt;/li&gt;
+&lt;h2 id=&#34;mvcc&#34;&gt;MVCC
+&lt;/h2&gt;&lt;p&gt;MVCC（Multi-Version Concurrency Control，多版本并发控制）是一种并发控制机制，允许多个事务同时读取和写入数据库，而无需互相等待，从而提高数据库的并发性能。&lt;/p&gt;
+&lt;p&gt;在 MVCC 中，数据库为每个事务创建一个数据快照。每当数据被修改时，MySQL 不会立即覆盖原有数据，而是生成新版本的记录。每个记录都保留了对应的版本号或时间戳。&lt;/p&gt;
+&lt;h3 id=&#34;版本链&#34;&gt;版本链
+&lt;/h3&gt;&lt;p&gt;在 InnoDB 中，每一行数据都有两个隐藏的列：一个是 DB_TRX_ID，另一个是 DB_ROLL_PTR。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;DB_TRX_ID&lt;/code&gt;，保存创建这个版本的事务 ID。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;DB_ROLL_PTR&lt;/code&gt;，指向 undo 日志记录的指针，这个记录包含了该行的前一个版本的信息。通过这个指针，可以访问到该行数据的历史版本。&lt;/li&gt;
 &lt;/ul&gt;
+&lt;p&gt;当事务更新一行数据时，InnoDB 不会直接覆盖原有数据，而是创建一个新的数据版本，并更新 DB_TRX_ID 和 DB_ROLL_PTR，使得它们指向前一个版本和相关的 undo 日志。这样，老版本的数据不会丢失，可以通过版本链找到。&lt;/p&gt;
+&lt;h3 id=&#34;readview&#34;&gt;ReadView
+&lt;/h3&gt;&lt;p&gt;ReadView（读视图）是 InnoDB 为了实现一致性读而创建的数据结构，它用于确定在特定事务中哪些版本的行记录是可见的。可以理解为数据快照&lt;/p&gt;
+&lt;p&gt;Read View 有四个重要的字段：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;m_ids ：指的是在创建 Read View 时，当前数据库中「活跃事务」的 &lt;strong&gt;事务 id 列表&lt;/strong&gt;，注意是一个列表，&lt;strong&gt;“活跃事务”指的就是，启动了但还没提交的事务&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;min_trx_id ：指的是在创建 Read View 时，当前数据库中「活跃事务」中事务 &lt;strong&gt;id 最小的事务&lt;/strong&gt; ，也就是 m_ids 的最小值。&lt;/li&gt;
+&lt;li&gt;max_trx_id ：这个并不是 m_ids 的最大值，而是 &lt;strong&gt;创建 Read View 时当前数据库中应该给下一个事务的 id 值&lt;/strong&gt; ，也就是全局事务中最大的事务 id 值 + 1；&lt;/li&gt;
+&lt;li&gt;creator_trx_id ：指的是 &lt;strong&gt;创建该 Read View 的事务的事务 id&lt;/strong&gt; 。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;并发事务&lt;img src=&#34;https://Tyritic.github.io/p/mysql%E4%BA%8B%E5%8A%A1/ReadView.drawio.png&#34;
+	width=&#34;707&#34;
+	height=&#34;332&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;img&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;212&#34;
+		data-flex-basis=&#34;511px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;可见性实现&#34;&gt;可见性实现
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;如果记录的 trx_id 值小于 Read View 中的 &lt;code&gt;min_trx_id&lt;/code&gt; 值，表示这个版本的记录是在创建 Read View &lt;strong&gt;前&lt;/strong&gt; 已经提交的事务生成的，所以该版本的记录对当前事务 &lt;strong&gt;可见&lt;/strong&gt; 。&lt;/li&gt;
+&lt;li&gt;如果记录的 trx_id 值大于等于 Read View 中的 &lt;code&gt;max_trx_id&lt;/code&gt; 值，表示这个版本的记录是在创建 Read View &lt;strong&gt;后&lt;/strong&gt;才启动的事务生成的，所以该版本的记录对当前事务 &lt;strong&gt;不可见&lt;/strong&gt; 。&lt;/li&gt;
+&lt;li&gt;如果记录的 trx_id 值在 Read View 的 &lt;code&gt;min_trx_id&lt;/code&gt; 和 &lt;code&gt;max_trx_id&lt;/code&gt;之间，需要判断 trx_id 是否在 m_ids 列表中：
+&lt;ul&gt;
+&lt;li&gt;如果记录的 trx_id  &lt;strong&gt;在&lt;/strong&gt;  &lt;code&gt;m_ids&lt;/code&gt; 列表中，表示生成该版本记录的活跃事务依然活跃着（还没提交事务），所以该版本的记录对当前事务&lt;strong&gt;不可见&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;如果记录的 trx_id  &lt;strong&gt;不在&lt;/strong&gt;  &lt;code&gt;m_ids&lt;/code&gt;列表中，表示生成该版本记录的活跃事务已经被提交，所以该版本的记录对当前事务 &lt;strong&gt;可见&lt;/strong&gt; 。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;快照读和当前读&#34;&gt;快照读和当前读
+&lt;/h3&gt;&lt;h4 id=&#34;快照读&#34;&gt;快照读
+&lt;/h4&gt;&lt;p&gt;快照读是指事务在执行查询时，不直接读取当前最新的数据，而是读取数据的历史版本（快照）。MySQL InnoDB 通过多版本并发控制（MVCC）来实现快照读。快照读只会返回在事务开始时可见的数据，即使其他事务在之后修改了这些数据，快照读也不会受影响。&lt;/p&gt;
+&lt;h4 id=&#34;当前读&#34;&gt;当前读
+&lt;/h4&gt;&lt;p&gt;MySQL 里除了普通查询是快照读，其他都是 &lt;strong&gt;当前读&lt;/strong&gt;，比如 update、insert、delete，这些语句执行前都会查询最新版本的数据，然后再做进一步的操作。&lt;/p&gt;
+&lt;p&gt;当前读是指读取数据的最新版本，并且会加锁以确保数据的一致性。即使其他事务对这个数据的修改在当前读的事务之后，这个修改也会反映在当前读的结果中。（如果事务 2 开始时间发生在事务 1 之后，那么正常情况下事务 2 的修改对事务 1 不可见，但是事务 1 的当前读可见这个修改）。&lt;/p&gt;
+&lt;h2 id=&#34;并发问题&#34;&gt;并发问题
+&lt;/h2&gt;&lt;h3 id=&#34;脏读&#34;&gt;脏读
+&lt;/h3&gt;&lt;p&gt;定义：&lt;strong&gt;一个事务读取数据并且对数据进行了修改，这个修改对其他事务来说是可见的，即使当前事务没有提交。这时另外一个事务读取了这个还未提交的数据，但第一个事务突然回滚，导致数据并没有被提交到数据库，那第二个事务读取到的就是脏数据&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;示例：假设有 A 和 B 这两个事务同时在处理，事务 A 先开始从数据库中读取余额数据，然后再执行更新操作，如果此时事务 A 还没有提交事务，而此时正好事务 B 也从数据库中读取余额数据，那么事务 B 读取到的余额数据是刚才事务 A 更新后的数据，即使没有提交事务。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/mysql%E4%BA%8B%E5%8A%A1/10b513008ea35ee880c592a88adcb12f.png&#34;
+	width=&#34;1080&#34;
+	height=&#34;420&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;脏读&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;257&#34;
+		data-flex-basis=&#34;617px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;不可重复读&#34;&gt;不可重复读
+&lt;/h3&gt;&lt;p&gt;定义：&lt;strong&gt;在同一事务中，读取同一数据两次，但由于其他事务的提交，读取的结果不同。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;示例：假设有 A 和 B 这两个事务同时在处理，事务 A 先开始从数据库中读取余额数据，然后继续执行代码逻辑处理，&lt;strong&gt;在这过程中如果事务 B 更新了这条数据，并提交了事务，那么当事务 A 再次读取该数据时，就会发现前后两次读到的数据是不一致的，这种现象就被称为不可重复读。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/mysql%E4%BA%8B%E5%8A%A1/f5b4f8f0c0adcf044b34c1f300a95abf.png&#34;
+	width=&#34;1080&#34;
+	height=&#34;486&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;不可重复读&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;222&#34;
+		data-flex-basis=&#34;533px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;幻读&#34;&gt;幻读
+&lt;/h3&gt;&lt;p&gt;定义：&lt;strong&gt;在一个事务内多次查询某个符合查询条件的「记录数量」，如果出现前后两次查询到的记录数量不一样的情况，就意味着发生了「幻读」现象。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/mysql%E4%BA%8B%E5%8A%A1/d19a1019dc35dfe8cfe7fbff8cd97e31.png&#34;
+	width=&#34;1080&#34;
+	height=&#34;312&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;幻读&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;346&#34;
+		data-flex-basis=&#34;830px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;幻读和不可重复读的区别&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;幻读&lt;/strong&gt; ：在事务期间，对于数据总量的突然增加或减少，将别的事务提交的读取到了（针对于数据的数量）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;不可重复读&lt;/strong&gt; ：对于同一条数据，在事务执行期间，里面的字段内容发生了变化，读取到了别的事务提交修改的数据。（针对于数据的内容）。&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
 &lt;h2 id=&#34;事务隔离级别&#34;&gt;事务隔离级别
-&lt;/h2&gt;&lt;table&gt;
+&lt;/h2&gt;&lt;h3 id=&#34;四大隔离级别&#34;&gt;四大隔离级别
+&lt;/h3&gt;&lt;table&gt;
   &lt;thead&gt;
       &lt;tr&gt;
           &lt;th style=&#34;text-align: center&#34;&gt;隔离级别&lt;/th&gt;
           &lt;th style=&#34;text-align: center&#34;&gt;脏读&lt;/th&gt;
-          &lt;th style=&#34;text-align: center&#34;&gt;不可重复度&lt;/th&gt;
+          &lt;th style=&#34;text-align: center&#34;&gt;不可重复读&lt;/th&gt;
           &lt;th style=&#34;text-align: center&#34;&gt;幻读&lt;/th&gt;
       &lt;/tr&gt;
   &lt;/thead&gt;
   &lt;tbody&gt;
       &lt;tr&gt;
-          &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;Read uncommitted&lt;/strong&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;Read uncommitted&lt;/strong&gt; （读取未提交）&lt;/td&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;√&lt;/td&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;√&lt;/td&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;√&lt;/td&gt;
       &lt;/tr&gt;
       &lt;tr&gt;
-          &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;Read committed&lt;/strong&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;Read committed&lt;/strong&gt; （读取已提交）&lt;/td&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;×&lt;/td&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;√&lt;/td&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;√&lt;/td&gt;
       &lt;/tr&gt;
       &lt;tr&gt;
-          &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;Repeatable Read(默认)&lt;/strong&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;Repeatable Read(默认)&lt;/strong&gt; （可重复读）&lt;/td&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;×&lt;/td&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;×&lt;/td&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;√&lt;/td&gt;
       &lt;/tr&gt;
       &lt;tr&gt;
-          &lt;td style=&#34;text-align: center&#34;&gt;&lt;strong&gt;Serializable&lt;/strong&gt;&lt;/td&gt;
+          &lt;td style=&#34;text-align: center&#34;&gt;**Serializable **  （串行化）&lt;/td&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;×&lt;/td&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;×&lt;/td&gt;
           &lt;td style=&#34;text-align: center&#34;&gt;×&lt;/td&gt;
@@ -482,6 +1103,35 @@ update、delete的效率。&lt;/li&gt;
   &lt;/tbody&gt;
 &lt;/table&gt;
 &lt;p&gt;其中 &lt;strong&gt;Serializable&lt;/strong&gt; 数据安全性更好但是性能最差，&lt;strong&gt;Read uncommitted&lt;/strong&gt;反之&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;读未提交（READ UNCOMMITTED）&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;这是最低的隔离级别，在该级别下，一个事务可以看到另一个事务尚未提交的数据修改。这可能会导致 &lt;strong&gt;脏读&lt;/strong&gt; 问题，即读取到其他事务未提交的数据。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;读已提交（READ COMMITTED）&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;在这个级别下，一个事务只能看到已经提交的其他事务所做的修改。这可以避免脏读问题，但是可能会引发 &lt;strong&gt;不可重复读&lt;/strong&gt; 问题，即在同一个事务中，相同的查询可能返回不同的结果。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;可重复读（REPEATABLE READ）&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;指一个事务执行过程中看到的数据，一直跟这个事务启动时看到的数据是一致的。在这个级别下，确保在一个事务中的多个查询返回的结果是一致的。这可以避免不可重复读问题，但是可能会引发 &lt;strong&gt;幻读&lt;/strong&gt; 问题，即在同一个事务中，多次查询可能返回不同数量的行（MySQL 默认的隔离级别）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;串行化（SERIALIZABLE）&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;可串行化执行被定义为：并发执行的 SQL 事务的操作，其效果与这些 SQL 事务按某种顺序串行执行的效果相同。串行执行是指每个 SQL 事务在下一个 SQL 事务开始之前完成其全部操作&lt;/li&gt;
+&lt;li&gt;这是最高的隔离级别，在这个级别下，保证事务间的操作结果相当于一个按顺序执行的单线程操作。这可以避免所有的并发问题，但是会大大降低并发性能。该级别会对记录加上读写锁，在多个事务对这条记录进行读写操作时，如果发生了读写冲突的时候，后访问的事务必须等前一个事务执行完成，才能继续执行&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;隔离级别的实现&#34;&gt;隔离级别的实现
+&lt;/h3&gt;&lt;h4 id=&#34;读已提交&#34;&gt;读已提交
+&lt;/h4&gt;&lt;p&gt;每&lt;strong&gt;次读取数据前都生成一个 ReadView，保证每次读操作都是最新的数据。&lt;/strong&gt; 正是因为在读提交隔离级别下，事务每次读数据时都重新创建 Read View，那么在事务期间的多次读取同一条数据，前后两次读的数据可能会出现不一致，因为可能这期间另外一个事务修改了该记录，并提交了事务。&lt;/p&gt;
+&lt;h4 id=&#34;可重复读&#34;&gt;可重复读
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;可重复读隔离级别是启动事务时生成一个 Read View，然后整个事务期间都在用这个 Read View&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;可重复读隔离级别下在事务期间读到的记录都是事务启动前的记录&lt;/p&gt;
 &lt;h3 id=&#34;相关sql语句&#34;&gt;相关SQL语句
 &lt;/h3&gt;&lt;h4 id=&#34;查看事务隔离级别&#34;&gt;查看事务隔离级别
 &lt;/h4&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
@@ -501,7 +1151,90 @@ update、delete的效率。&lt;/li&gt;
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-mysql&#34; data-lang=&#34;mysql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kt&#34;&gt;set&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;session&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;global&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;transaction&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;isolation&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;level&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;err&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;read&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;uncommitted&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;read&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;committed&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;repeatable&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;read&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;|&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;serializable&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;err&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
-&lt;/div&gt;</description>
+&lt;/div&gt;&lt;h2 id=&#34;mysql的日志级别&#34;&gt;MySQL的日志级别
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;binlog ：是 MySQL 中的二进制日志文件，用于记录 MySQL 服务器上的所有更新和修改操作。它可以记录所有的 DDL和 DML操作，包括对表结构的更改、数据的插入、修改、删除等等。binlog是在事务提交后生成的，因此可以用于恢复数据库。是位于 &lt;strong&gt;Server&lt;/strong&gt; 层的日志&lt;/li&gt;
+&lt;li&gt;redolog ：用于恢复数据，保证数据的一致性和持久性。当 MySQL 发生修改时，redolog 会将这些操作记录下来，并写入磁盘。这样，当 MySQL 发生宕机或崩溃时，通过重放 redolog 就可以恢复数据。实现了事务中的 &lt;strong&gt;持久性&lt;/strong&gt; ，主要&lt;strong&gt;用于故障恢复&lt;/strong&gt;；&lt;/li&gt;
+&lt;li&gt;undolog：用于回滚操作。当 MySQL 发生事务回滚时，undolog 会记录这些操作并将其写入磁盘。这样，当 MySQL 需要回滚时，通过重放 undolog 就可以回滚事务。实现了事务中的 &lt;strong&gt;原子性&lt;/strong&gt; ，主要 &lt;strong&gt;用于事务回滚和 MVCC&lt;/strong&gt; 。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;WAL技术&lt;/p&gt;
+&lt;p&gt;WAL（Write-Ahead Logging）技术是一种数据库事务日志管理技术，它确保在修改真正的数据之前，先将修改记录写入日志。这使得即使系统崩溃，通过日志也能恢复数据。保证了数据的持久性和一致性。&lt;/p&gt;
+&lt;p&gt;其中redolog就是WAL技术的体现&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;当一个事务开始时，所有对数据库的修改首先记录到重做日志缓冲区中。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;重做日志缓冲区的数据会周期性地刷新到磁盘上的重做日志文件。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;当事务提交时，InnoDB 确保重做日志已写入磁盘，然后将数据页的修改写入数据文件。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;如果系统崩溃，InnoDB 会在启动时通过重做日志重新应用所有未完成的事务，以恢复数据库到一致状态。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;不能只用binlog不用redolog&lt;/p&gt;
+&lt;p&gt;binlog是 server 层的日志，没办法记录哪些脏页还没有刷盘，redolog 是存储引擎层的日志，可以记录哪些脏页还没有刷盘，这样崩溃恢复的时候，就能恢复那些还没有被刷盘的脏页数据。&lt;/p&gt;&lt;/div&gt;
+
+&lt;h3 id=&#34;二阶段提交&#34;&gt;二阶段提交
+&lt;/h3&gt;&lt;p&gt;事务提交后，redo log 和 binlog 都要持久化到磁盘，但是这两个是独立的逻辑，可能出现半成功的状态，这样就造成两份日志之间的逻辑不一致。&lt;/p&gt;
+&lt;h4 id=&#34;过程&#34;&gt;过程
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;准备阶段（Prepare Phase）&lt;/strong&gt;：在事务提交时，MySQL 的 InnoDB 引擎会先写入 &lt;strong&gt;redo log&lt;/strong&gt;，并将其状态标记为&lt;strong&gt;prepare&lt;/strong&gt;，表示事务已经准备提交但还未真正完成。此时的 redo log 是预提交状态，还未标记为完成提交。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;提交阶段（Commit Phase）&lt;/strong&gt;：当 redo log 的状态变为 prepare 后，MySQL Server 会写入 &lt;strong&gt;binlog&lt;/strong&gt;（记录用户的 DML 操作）。binlog 写入成功后，MySQL 会通知 InnoDB，将 redo log 状态改为&lt;strong&gt;commit&lt;/strong&gt;，完成整个事务的提交过程。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;二阶段提交的必要性&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;先写完 redo log，再写 binlog&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;写完 redo log 后，MySQL 异常宕机，binlog 还未写入数据。重启后 redo log 记录了，因此可以从 redo log 恢复事务的修改，但是 binlog 并没有本次事务提交的数据。后续通过 binlog 恢复的时候，本次事务的修改就丢了。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;先写完 binlog，再写 redo log&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;写完 binlog 后，MySQL 异常宕机，redo log 还未写入数据。重启后因为 redo log 中没有记录，所以无法恢复本次事务的修改，但是 binlog 记录了本次事务提交的数据。后续通过 binlog 恢复的时候，本次事务的修改可以复原，但是这和原库的数据又不一致了。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h4 id=&#34;异常宕机过程&#34;&gt;异常宕机过程
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;redo log 处于 prepare 阶段，binlog 还未写入&lt;/strong&gt; ，此时 MySQL 异常宕机：由于 redo log 还未 commit ，所以异常恢复后，redo log 中记录的数据也不作数，binlog 内也没有记录数据，此时数据是一致的。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;redo log 处于 prepare 阶段，binlog 已写入，但 redo log 还未 commit&lt;/strong&gt; ，此时 MySQL 异常宕机：此时对比 redo log 中 prepare 的数据和 binlog 中的数据是都一致即可。如果一致，则提交事务。不一致，则回滚事务。&lt;/li&gt;
+&lt;/ul&gt;
+</description>
         </item>
         <item>
         <title>MySQL表数据查询操作</title>
