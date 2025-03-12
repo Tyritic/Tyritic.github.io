@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="zh-cn" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="JVM的垃圾回收机制和垃圾收集器">
+<title>JVM的垃圾回收</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/'>
+
+<link rel="stylesheet" href="/scss/style.min.00fdb13873a10c0d571b0a082e72c57836d458957efcda9eaef694985da2c45f.css"><meta property='og:title' content="JVM的垃圾回收">
+<meta property='og:description' content="JVM的垃圾回收机制和垃圾收集器">
+<meta property='og:url' content='https://Tyritic.github.io/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Java基础' /><meta property='article:published_time' content='2025-03-12T11:36:21&#43;08:00'/><meta property='article:modified_time' content='2025-03-12T13:46:04&#43;00:00'/>
+<meta name="twitter:title" content="JVM的垃圾回收">
+<meta name="twitter:description" content="JVM的垃圾回收机制和垃圾收集器">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_1927a00d8e6b4977.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#垃圾回收机制">垃圾回收机制</a></li>
+    <li><a href="#堆的空间分配">堆的空间分配</a>
+      <ol>
+        <li><a href="#新生代">新生代</a>
+          <ol>
+            <li><a href="#新生代的分区逻辑">新生代的分区逻辑</a></li>
+            <li><a href="#eden区">Eden区</a></li>
+            <li><a href="#survivor区">Survivor区</a></li>
+          </ol>
+        </li>
+        <li><a href="#老年代">老年代</a></li>
+      </ol>
+    </li>
+    <li><a href="#垃圾判断算法">垃圾判断算法</a>
+      <ol>
+        <li><a href="#引用计数法">引用计数法</a></li>
+        <li><a href="#可达性分析算法">可达性分析算法</a></li>
+      </ol>
+    </li>
+    <li><a href="#垃圾回收算法">垃圾回收算法</a>
+      <ol>
+        <li><a href="#标记-清除算法">标记-清除算法</a></li>
+        <li><a href="#标记-复制算法">标记-复制算法</a></li>
+        <li><a href="#标记-整理算法">标记-整理算法</a></li>
+      </ol>
+    </li>
+    <li><a href="#stop-the-world">Stop The World</a></li>
+    <li><a href="#分代垃圾回收机制">分代垃圾回收机制</a>
+      <ol>
+        <li><a href="#minor-gc">Minor GC</a></li>
+        <li><a href="#major-gc">Major GC</a></li>
+        <li><a href="#full-gc">Full GC</a></li>
+        <li><a href="#mixed-gc">Mixed GC</a></li>
+      </ol>
+    </li>
+    <li><a href="#垃圾收集器">垃圾收集器</a>
+      <ol>
+        <li><a href="#新生代垃圾收集器">新生代垃圾收集器</a>
+          <ol>
+            <li><a href="#serial-收集器">Serial 收集器</a></li>
+            <li><a href="#parnew-收集器">ParNew 收集器</a></li>
+            <li><a href="#parallel-scavenge-收集器">Parallel Scavenge 收集器</a></li>
+          </ol>
+        </li>
+        <li><a href="#老年代垃圾收集器">老年代垃圾收集器</a>
+          <ol>
+            <li><a href="#serial-old-收集器">Serial Old 收集器</a></li>
+            <li><a href="#parallel-old-收集器">Parallel Old 收集器：</a></li>
+            <li><a href="#cms收集器">CMS收集器</a></li>
+            <li><a href="#g1收集器">G1收集器</a></li>
+          </ol>
+        </li>
+        <li><a href="#g1和cms的区别和使用场景">G1和CMS的区别和使用场景</a>
+          <ol>
+            <li><a href="#区别">区别</a></li>
+            <li><a href="#使用场景">使用场景</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/jvm/" style="background-color: #2a9d8f; color: #fff;">
+                JVM
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/">JVM的垃圾回收</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            JVM的垃圾回收机制和垃圾收集器
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-03-12</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 12 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：5989 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="垃圾回收机制">垃圾回收机制
+</h2><p>垃圾回收（Garbage Collection，GC），顾名思义就是释放垃圾占用的空间，防止内存爆掉。有效的使用可以使用的内存，对内存中已经死亡的或者长时间没有使用的对象进行清除和回收。</p>
+<p>垃圾回收的触发条件</p>
+<ul>
+<li><strong>内存不足时</strong> ：当JVM检测到堆内存不足，无法为新的对象分配内存时，会自动触发垃圾回收。</li>
+<li><strong>手动请求</strong> ：虽然垃圾回收是自动的，但是可以通过调用 <code>System.gc()</code> 或 <code>Runtime.getRuntime().gc()</code> 建议 JVM 进行垃圾回收。不过这只是一个建议，并不能保证立即执行。</li>
+<li><strong>JVM参数</strong> ：启动 Java 应用时可以通过 JVM 参数来调整垃圾回收的行为，比如：<code>-Xmx</code>（最大堆大小）、<code>-Xms</code>（初始堆大小）等。</li>
+<li><strong>对象数量或内存使用达到阈值</strong> ：垃圾收集器内部实现了一些策略，以监控对象的创建和内存使用，达到某个阈值时触发垃圾回收。</li>
+</ul>
+<h2 id="堆的空间分配">堆的空间分配
+</h2><p>堆是垃圾收集器管理的主要区域。</p>
+<p>在 JDK 7 版本及 JDK 7 版本之前，堆内存被通常分为下面三部分：</p>
+<ul>
+<li>新生代(Young Generation)：存放新创建的对象。
+<ul>
+<li>Eden 区：所有新创建的对象首先分配到 Eden 区</li>
+<li>Survivor 区：Eden 区中的存活对象会被复制到 Survivor 区（一般分为两个区域，S0 和 S1），经过多次 GC 存活的对象会逐渐晋升到老年代。
+<ul>
+<li>From区</li>
+<li>To区</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>老生代(Old Generation)：存放存活时间较长的对象，通常是从新生代晋升过来的对象。</li>
+<li>永久代(Permanent Generation)：存放类的元数据信息，包括类的静态变量、方法等</li>
+</ul>
+<p><strong>JDK 8 版本之后 永久代已被 元空间 取代，元空间使用的是直接内存</strong></p>
+<p><img src="/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/gc-20231227132701.png"
+	width="834"
+	height="594"
+	
+	loading="lazy"
+	
+		alt="堆内存分配"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="140"
+		data-flex-basis="336px"
+	
+></p>
+<style type="text/css">
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+</style><div
+  class="notice tip"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
+  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+    </span>提示</p><p>分代回收的原因</p>
+<p>主要是为了提高垃圾回收效率，依据对象的生命周期特点来进行优化。</p>
+<p><strong>对象的生命周期特点</strong>：</p>
+<ul>
+<li><strong>大多数对象存活时间短</strong> ：大部分对象会很快变成垃圾，不再被使用，这些短生命周期的对象会分配在新生代。</li>
+<li><strong>少部分对象存活时间长</strong> ：一些长期存活的对象不会很快被回收，分配在新生代的对象经过多次垃圾回收仍存活的，将晋升到老年代。</li>
+</ul>
+<p><strong>不同的回收算法</strong>：</p>
+<ul>
+<li><strong>新生代的回收</strong> ：新生代通常采用 <strong>复制算法</strong>，因为新生代中大部分对象生命周期短，大部分会在一次 GC 中被回收，复制算法只需要在内存中保留少量存活对象，并将它们复制到 Survivor 空间，回收剩余区域。这种算法效率很高，适合新生代对象频繁创建和回收的特点。</li>
+<li><strong>老年代的回收</strong>：老年代中对象存活时间长，回收频率低，使用  <strong>标记-整理算法</strong>  或 <strong>标记-清除算法</strong>，更加适合老年代对象的特性。</li>
+</ul></div>
+
+<h3 id="新生代">新生代
+</h3><p>新生代用来接收新创建的对象</p>
+<h4 id="新生代的分区逻辑">新生代的分区逻辑
+</h4><p>主要是为了提供内存利用率。</p>
+<p>由于新生代对象朝生夕死的特性，天然适合复制算法。如果将新生代一分为二，划两块区域，每次只使用其中一个，GC 后将存活的复制到另一个区域，然后清理老区域非存活对象，这样替换使用两块区域可以避免内存碎片的存在。内存利用率只用一半</p>
+<p>因此要将新生代划分为Eden区和Survivor区，其中Survivor区被分S0和S1两个区域来执行标记-复制算法，轮流执行标记-复制算法</p>
+<h4 id="eden区">Eden区
+</h4><p>多数情况下，对象会在新生代 Eden 区中进行分配，当 Eden 区没有足够空间进行分配时，JVM 会发起一次 Minor GC，Minor GC 相比 Major GC 更频繁，回收速度也更快。</p>
+<p>通过 Minor GC 之后，Eden 区中绝大部分对象会被回收，而那些无需回收的存活对象，将会进到 Survivor 的 From 区，如果 From 区不够，则直接进入 To 区。</p>
+<h4 id="survivor区">Survivor区
+</h4><p>Survivor 的存在意义就是减少被送到老年代的对象，进而减少 Major GC 的发生。Survivor 的预筛选保证，只有经历 16 次 Minor GC 还能在新生代中存活的对象，才会被送到老年代。</p>
+<h3 id="老年代">老年代
+</h3><p>老年代占据着 2/3 的堆内存空间，只有在 Major GC 的时候才会进行清理，每次 GC 都会触发“Stop-The-World”。</p>
+<p>由于复制算法在对象存活率较高的老年代会进行很多次的复制操作，效率很低，所以老年代这里采用的是标记整理算法。</p>
+<p>对于某些对象直接进入老年代</p>
+<ul>
+<li><strong>大对象</strong>： 需要大量连续内存空间的对象，这部分对象都会直接进到老年代。这样做主要是为了避免在 Eden 区及 2 个 Survivor 区之间发生大量的内存复制。</li>
+<li><strong>长期存活对象</strong> ：虚拟机给每个对象定义了一个对象年龄（Age）计数器。正常情况下对象会不断的在 Survivor 的 From 区与 To 区之间移动，对象在 Survivor 区中每经历一次 Minor GC，年龄就增加 1 岁。当年龄增加到 15 岁时，这时候就会被转移到老年代。</li>
+<li><strong>动态对象年龄</strong> ：如果 Survivor 空间中某个年龄段的对象总大小超过了 Survivor 空间的一半，那么该年龄段及以上年龄段的所有对象都会在下一次垃圾回收时被晋升到老年代，无需等到15岁。</li>
+</ul>
+<h2 id="垃圾判断算法">垃圾判断算法
+</h2><h3 id="引用计数法">引用计数法
+</h3><ul>
+<li><strong>原理</strong>：为每个对象分配一个引用计数器，每当有一个地方引用它时，计数器加1；当引用失效时，计数器减1。当计数器为0时，表示对象不再被任何变量引用，可以被回收。</li>
+<li><strong>缺点</strong> ：无法处理循环引用的问题，两个对象互相引用时，引用计数器永远不会为 0</li>
+</ul>
+<h3 id="可达性分析算法">可达性分析算法
+</h3><ul>
+<li><strong>原理</strong> ：从GC Roots（垃圾收集根）的对象出发，向下追溯它们引用的对象，以及这些对象引用的其他对象，以此类推。如果一个对象到GC Roots没有任何引用链相连（即从GC Roots到这个对象不可达），那么这个对象就被认为是不可达的，可以被回收。</li>
+</ul>
+<p><img src="/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/jvm-18.png"
+	width="792"
+	height="533"
+	
+	loading="lazy"
+	
+		alt="GC Root"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="148"
+		data-flex-basis="356px"
+	
+></p>
+<ul>
+<li><strong>前置操作（Stop the world）</strong> ：在进行垃圾回收之前，JVM 会暂停所有正在执行的应用线程。可达性分析过程必须确保在执行分析时，内存中的对象关系不会被应用线程修改。如果不暂停应用线程，可能会出现对象引用的改变，导致垃圾回收过程中判断对象是否可达的结果不一致，从而引发严重的内存错误或数据丢失。</li>
+</ul>
+<div
+  class="notice tip"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
+  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+    </span>提示</p><p>可以作为GC ROOT的对象</p>
+<ul>
+<li><strong>线程栈中的引用</strong> ：每个线程栈中的局部变量、参数等。</li>
+<li><strong>类的静态变量</strong> ：被类加载器加载后的类会存储在方法区，类的静态变量可以作为 GC Roots。</li>
+<li><strong>JNI 全局引用</strong> ：通过 JNI 创建的全局引用可以作为 GC Roots。</li>
+<li>运行时常量池中的常量（String 或 Class 类型）</li>
+</ul></div>
+
+<h2 id="垃圾回收算法">垃圾回收算法
+</h2><h3 id="标记-清除算法">标记-清除算法
+</h3><p>标记-清除算法是最基础的垃圾回收算法，分为“标记（Mark）”和“清除（Sweep）”阶段。</p>
+<ul>
+<li>
+<p>首先标记出所有不需要回收的对象</p>
+</li>
+<li>
+<p>在标记完成后统一回收掉所有没有被标记的对象。</p>
+<p><img src="/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/gc-20231227125304.png"
+	width="1678"
+	height="704"
+	
+	loading="lazy"
+	
+		alt="标记-清除"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="238"
+		data-flex-basis="572px"
+	
+></p>
+</li>
+</ul>
+<p>优缺点</p>
+<ul>
+<li>优点：易于实现，可以处理所有对象</li>
+<li>缺点
+<ul>
+<li><strong>效率问题</strong> ：标记和清除的过程效率都不高</li>
+<li><strong>内存碎片</strong> ：清除结束后会造成大量的碎片空间。有可能会造成在申请大块内存的时候因为没有足够的连续空间导致再次 GC。</li>
+</ul>
+</li>
+</ul>
+<h3 id="标记-复制算法">标记-复制算法
+</h3><p>为了解决碎片空间的问题，出现了对标记-复制算法的改进。</p>
+<p>原理：</p>
+<ul>
+<li>将内存分成两块，每次申请内存时都使用其中的一块</li>
+<li>当内存不够时，将这一块内存中所有存活的复制到另一块上。然后将然后再把已使用的内存整个清理掉。</li>
+</ul>
+<p>优缺点</p>
+<ul>
+<li>优点
+<ul>
+<li>无需处理内存碎片，分配效率高。</li>
+</ul>
+</li>
+<li>缺点：
+<ul>
+<li><strong>内存利用率严重不足</strong> ：需要双倍的内存空间，浪费了一半的空间。</li>
+</ul>
+</li>
+</ul>
+<p><img src="/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/gc-20231227125751.png"
+	width="1694"
+	height="736"
+	
+	loading="lazy"
+	
+		alt="标记-复制算法"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="230"
+		data-flex-basis="552px"
+	
+></p>
+<div
+  class="notice tip"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
+  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+    </span>提示</p>
+  <p>新生代中主要使用标记复制算法</p>
+  </div>
+
+<h3 id="标记-整理算法">标记-整理算法
+</h3><p>标记整理算法（Mark-Compact），标记过程仍然与标记清除算法一样，但后续步骤不是直接对可回收对象进行清理，而是让所有存活的对象都向一端移动，再清理掉端边界以外的内存区域。</p>
+<p><img src="/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/gc-20231227130011.png"
+	width="1686"
+	height="662"
+	
+	loading="lazy"
+	
+		alt="标记-整理算法"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="254"
+		data-flex-basis="611px"
+	
+></p>
+<h2 id="stop-the-world">Stop The World
+</h2><p>&ldquo;Stop The World&quot;是 Java 垃圾收集中的一个重要概念。在垃圾收集过程中，JVM 会暂停所有的用户线程.。主要原因是为了防止在垃圾收集过程中，用户线程修改了堆中的对象，导致垃圾收集器无法准确地收集垃圾。</p>
+<h2 id="分代垃圾回收机制">分代垃圾回收机制
+</h2><p>根据对象的分代机制，针对各代有不同的垃圾回收机制</p>
+<ul>
+<li>Young GC（Minor GC）：针对新生代的垃圾回收</li>
+<li>Major GC：针对老年代的垃圾回收</li>
+<li>Full GC：全堆垃圾回收</li>
+<li>Mix GC：混合垃圾回收，同时回收新生代和部分老年代区域</li>
+</ul>
+<h3 id="minor-gc">Minor GC
+</h3><ul>
+<li><strong>作用范围</strong>：只针对新生代进行回收，包括Eden区和两个Survivor区（S0和S1）。</li>
+<li><strong>触发条件</strong>：
+<ul>
+<li><strong>Eden区空间不足</strong> ：当Eden区空间不足时，JVM会触发一次Minor GC，回收新生代中不再使用的对象</li>
+<li><strong>Eden 区和 Survivor 区的空间装满</strong> ：如果 Eden 区和 Survivor 区的空间都不足以存放新分配的对象时，Young GC 也会被触发，清理空间并将幸存的对象转移到 Survivor 区或老年代。</li>
+</ul>
+</li>
+<li><strong>特点</strong>：通常发生得非常频繁，因为年轻代中对象的生命周期较短，回收效率高，暂停时间相对较短。</li>
+</ul>
+<h3 id="major-gc">Major GC
+</h3><ul>
+<li><strong>作用范围</strong>：只针对老年代。</li>
+<li><strong>触发条件</strong>：当老年代空间不足时触发，通常是当从新生代晋升到老年代的对象过多，或者老年代的存活对象数量达到一定阈值时。</li>
+<li><strong>执行方式</strong>：只回收老年代的对象，新生代不受影响。</li>
+<li><strong>特点</strong>：相比Minor GC，Major GC发生的频率较低，但每次回收可能需要更长的时间，因为老年代中的对象存活率较高。</li>
+</ul>
+<h3 id="full-gc">Full GC
+</h3><ul>
+<li><strong>作用范围</strong>：对整个堆内存（包括新生代和老年代）进行回收。</li>
+<li><strong>触发条件</strong>：
+<ul>
+<li><strong>命令调用</strong> ：直接调用 <code>System.gc()</code> ,JVM会尝试执行Full GC。</li>
+<li><strong>永久代（元空间）内存不足</strong>：当永久代（Java 8之前的版本）或元空间（Java 8及以后的版本）空间不足时。</li>
+<li><strong>新生代到老年代晋升失败</strong> ：Minor GC（新生代垃圾回收）时，如果存活的对象无法全部放入老年代，或者老年代空间不足以容纳存活的对象，则会触发Full GC，对整个堆内存进行回收。</li>
+</ul>
+</li>
+<li><strong>执行方式</strong>：回收所有代（新生代、老年代）中的垃圾，并且可能会伴随着元空间的回收。
+<ul>
+<li>Full GC 会从 GC Root 出发，标记所有可达对象。新生代使用复制算法，清空 Eden 区。老年代使用标记-整理算法，回收对象并消除碎片。</li>
+</ul>
+</li>
+<li><strong>特点</strong>：回收时间最长，会触发整个 JVM 的停顿（Stop-The-World），对性能有较大影响，通常不希望频繁发生。</li>
+</ul>
+<h3 id="mixed-gc">Mixed GC
+</h3><p><strong>Mixed GC</strong>（仅适用于 G1 GC 的混合垃圾回收）：</p>
+<ul>
+<li><strong>作用范围</strong>：同时回收新生代和部分老年代区域。</li>
+<li><strong>触发条件</strong>：当 G1 垃圾回收器发现老年代区域的垃圾过多时触发。</li>
+<li><strong>执行方式</strong>：混合回收新生代和部分老年代区域，主要目的是减少老年代中的垃圾积压。</li>
+<li><strong>特点</strong>：结合了 YGC 的快速回收和 OGC 的深度回收，尽量减少停顿时间，适用于大内存应用。</li>
+</ul>
+<h2 id="垃圾收集器">垃圾收集器
+</h2><h3 id="新生代垃圾收集器">新生代垃圾收集器
+</h3><h4 id="serial-收集器">Serial 收集器
+</h4><p>Serial（串行）收集器是最基本的垃圾收集器了。Serial收集器是单线程收集器，它只会使用一条垃圾收集线程去完成垃圾收集工作。同时在进行垃圾收集工作的时候必须触发 Stop-The-World（STW）操作，所有应用线程在 GC 时暂停。</p>
+<p><strong>新生代采用标记-复制算法，老年代采用标记-整理算法。</strong></p>
+<h4 id="parnew-收集器">ParNew 收集器
+</h4><p>ParNew 收集器是 Serial 收集器的多线程版本，除了使用多线程进行垃圾收集外，其余行为（控制参数、收集算法、回收策略等等）和 Serial 收集器完全一样。与 CMS 收集器配合使用时，通常会选择 ParNew 收集器作为新生代收集器。</p>
+<p><strong>新生代采用标记-复制算法，老年代采用标记-整理算法。</strong></p>
+<h4 id="parallel-scavenge-收集器">Parallel Scavenge 收集器
+</h4><p>也称为 &ldquo;吞吐量收集器&rdquo;，追求最大化 CPU 时间的利用率。并行处理新生代垃圾回收，适合大规模后台任务处理，注重吞吐量而非延迟。</p>
+<p><strong>新生代采用标记-复制算法，老年代采用标记-整理算法。</strong></p>
+<h3 id="老年代垃圾收集器">老年代垃圾收集器
+</h3><h4 id="serial-old-收集器">Serial Old 收集器
+</h4><p>Serial 收集器的老年代版本，使用标记-整理（Mark-Compact）算法进行垃圾回收。</p>
+<h4 id="parallel-old-收集器">Parallel Old 收集器：
+</h4><p>Parallel Scavenge 收集器的老年代版本，使用多线程并行标记-整理算法。</p>
+<h4 id="cms收集器">CMS收集器
+</h4><p><strong>CMS收集器是一种以获取最短回收停顿时间为目标的收集器。它实现了让垃圾收集线程与用户线程（基本上）同时工作。</strong></p>
+<p>工作流程：CMS 使用 <strong>标记-清除</strong> 算法进行垃圾收集</p>
+<ul>
+<li><strong>初始标记</strong> ：标记所有从 GC Roots 直接可达的对象，这个阶段需要 STW，但速度很快</li>
+<li><strong>并发标记：</strong>  同时开启 GC 和用户线程，用一个闭包结构去记录可达对象。但在这个阶段结束，这个闭包结构并不能保证包含当前所有的可达对象。因为用户线程可能会不断的更新引用域，所以 GC 线程无法保证可达性分析的实时性。所以这个算法里会跟踪记录这些发生引用更新的地方。</li>
+<li><strong>重新标记：</strong>  重新标记阶段就是为了修正并发标记期间因为用户程序继续运行而导致标记产生变动的那一部分对象的标记记录，这个阶段的停顿时间一般会比初始标记阶段的时间稍长，远远比并发标记阶段时间短</li>
+<li><strong>并发清除</strong>：清除未被标记的对象，回收它们占用的内存空间</li>
+</ul>
+<div
+  class="notice tip"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
+  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+    </span>提示</p><p>三色标记法</p>
+<p><strong>三色标记算法</strong> 是垃圾回收器中常用的一种 <strong>增量标记算法</strong></p>
+<p><strong>三色标记的基本概念</strong>：</p>
+<ul>
+<li><strong>白色对象</strong> ：表示还没有被垃圾回收器访问到的对象，这些对象有可能是垃圾。</li>
+<li><strong>灰色对象</strong> ：表示已经被访问到，但其引用的其他对象还没有被处理完。</li>
+<li><strong>黑色对象</strong> ：表示已经被访问到且其引用的所有对象也都已经标记完毕，这些对象不会被回收。</li>
+</ul>
+<p><strong>标记过程</strong>：</p>
+<ul>
+<li>初始标记：从 GC Roots 开始，标记所有直接可达的对象为灰色。</li>
+<li>并发标记：在此阶段，标记所有灰色对象引用的对象为灰色，然后将灰色对象自身标记为黑色。这个过程是并发的，和应用线程同时进行。</li>
+<li>重新标记：重新标记阶段的目标是处理并发标记阶段遗漏的引用变化。为了确保所有存活对象都被正确标记，remark 需要在 STW 暂停期间执行。</li>
+<li>使用写屏障（Write Barrier）来捕捉并发标记阶段应用线程对对象引用的更新。通过遍历这些更新的引用来修正标记状态，确保遗漏的对象不会被错误地回收。</li>
+</ul></div>
+
+<p><strong>缺点</strong></p>
+<ul>
+<li><strong>对 CPU 资源敏感；</strong></li>
+<li><strong>无法处理浮动垃圾；</strong></li>
+<li><strong>它使用的回收算法-“标记-清除”算法会导致收集结束时会有大量空间碎片产生。</strong></li>
+</ul>
+<h4 id="g1收集器">G1收集器
+</h4><p><strong>G1 (Garbage-First) 是一款面向服务器的垃圾收集器,主要针对配备多颗处理器及大容量内存的机器. 以极高概率满足 GC 停顿时间要求的同时,还具备高吞吐量性能特征。</strong></p>
+<p>G1 把 Java 堆划分为多个大小相等的独立区域Region，每个区域都可以扮演新生代或老年代的角色。</p>
+<p>同时，G1 还有一个专门为大对象设计的 Region，叫 Humongous 区。</p>
+<p>G1 基于<strong>标记&ndash;整理</strong> 算法, 不会产生空间碎片</p>
+<p><strong>工作流程</strong></p>
+<ul>
+<li><strong>初始标记</strong>： 短暂停顿（Stop-The-World，STW），标记从 GC Roots 可直接引用的对象，即标记所有直接可达的活跃对象</li>
+<li><strong>并发标记</strong>，G1 通过并发标记的方式找出堆中的垃圾对象。并发标记阶段与应用线程同时执行，不会导致应用线程暂停。</li>
+<li><strong>混合收集</strong>，在并发标记完成后，G1 会计算出哪些区域的回收价值最高（也就是包含最多垃圾的区域），然后优先回收这些区域。这种回收方式包括了部分新生代区域和老年代区域。选择回收成本低而收益高的区域进行回收，可以提高回收效率和减少停顿时间。</li>
+<li><strong>可预测的停顿</strong> G1 在垃圾回收期间仍然需要「Stop the World」。不过，G1 在停顿时间上添加了预测机制，用户可以 JVM 启动时指定期望停顿时间，G1 会尽可能地在这个时间内完成垃圾回收。</li>
+</ul>
+<p><strong>G1 收集器在后台维护了一个优先列表，每次根据允许的收集时间，优先选择回收价值最大的 Region(这也就是它的名字 Garbage-First 的由来)</strong></p>
+<h3 id="g1和cms的区别和使用场景">G1和CMS的区别和使用场景
+</h3><h4 id="区别">区别
+</h4><ul>
+<li><strong>使用范围不一样</strong>
+<ul>
+<li>CMS收集器是老年代的收集器，可以配合新生代的Serial和ParNew收集器一起使用</li>
+<li>G1收集器收集范围是老年代和新生代。不需要结合其他收集器使用</li>
+</ul>
+</li>
+<li><strong>垃圾碎片</strong>
+<ul>
+<li>CMS收集器是使用“标记-清除”算法进行的垃圾回收，容易产生内存碎片</li>
+<li>G1收集器使用的是“标记-整理”算法，进行了空间整合，没有内存空间碎片。</li>
+</ul>
+</li>
+</ul>
+<h4 id="使用场景">使用场景
+</h4><p>CMS适用场景：</p>
+<ul>
+<li><strong>低延迟需求</strong> ：适用于对停顿时间要求敏感的应用程序。</li>
+<li><strong>老生代收集</strong> ：主要针对老年代的垃圾回收。</li>
+<li><strong>碎片化管理</strong> ：容易出现内存碎片，可能需要定期进行Full GC来压缩内存空间。</li>
+</ul>
+<p>G1适用场景：</p>
+<ul>
+<li><strong>大堆内存</strong> ：适用于需要管理大内存堆的场景，能够有效处理数GB以上的堆内存。</li>
+<li><strong>对内存碎片敏感</strong> ：G1通过紧凑整理来减少内存碎片，降低了碎片化对性能的影响。</li>
+<li><strong>比较平衡的性能</strong> ：G1在提供较低停顿时间的同时，也保持了相对较高的吞吐量。</li>
+</ul>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/java%E5%9F%BA%E7%A1%80/">Java基础</a>
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2025-03-12 13:46 UTC
+        </span>
+    </section></footer>
+
+
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI&#43;WdtXRGWt2kTvGFasHpSy3SV"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG&#43;vnGctmUb0ZY0l8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"integrity="sha384-&#43;VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4&#43;/RRE05"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+        renderMathInElement(document.body, {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ],
+            ignoredClasses: ["gist"]
+        });})
+</script>
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/jvm%E7%9A%84%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">JVM的类加载机制</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/jvm%E7%9A%84%E7%BB%84%E7%BB%87%E6%9E%B6%E6%9E%84/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">JVM的组织架构</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Java内存区域</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2025 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

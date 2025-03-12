@@ -782,8 +782,26 @@
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;1 bit（符号位）&lt;/strong&gt;：始终为 &lt;code&gt;0&lt;/code&gt;，保证生成的是正数。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;41 bit（时间戳）&lt;/strong&gt;：存储 &lt;strong&gt;当前时间（毫秒）&lt;/strong&gt;，可用 &lt;strong&gt;约 69 年&lt;/strong&gt;（2⁴¹ 毫秒）。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;10 bit（机器 ID）&lt;/strong&gt;：支持 &lt;strong&gt;1024 台机器&lt;/strong&gt;，确保分布式部署不冲突。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;10 bit（机器 ID）&lt;/strong&gt;：支持 &lt;strong&gt;1024 台机器&lt;/strong&gt;，确保分布式部署不冲突。通常由5位数据中心ID和5位机器ID构成&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;12 bit（序列号）&lt;/strong&gt;：同一毫秒内，支持 &lt;strong&gt;4096 个 ID&lt;/strong&gt;（2¹² = 4096）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;生成算法过程&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;获取当前时间戳&lt;/strong&gt;（毫秒级），并 &lt;strong&gt;计算时间戳偏移量&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;检查当前毫秒内序列号&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;若当前毫秒内 &lt;strong&gt;序列号未满 4096&lt;/strong&gt;，则递增。&lt;/li&gt;
+&lt;li&gt;若达到上限，则 &lt;strong&gt;等待下一毫秒&lt;/strong&gt;（时间回拨问题）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;拼接各部分生成唯一 ID&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;时间戳偏移量&lt;/strong&gt; 左移22位到符号位的右侧&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;机器ID&lt;/strong&gt; 左移动12位&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;数据中心ID&lt;/strong&gt; 左移动12+5=17位&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;自增序列&lt;/strong&gt; 拼接到最右侧&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
 &lt;/ul&gt;
 &lt;style type=&#34;text/css&#34;&gt;
    

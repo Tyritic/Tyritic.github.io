@@ -7,6 +7,511 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh-cn</language>
         <copyright>Tyritic</copyright><atom:link href="https://Tyritic.github.io/categories/jvm/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>JVM的垃圾回收</title>
+        <link>https://Tyritic.github.io/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/</link>
+        <pubDate>Wed, 12 Mar 2025 11:36:21 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/</guid>
+        <description>&lt;h2 id=&#34;垃圾回收机制&#34;&gt;垃圾回收机制
+&lt;/h2&gt;&lt;p&gt;垃圾回收（Garbage Collection，GC），顾名思义就是释放垃圾占用的空间，防止内存爆掉。有效的使用可以使用的内存，对内存中已经死亡的或者长时间没有使用的对象进行清除和回收。&lt;/p&gt;
+&lt;p&gt;垃圾回收的触发条件&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;内存不足时&lt;/strong&gt; ：当JVM检测到堆内存不足，无法为新的对象分配内存时，会自动触发垃圾回收。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;手动请求&lt;/strong&gt; ：虽然垃圾回收是自动的，但是可以通过调用 &lt;code&gt;System.gc()&lt;/code&gt; 或 &lt;code&gt;Runtime.getRuntime().gc()&lt;/code&gt; 建议 JVM 进行垃圾回收。不过这只是一个建议，并不能保证立即执行。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;JVM参数&lt;/strong&gt; ：启动 Java 应用时可以通过 JVM 参数来调整垃圾回收的行为，比如：&lt;code&gt;-Xmx&lt;/code&gt;（最大堆大小）、&lt;code&gt;-Xms&lt;/code&gt;（初始堆大小）等。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;对象数量或内存使用达到阈值&lt;/strong&gt; ：垃圾收集器内部实现了一些策略，以监控对象的创建和内存使用，达到某个阈值时触发垃圾回收。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;堆的空间分配&#34;&gt;堆的空间分配
+&lt;/h2&gt;&lt;p&gt;堆是垃圾收集器管理的主要区域。&lt;/p&gt;
+&lt;p&gt;在 JDK 7 版本及 JDK 7 版本之前，堆内存被通常分为下面三部分：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;新生代(Young Generation)：存放新创建的对象。
+&lt;ul&gt;
+&lt;li&gt;Eden 区：所有新创建的对象首先分配到 Eden 区&lt;/li&gt;
+&lt;li&gt;Survivor 区：Eden 区中的存活对象会被复制到 Survivor 区（一般分为两个区域，S0 和 S1），经过多次 GC 存活的对象会逐渐晋升到老年代。
+&lt;ul&gt;
+&lt;li&gt;From区&lt;/li&gt;
+&lt;li&gt;To区&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;老生代(Old Generation)：存放存活时间较长的对象，通常是从新生代晋升过来的对象。&lt;/li&gt;
+&lt;li&gt;永久代(Permanent Generation)：存放类的元数据信息，包括类的静态变量、方法等&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;JDK 8 版本之后 永久代已被 元空间 取代，元空间使用的是直接内存&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/gc-20231227132701.png&#34;
+	width=&#34;834&#34;
+	height=&#34;594&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;堆内存分配&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;140&#34;
+		data-flex-basis=&#34;336px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;style type=&#34;text/css&#34;&gt;
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+&lt;/style&gt;&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;分代回收的原因&lt;/p&gt;
+&lt;p&gt;主要是为了提高垃圾回收效率，依据对象的生命周期特点来进行优化。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;对象的生命周期特点&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;大多数对象存活时间短&lt;/strong&gt; ：大部分对象会很快变成垃圾，不再被使用，这些短生命周期的对象会分配在新生代。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;少部分对象存活时间长&lt;/strong&gt; ：一些长期存活的对象不会很快被回收，分配在新生代的对象经过多次垃圾回收仍存活的，将晋升到老年代。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;不同的回收算法&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;新生代的回收&lt;/strong&gt; ：新生代通常采用 &lt;strong&gt;复制算法&lt;/strong&gt;，因为新生代中大部分对象生命周期短，大部分会在一次 GC 中被回收，复制算法只需要在内存中保留少量存活对象，并将它们复制到 Survivor 空间，回收剩余区域。这种算法效率很高，适合新生代对象频繁创建和回收的特点。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;老年代的回收&lt;/strong&gt;：老年代中对象存活时间长，回收频率低，使用  &lt;strong&gt;标记-整理算法&lt;/strong&gt;  或 &lt;strong&gt;标记-清除算法&lt;/strong&gt;，更加适合老年代对象的特性。&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h3 id=&#34;新生代&#34;&gt;新生代
+&lt;/h3&gt;&lt;p&gt;新生代用来接收新创建的对象&lt;/p&gt;
+&lt;h4 id=&#34;新生代的分区逻辑&#34;&gt;新生代的分区逻辑
+&lt;/h4&gt;&lt;p&gt;主要是为了提供内存利用率。&lt;/p&gt;
+&lt;p&gt;由于新生代对象朝生夕死的特性，天然适合复制算法。如果将新生代一分为二，划两块区域，每次只使用其中一个，GC 后将存活的复制到另一个区域，然后清理老区域非存活对象，这样替换使用两块区域可以避免内存碎片的存在。内存利用率只用一半&lt;/p&gt;
+&lt;p&gt;因此要将新生代划分为Eden区和Survivor区，其中Survivor区被分S0和S1两个区域来执行标记-复制算法，轮流执行标记-复制算法&lt;/p&gt;
+&lt;h4 id=&#34;eden区&#34;&gt;Eden区
+&lt;/h4&gt;&lt;p&gt;多数情况下，对象会在新生代 Eden 区中进行分配，当 Eden 区没有足够空间进行分配时，JVM 会发起一次 Minor GC，Minor GC 相比 Major GC 更频繁，回收速度也更快。&lt;/p&gt;
+&lt;p&gt;通过 Minor GC 之后，Eden 区中绝大部分对象会被回收，而那些无需回收的存活对象，将会进到 Survivor 的 From 区，如果 From 区不够，则直接进入 To 区。&lt;/p&gt;
+&lt;h4 id=&#34;survivor区&#34;&gt;Survivor区
+&lt;/h4&gt;&lt;p&gt;Survivor 的存在意义就是减少被送到老年代的对象，进而减少 Major GC 的发生。Survivor 的预筛选保证，只有经历 16 次 Minor GC 还能在新生代中存活的对象，才会被送到老年代。&lt;/p&gt;
+&lt;h3 id=&#34;老年代&#34;&gt;老年代
+&lt;/h3&gt;&lt;p&gt;老年代占据着 2/3 的堆内存空间，只有在 Major GC 的时候才会进行清理，每次 GC 都会触发“Stop-The-World”。&lt;/p&gt;
+&lt;p&gt;由于复制算法在对象存活率较高的老年代会进行很多次的复制操作，效率很低，所以老年代这里采用的是标记整理算法。&lt;/p&gt;
+&lt;p&gt;对于某些对象直接进入老年代&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;大对象&lt;/strong&gt;： 需要大量连续内存空间的对象，这部分对象都会直接进到老年代。这样做主要是为了避免在 Eden 区及 2 个 Survivor 区之间发生大量的内存复制。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;长期存活对象&lt;/strong&gt; ：虚拟机给每个对象定义了一个对象年龄（Age）计数器。正常情况下对象会不断的在 Survivor 的 From 区与 To 区之间移动，对象在 Survivor 区中每经历一次 Minor GC，年龄就增加 1 岁。当年龄增加到 15 岁时，这时候就会被转移到老年代。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;动态对象年龄&lt;/strong&gt; ：如果 Survivor 空间中某个年龄段的对象总大小超过了 Survivor 空间的一半，那么该年龄段及以上年龄段的所有对象都会在下一次垃圾回收时被晋升到老年代，无需等到15岁。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;垃圾判断算法&#34;&gt;垃圾判断算法
+&lt;/h2&gt;&lt;h3 id=&#34;引用计数法&#34;&gt;引用计数法
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;原理&lt;/strong&gt;：为每个对象分配一个引用计数器，每当有一个地方引用它时，计数器加1；当引用失效时，计数器减1。当计数器为0时，表示对象不再被任何变量引用，可以被回收。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;缺点&lt;/strong&gt; ：无法处理循环引用的问题，两个对象互相引用时，引用计数器永远不会为 0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;可达性分析算法&#34;&gt;可达性分析算法
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;原理&lt;/strong&gt; ：从GC Roots（垃圾收集根）的对象出发，向下追溯它们引用的对象，以及这些对象引用的其他对象，以此类推。如果一个对象到GC Roots没有任何引用链相连（即从GC Roots到这个对象不可达），那么这个对象就被认为是不可达的，可以被回收。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/jvm-18.png&#34;
+	width=&#34;792&#34;
+	height=&#34;533&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;GC Root&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;148&#34;
+		data-flex-basis=&#34;356px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;前置操作（Stop the world）&lt;/strong&gt; ：在进行垃圾回收之前，JVM 会暂停所有正在执行的应用线程。可达性分析过程必须确保在执行分析时，内存中的对象关系不会被应用线程修改。如果不暂停应用线程，可能会出现对象引用的改变，导致垃圾回收过程中判断对象是否可达的结果不一致，从而引发严重的内存错误或数据丢失。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;可以作为GC ROOT的对象&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;线程栈中的引用&lt;/strong&gt; ：每个线程栈中的局部变量、参数等。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;类的静态变量&lt;/strong&gt; ：被类加载器加载后的类会存储在方法区，类的静态变量可以作为 GC Roots。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;JNI 全局引用&lt;/strong&gt; ：通过 JNI 创建的全局引用可以作为 GC Roots。&lt;/li&gt;
+&lt;li&gt;运行时常量池中的常量（String 或 Class 类型）&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h2 id=&#34;垃圾回收算法&#34;&gt;垃圾回收算法
+&lt;/h2&gt;&lt;h3 id=&#34;标记-清除算法&#34;&gt;标记-清除算法
+&lt;/h3&gt;&lt;p&gt;标记-清除算法是最基础的垃圾回收算法，分为“标记（Mark）”和“清除（Sweep）”阶段。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;首先标记出所有不需要回收的对象&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;在标记完成后统一回收掉所有没有被标记的对象。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/gc-20231227125304.png&#34;
+	width=&#34;1678&#34;
+	height=&#34;704&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;标记-清除&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;238&#34;
+		data-flex-basis=&#34;572px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;优缺点&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;优点：易于实现，可以处理所有对象&lt;/li&gt;
+&lt;li&gt;缺点
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;效率问题&lt;/strong&gt; ：标记和清除的过程效率都不高&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;内存碎片&lt;/strong&gt; ：清除结束后会造成大量的碎片空间。有可能会造成在申请大块内存的时候因为没有足够的连续空间导致再次 GC。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;标记-复制算法&#34;&gt;标记-复制算法
+&lt;/h3&gt;&lt;p&gt;为了解决碎片空间的问题，出现了对标记-复制算法的改进。&lt;/p&gt;
+&lt;p&gt;原理：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;将内存分成两块，每次申请内存时都使用其中的一块&lt;/li&gt;
+&lt;li&gt;当内存不够时，将这一块内存中所有存活的复制到另一块上。然后将然后再把已使用的内存整个清理掉。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;优缺点&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;优点
+&lt;ul&gt;
+&lt;li&gt;无需处理内存碎片，分配效率高。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;缺点：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;内存利用率严重不足&lt;/strong&gt; ：需要双倍的内存空间，浪费了一半的空间。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/gc-20231227125751.png&#34;
+	width=&#34;1694&#34;
+	height=&#34;736&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;标记-复制算法&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;230&#34;
+		data-flex-basis=&#34;552px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;
+  &lt;p&gt;新生代中主要使用标记复制算法&lt;/p&gt;
+  &lt;/div&gt;
+
+&lt;h3 id=&#34;标记-整理算法&#34;&gt;标记-整理算法
+&lt;/h3&gt;&lt;p&gt;标记整理算法（Mark-Compact），标记过程仍然与标记清除算法一样，但后续步骤不是直接对可回收对象进行清理，而是让所有存活的对象都向一端移动，再清理掉端边界以外的内存区域。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/gc-20231227130011.png&#34;
+	width=&#34;1686&#34;
+	height=&#34;662&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;标记-整理算法&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;254&#34;
+		data-flex-basis=&#34;611px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h2 id=&#34;stop-the-world&#34;&gt;Stop The World
+&lt;/h2&gt;&lt;p&gt;&amp;ldquo;Stop The World&amp;quot;是 Java 垃圾收集中的一个重要概念。在垃圾收集过程中，JVM 会暂停所有的用户线程.。主要原因是为了防止在垃圾收集过程中，用户线程修改了堆中的对象，导致垃圾收集器无法准确地收集垃圾。&lt;/p&gt;
+&lt;h2 id=&#34;分代垃圾回收机制&#34;&gt;分代垃圾回收机制
+&lt;/h2&gt;&lt;p&gt;根据对象的分代机制，针对各代有不同的垃圾回收机制&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Young GC（Minor GC）：针对新生代的垃圾回收&lt;/li&gt;
+&lt;li&gt;Major GC：针对老年代的垃圾回收&lt;/li&gt;
+&lt;li&gt;Full GC：全堆垃圾回收&lt;/li&gt;
+&lt;li&gt;Mix GC：混合垃圾回收，同时回收新生代和部分老年代区域&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;minor-gc&#34;&gt;Minor GC
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;作用范围&lt;/strong&gt;：只针对新生代进行回收，包括Eden区和两个Survivor区（S0和S1）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;触发条件&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Eden区空间不足&lt;/strong&gt; ：当Eden区空间不足时，JVM会触发一次Minor GC，回收新生代中不再使用的对象&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Eden 区和 Survivor 区的空间装满&lt;/strong&gt; ：如果 Eden 区和 Survivor 区的空间都不足以存放新分配的对象时，Young GC 也会被触发，清理空间并将幸存的对象转移到 Survivor 区或老年代。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;特点&lt;/strong&gt;：通常发生得非常频繁，因为年轻代中对象的生命周期较短，回收效率高，暂停时间相对较短。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;major-gc&#34;&gt;Major GC
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;作用范围&lt;/strong&gt;：只针对老年代。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;触发条件&lt;/strong&gt;：当老年代空间不足时触发，通常是当从新生代晋升到老年代的对象过多，或者老年代的存活对象数量达到一定阈值时。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;执行方式&lt;/strong&gt;：只回收老年代的对象，新生代不受影响。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;特点&lt;/strong&gt;：相比Minor GC，Major GC发生的频率较低，但每次回收可能需要更长的时间，因为老年代中的对象存活率较高。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;full-gc&#34;&gt;Full GC
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;作用范围&lt;/strong&gt;：对整个堆内存（包括新生代和老年代）进行回收。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;触发条件&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;命令调用&lt;/strong&gt; ：直接调用 &lt;code&gt;System.gc()&lt;/code&gt; ,JVM会尝试执行Full GC。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;永久代（元空间）内存不足&lt;/strong&gt;：当永久代（Java 8之前的版本）或元空间（Java 8及以后的版本）空间不足时。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;新生代到老年代晋升失败&lt;/strong&gt; ：Minor GC（新生代垃圾回收）时，如果存活的对象无法全部放入老年代，或者老年代空间不足以容纳存活的对象，则会触发Full GC，对整个堆内存进行回收。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;执行方式&lt;/strong&gt;：回收所有代（新生代、老年代）中的垃圾，并且可能会伴随着元空间的回收。
+&lt;ul&gt;
+&lt;li&gt;Full GC 会从 GC Root 出发，标记所有可达对象。新生代使用复制算法，清空 Eden 区。老年代使用标记-整理算法，回收对象并消除碎片。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;特点&lt;/strong&gt;：回收时间最长，会触发整个 JVM 的停顿（Stop-The-World），对性能有较大影响，通常不希望频繁发生。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;mixed-gc&#34;&gt;Mixed GC
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;Mixed GC&lt;/strong&gt;（仅适用于 G1 GC 的混合垃圾回收）：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;作用范围&lt;/strong&gt;：同时回收新生代和部分老年代区域。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;触发条件&lt;/strong&gt;：当 G1 垃圾回收器发现老年代区域的垃圾过多时触发。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;执行方式&lt;/strong&gt;：混合回收新生代和部分老年代区域，主要目的是减少老年代中的垃圾积压。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;特点&lt;/strong&gt;：结合了 YGC 的快速回收和 OGC 的深度回收，尽量减少停顿时间，适用于大内存应用。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;垃圾收集器&#34;&gt;垃圾收集器
+&lt;/h2&gt;&lt;h3 id=&#34;新生代垃圾收集器&#34;&gt;新生代垃圾收集器
+&lt;/h3&gt;&lt;h4 id=&#34;serial-收集器&#34;&gt;Serial 收集器
+&lt;/h4&gt;&lt;p&gt;Serial（串行）收集器是最基本的垃圾收集器了。Serial收集器是单线程收集器，它只会使用一条垃圾收集线程去完成垃圾收集工作。同时在进行垃圾收集工作的时候必须触发 Stop-The-World（STW）操作，所有应用线程在 GC 时暂停。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;新生代采用标记-复制算法，老年代采用标记-整理算法。&lt;/strong&gt;&lt;/p&gt;
+&lt;h4 id=&#34;parnew-收集器&#34;&gt;ParNew 收集器
+&lt;/h4&gt;&lt;p&gt;ParNew 收集器是 Serial 收集器的多线程版本，除了使用多线程进行垃圾收集外，其余行为（控制参数、收集算法、回收策略等等）和 Serial 收集器完全一样。与 CMS 收集器配合使用时，通常会选择 ParNew 收集器作为新生代收集器。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;新生代采用标记-复制算法，老年代采用标记-整理算法。&lt;/strong&gt;&lt;/p&gt;
+&lt;h4 id=&#34;parallel-scavenge-收集器&#34;&gt;Parallel Scavenge 收集器
+&lt;/h4&gt;&lt;p&gt;也称为 &amp;ldquo;吞吐量收集器&amp;rdquo;，追求最大化 CPU 时间的利用率。并行处理新生代垃圾回收，适合大规模后台任务处理，注重吞吐量而非延迟。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;新生代采用标记-复制算法，老年代采用标记-整理算法。&lt;/strong&gt;&lt;/p&gt;
+&lt;h3 id=&#34;老年代垃圾收集器&#34;&gt;老年代垃圾收集器
+&lt;/h3&gt;&lt;h4 id=&#34;serial-old-收集器&#34;&gt;Serial Old 收集器
+&lt;/h4&gt;&lt;p&gt;Serial 收集器的老年代版本，使用标记-整理（Mark-Compact）算法进行垃圾回收。&lt;/p&gt;
+&lt;h4 id=&#34;parallel-old-收集器&#34;&gt;Parallel Old 收集器：
+&lt;/h4&gt;&lt;p&gt;Parallel Scavenge 收集器的老年代版本，使用多线程并行标记-整理算法。&lt;/p&gt;
+&lt;h4 id=&#34;cms收集器&#34;&gt;CMS收集器
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;CMS收集器是一种以获取最短回收停顿时间为目标的收集器。它实现了让垃圾收集线程与用户线程（基本上）同时工作。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;工作流程：CMS 使用 &lt;strong&gt;标记-清除&lt;/strong&gt; 算法进行垃圾收集&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;初始标记&lt;/strong&gt; ：标记所有从 GC Roots 直接可达的对象，这个阶段需要 STW，但速度很快&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;并发标记：&lt;/strong&gt;  同时开启 GC 和用户线程，用一个闭包结构去记录可达对象。但在这个阶段结束，这个闭包结构并不能保证包含当前所有的可达对象。因为用户线程可能会不断的更新引用域，所以 GC 线程无法保证可达性分析的实时性。所以这个算法里会跟踪记录这些发生引用更新的地方。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;重新标记：&lt;/strong&gt;  重新标记阶段就是为了修正并发标记期间因为用户程序继续运行而导致标记产生变动的那一部分对象的标记记录，这个阶段的停顿时间一般会比初始标记阶段的时间稍长，远远比并发标记阶段时间短&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;并发清除&lt;/strong&gt;：清除未被标记的对象，回收它们占用的内存空间&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;三色标记法&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;三色标记算法&lt;/strong&gt; 是垃圾回收器中常用的一种 &lt;strong&gt;增量标记算法&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;三色标记的基本概念&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;白色对象&lt;/strong&gt; ：表示还没有被垃圾回收器访问到的对象，这些对象有可能是垃圾。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;灰色对象&lt;/strong&gt; ：表示已经被访问到，但其引用的其他对象还没有被处理完。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;黑色对象&lt;/strong&gt; ：表示已经被访问到且其引用的所有对象也都已经标记完毕，这些对象不会被回收。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;标记过程&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;初始标记：从 GC Roots 开始，标记所有直接可达的对象为灰色。&lt;/li&gt;
+&lt;li&gt;并发标记：在此阶段，标记所有灰色对象引用的对象为灰色，然后将灰色对象自身标记为黑色。这个过程是并发的，和应用线程同时进行。&lt;/li&gt;
+&lt;li&gt;重新标记：重新标记阶段的目标是处理并发标记阶段遗漏的引用变化。为了确保所有存活对象都被正确标记，remark 需要在 STW 暂停期间执行。&lt;/li&gt;
+&lt;li&gt;使用写屏障（Write Barrier）来捕捉并发标记阶段应用线程对对象引用的更新。通过遍历这些更新的引用来修正标记状态，确保遗漏的对象不会被错误地回收。&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;缺点&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;对 CPU 资源敏感；&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;无法处理浮动垃圾；&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;它使用的回收算法-“标记-清除”算法会导致收集结束时会有大量空间碎片产生。&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;g1收集器&#34;&gt;G1收集器
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;G1 (Garbage-First) 是一款面向服务器的垃圾收集器,主要针对配备多颗处理器及大容量内存的机器. 以极高概率满足 GC 停顿时间要求的同时,还具备高吞吐量性能特征。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;G1 把 Java 堆划分为多个大小相等的独立区域Region，每个区域都可以扮演新生代或老年代的角色。&lt;/p&gt;
+&lt;p&gt;同时，G1 还有一个专门为大对象设计的 Region，叫 Humongous 区。&lt;/p&gt;
+&lt;p&gt;G1 基于&lt;strong&gt;标记&amp;ndash;整理&lt;/strong&gt; 算法, 不会产生空间碎片&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;工作流程&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;初始标记&lt;/strong&gt;： 短暂停顿（Stop-The-World，STW），标记从 GC Roots 可直接引用的对象，即标记所有直接可达的活跃对象&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;并发标记&lt;/strong&gt;，G1 通过并发标记的方式找出堆中的垃圾对象。并发标记阶段与应用线程同时执行，不会导致应用线程暂停。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;混合收集&lt;/strong&gt;，在并发标记完成后，G1 会计算出哪些区域的回收价值最高（也就是包含最多垃圾的区域），然后优先回收这些区域。这种回收方式包括了部分新生代区域和老年代区域。选择回收成本低而收益高的区域进行回收，可以提高回收效率和减少停顿时间。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;可预测的停顿&lt;/strong&gt; G1 在垃圾回收期间仍然需要「Stop the World」。不过，G1 在停顿时间上添加了预测机制，用户可以 JVM 启动时指定期望停顿时间，G1 会尽可能地在这个时间内完成垃圾回收。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;G1 收集器在后台维护了一个优先列表，每次根据允许的收集时间，优先选择回收价值最大的 Region(这也就是它的名字 Garbage-First 的由来)&lt;/strong&gt;&lt;/p&gt;
+&lt;h3 id=&#34;g1和cms的区别和使用场景&#34;&gt;G1和CMS的区别和使用场景
+&lt;/h3&gt;&lt;h4 id=&#34;区别&#34;&gt;区别
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;使用范围不一样&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;CMS收集器是老年代的收集器，可以配合新生代的Serial和ParNew收集器一起使用&lt;/li&gt;
+&lt;li&gt;G1收集器收集范围是老年代和新生代。不需要结合其他收集器使用&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;垃圾碎片&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;CMS收集器是使用“标记-清除”算法进行的垃圾回收，容易产生内存碎片&lt;/li&gt;
+&lt;li&gt;G1收集器使用的是“标记-整理”算法，进行了空间整合，没有内存空间碎片。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;使用场景&#34;&gt;使用场景
+&lt;/h4&gt;&lt;p&gt;CMS适用场景：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;低延迟需求&lt;/strong&gt; ：适用于对停顿时间要求敏感的应用程序。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;老生代收集&lt;/strong&gt; ：主要针对老年代的垃圾回收。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;碎片化管理&lt;/strong&gt; ：容易出现内存碎片，可能需要定期进行Full GC来压缩内存空间。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;G1适用场景：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;大堆内存&lt;/strong&gt; ：适用于需要管理大内存堆的场景，能够有效处理数GB以上的堆内存。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;对内存碎片敏感&lt;/strong&gt; ：G1通过紧凑整理来减少内存碎片，降低了碎片化对性能的影响。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;比较平衡的性能&lt;/strong&gt; ：G1在提供较低停顿时间的同时，也保持了相对较高的吞吐量。&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        <item>
         <title>JVM的类加载机制</title>
         <link>https://Tyritic.github.io/p/jvm%E7%9A%84%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6/</link>
         <pubDate>Mon, 10 Mar 2025 16:27:55 +0800</pubDate>
@@ -492,7 +997,7 @@
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;方法区&lt;/strong&gt; ：JVM 运行时数据区域的一块逻辑区域，是各个线程共享的内存区域。以元空间的形式实现方法区&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;堆&lt;/strong&gt;：堆内存是 JVM 所有线程共享的部分，在虚拟机启动的时候就已经创建。所有的对象实例和数组都在堆上分配，这部分空间可通过 GC 进行回收。&lt;/li&gt;
-&lt;li&gt;**虚拟机栈：每个线程有一个私有的栈，随着线程的创建而创建。栈里面存着的是一种叫 “栈帧” 的东西，每个方法会创建一个栈帧，栈帧中存放了局部变量表（基本数据类型和对象引用）、操作数栈、方法出口等信息。栈的大小可以固定也可以动态扩展。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;虚拟机栈&lt;/strong&gt; ：每个线程有一个私有的栈，随着线程的创建而创建。栈里面存着的是一种叫 “栈帧” 的东西，每个方法会创建一个栈帧，栈帧中存放了局部变量表（基本数据类型和对象引用）、操作数栈、方法出口等信息。栈的大小可以固定也可以动态扩展。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;本地方法栈&lt;/strong&gt; ：与虚拟机栈类似，区别是虚拟机栈执行 Java 方法，本地方法栈执行 native 方法。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;程序计数器&lt;/strong&gt;：程序计数器可以看成是当前线程所执行的字节码的行号指示器。在任何一个确定的时刻，一个处理器（对于多内核来说是一个内核）都只会执行一条线程中的指令。因此，为了线程切换后能恢复到正确的执行位置，每条线程都需要一个独立的程序计数器&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;直接内存&lt;/strong&gt; ：直接内存并不是虚拟机运行时数据区的一部分，也不是 Java 虚拟机规范中定义的内存区域。&lt;/li&gt;
@@ -662,11 +1167,25 @@
 &lt;p&gt;栈由一个个栈帧组成，而每个栈帧中都对应一个被调用的方法。当线程执行一个方法时，会创建一个对应的栈帧，并将栈帧压入栈中。当方法执行完毕后，将栈帧从栈中移除。&lt;/p&gt;
 &lt;p&gt;栈帧的结构&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;局部变量表&lt;/strong&gt; ：主要存放了编译期可知的各种数据类型（boolean、byte、char、short、int、float、long、double）、对象引用（reference 类型，它不同于对象本身，可能是一个指向对象起始地址的引用指针，也可能是指向一个代表对象的句柄或其他与此对象相关的位置）。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;操作数栈&lt;/strong&gt; ：主要作为方法调用的中转站使用，用于存放方法执行过程中产生的中间计算结果。另外，计算过程中产生的临时变量也会放在操作数栈中。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;动态链接&lt;/strong&gt; ：主要服务一个方法需要调用其他方法的场景。Class 文件的常量池里保存有大量的符号引用比如方法引用的符号引用。当一个方法要调用其他方法，需要将常量池中指向方法的符号引用转化为其在内存地址中的直接引用。动态链接的作用就是为了将符号引用转换为调用方法的直接引用，这个过程也被称为 &lt;strong&gt;动态连接&lt;/strong&gt; 。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;方法返回地址&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;指向运行时常量池的引用&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;局部变量表&lt;/strong&gt; ：主要存放了编译期可知的各种数据类型（boolean、byte、char、short、int、float、long、double）、对象引用（reference 类型，它不同于对象本身，可能是一个指向对象起始地址的引用指针，也可能是指向一个代表对象的句柄或其他与此对象相关的位置）。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;对于非静态方法，即使是一个完全空的方法，局部变量表中也会有一个用于存储 this 引用的变量。this 引用指向当前实例对象，在方法调用时被隐式传入。&lt;/li&gt;
+&lt;li&gt;对于静态方法，由于不需要访问实例对象 this，因此在局部变量表中不会有任何变量&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;操作数栈&lt;/strong&gt; ：主要作为方法调用的中转站使用，用于存放方法执行过程中产生的中间计算结果。另外，计算过程中产生的临时变量也会放在操作数栈中。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;动态链接&lt;/strong&gt; ：主要服务一个方法需要调用其他方法的场景。Class 文件的常量池里保存有大量的符号引用比如方法引用的符号引用。当一个方法要调用其他方法，需要将常量池中指向方法的符号引用转化为其在内存地址中的直接引用。动态链接的作用就是为了将符号引用转换为调用方法的直接引用，这个过程也被称为 &lt;strong&gt;动态连接&lt;/strong&gt; 。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;方法返回地址&lt;/strong&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;指向运行时常量池的引用&lt;/strong&gt;&lt;/p&gt;
+&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F/stack-area.png&#34;
 	width=&#34;451&#34;
@@ -697,13 +1216,217 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;老年代&lt;/strong&gt; ：长生命周期对象经过多次垃圾回收后会被移到老年代，Major GC 在老年代进行，频率较低但耗时较长。&lt;/li&gt;
-&lt;li&gt;字符串常量池&lt;/li&gt;
-&lt;li&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;字符串常量池&lt;/strong&gt; ：为了提升性能和减少内存消耗针对字符串（String 类）专门开辟的一块区域，主要目的是为了避免字符串的重复创建。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;堆区分代的原因&lt;/p&gt;
+&lt;p&gt;主要原因是为了提高垃圾回收效率，依据对象的生命周期特点来进行优化。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;对象的生命周期特点&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;大多数对象存活时间短&lt;/strong&gt; ：大部分对象会很快变成垃圾，不再被使用，这些短生命周期的对象会分配在新生代。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;少部分对象存活时间长&lt;/strong&gt; ：一些长期存活的对象不会很快被回收，分配在新生代的对象经过多次垃圾回收仍存活的，将晋升到老年代。&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h2 id=&#34;堆区和栈区的区别&#34;&gt;堆区和栈区的区别
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;栈：主要用于存储局部变量和方法的调用信息（如返回地址、参数等）。在方法执行期间，局部变量（包括引用变量，但不包括它们引用的对象）被创建在栈上，并在方法结束时被销毁。&lt;/li&gt;
+&lt;li&gt;堆：用于存储对象实例和数组。每当使用 new 关键字创建对象时，JVM 都会在堆上为该对象分配内存空间。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2 id=&#34;方法区和元空间&#34;&gt;方法区和元空间
 &lt;/h2&gt;&lt;p&gt;方法区属于是 JVM 运行时数据区域的一块逻辑区域，是各个线程共享的内存区域。当虚拟机要使用一个类时，它需要读取并解析 Class 文件获取相关信息，再将信息存入到方法区。方法区会存储已被虚拟机加载的 &lt;strong&gt;类信息、字段信息、方法信息、常量、静态变量、即时编译器编译后的代码缓存等数据&lt;/strong&gt;。&lt;/p&gt;
 &lt;p&gt;JDK 7 及之前，HotSpot 使用 &lt;strong&gt;永久代&lt;/strong&gt; 实现方法区，主要存储类信息、静态变量等。&lt;/p&gt;
 &lt;p&gt;JDK 8 之后，永久代被移除，改为使用元空间，元空间使用本地内存来提高性能和避免 OOM 错误。元空间可以动态调整大小，而永久代大小是固定的。&lt;/p&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;为什么移除永久代引入元空间&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;整个永久代有一个 JVM 本身设置的固定大小上限，无法进行调整（也就是受到 JVM 内存的限制），而元空间使用的是本地内存，受本机可用内存的限制，虽然元空间仍旧可能溢出，但是比原来出现的几率会更小。&lt;/li&gt;
+&lt;li&gt;元空间里面存放的是类的元数据，这样加载多少类的元数据就不由 &lt;code&gt;MaxPermSize&lt;/code&gt; 控制了, 而由系统的实际可用空间来控制，这样能加载的类就更多了&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h3 id=&#34;运行时常量池&#34;&gt;运行时常量池
+&lt;/h3&gt;&lt;p&gt;在每个类或接口的 &lt;code&gt;Class&lt;/code&gt; 文件中存储编译时生成的常量信息，并在类加载时进入 JVM 方法区。常量池主要 &lt;strong&gt;用于减少重复对象的创建，节省内存并提高效率&lt;/strong&gt;&lt;/p&gt;
+&lt;h2 id=&#34;对象创建的过程&#34;&gt;对象创建的过程
+&lt;/h2&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F/1713516384566-e820b967-73ce-49a4-a6e6-36af9a38ebc4.webp&#34;
+	width=&#34;1080&#34;
+	height=&#34;215&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;对象创建过程&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;502&#34;
+		data-flex-basis=&#34;1205px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;类加载检查&#34;&gt;类加载检查
+&lt;/h3&gt;&lt;p&gt;虚拟机遇到一条 new 指令时，首先将去检查这个指令的参数是否能在 &lt;strong&gt;常量池&lt;/strong&gt; 中定位到一个类的 &lt;strong&gt;符号引用&lt;/strong&gt; ，并且检查这个符号引用代表的类是否已被 &lt;strong&gt;加载过、解析和初始化&lt;/strong&gt; 过。如果没有，那必须先执行相应的 &lt;strong&gt;类加载过程&lt;/strong&gt; 。&lt;/p&gt;
+&lt;h3 id=&#34;分配内存&#34;&gt;分配内存
+&lt;/h3&gt;&lt;p&gt;在类加载检查通过后，接下来虚拟机将为新生对象分配内存。对象所需的 &lt;strong&gt;内存大小&lt;/strong&gt; 在 &lt;strong&gt;类加载&lt;/strong&gt; 完成后便可确定，为对象分配空间的任务等同于把一块确定大小的内存从 Java 堆中划分出来。&lt;/p&gt;
+&lt;p&gt;内存分配有以下两种方式&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;指针碰撞&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;适用场合：堆内存规整（即没有内存碎片）的情况下。&lt;/li&gt;
+&lt;li&gt;原理：用过的内存全部整合到一边，没有用过的内存放在另一边，中间有一个分界指针，只需要向着没用过的内存方向将该指针移动对象内存大小位置即可。&lt;/li&gt;
+&lt;li&gt;使用该分配方式的 GC 收集器：Serial, ParNew&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;空闲列表&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;适用场合：堆内存不规整的情况下。&lt;/li&gt;
+&lt;li&gt;原理：虚拟机会维护一个列表，该列表中会记录哪些内存块是可用的，在分配的时候，找一块儿足够大的内存块儿来划分给对象实例，最后更新列表记录。&lt;/li&gt;
+&lt;li&gt;使用该分配方式的 GC 收集器：CMS&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;初始化零值&#34;&gt;初始化零值
+&lt;/h3&gt;&lt;p&gt;内存分配完成后，虚拟机需要将分配到的内存空间都初始化为零值（不包括对象头），保证了对象的实例字段在 Java 代码中可以不赋初始值就直接使用，程序能访问到这些字段的数据类型所对应的零值。&lt;/p&gt;
+&lt;h3 id=&#34;设置对象头&#34;&gt;设置对象头
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;虚拟机要对对象进行必要的设置&lt;/strong&gt;，例如这个对象是哪个类的实例、如何才能找到类的元数据信息、对象的哈希码、对象的 GC 分代年龄等信息。  &lt;strong&gt;这些信息存放在对象头中。&lt;/strong&gt;&lt;/p&gt;
+&lt;h3 id=&#34;执行init方法&#34;&gt;执行init方法
+&lt;/h3&gt;&lt;p&gt;JVM 会执行构造方法 &lt;code&gt;&amp;lt;init&amp;gt;&lt;/code&gt; 完成赋值操作&lt;/p&gt;
+&lt;h2 id=&#34;对象的内存结构&#34;&gt;对象的内存结构
+&lt;/h2&gt;&lt;p&gt;对象在内存中的布局可以分为 3 块区域：&lt;strong&gt;对象头（Header）&lt;/strong&gt; 、&lt;strong&gt;实例数据（Instance Data）&lt;/strong&gt; 和 &lt;strong&gt;对齐填充（Padding）&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;对象头&#34;&gt;对象头
+&lt;/h3&gt;&lt;p&gt;对象头是对象存储在内存中的元信息和运行时数据。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Mark Word&lt;/strong&gt; ：用于存储运行时数据，例如对象的哈希码（HashCode）、GC 标记信息、锁状态标志等。它是一个多功能字段，会根据对象的状态动态变化。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;类型指针（Class Pointer）&lt;/strong&gt; ：指向对象对应的类的元数据，用于确定该对象的类型。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;数组长度（只有数组才有）&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;实例数据&#34;&gt;&lt;strong&gt;实例数据&lt;/strong&gt;
+&lt;/h3&gt;&lt;p&gt;存储对象的实际数据，即类的字段（包括从父类继承的字段）。&lt;/p&gt;
+&lt;h3 id=&#34;对齐填充&#34;&gt;&lt;strong&gt;对齐填充&lt;/strong&gt;
+&lt;/h3&gt;&lt;p&gt;为了满足内存对齐要求（一般是 8 字节对齐），JVM 可能会在对象末尾添加填充字节。例如，一个对象大小为 12 字节，JVM 会增加 4 字节填充，使其达到 16 字节对齐。&lt;/p&gt;
+&lt;h2 id=&#34;对象的访问定位&#34;&gt;对象的访问定位
+&lt;/h2&gt;&lt;p&gt;虚拟机访问对象的主要方式有以下方式&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;使用句柄&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;直接指针&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;句柄访问&#34;&gt;句柄访问
+&lt;/h3&gt;&lt;p&gt;Java 堆中将会划分出一块内存来作为句柄池，reference 中存储的就是对象的句柄地址，而句柄中包含了对象实例数据与对象类型数据各自的具体地址信息。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F/access-location-of-object-handle.png&#34;
+	width=&#34;761&#34;
+	height=&#34;491&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;对象的访问定位-使用句柄&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;154&#34;
+		data-flex-basis=&#34;371px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;直接指针&#34;&gt;直接指针
+&lt;/h3&gt;&lt;p&gt;在直接指针访问中，引用直接存储对象的内存地址；对象的实例数据和类型信息都存储在堆中固定的内存区域。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F/access-location-of-object-handle-direct-pointer.png&#34;
+	width=&#34;761&#34;
+	height=&#34;491&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;对象的访问定位-直接指针&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;154&#34;
+		data-flex-basis=&#34;371px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;句柄访问和直接指针访问的对比&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;使用句柄来访问的最大好处是引用中存储的是稳定的句柄地址，在对象被移动时只会改变句柄中的实例数据指针，而引用本身不需要修改。&lt;/li&gt;
+&lt;li&gt;使用直接指针访问方式最大的好处就是速度快，它节省了一次指针定位的时间开销。&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h2 id=&#34;对象的引用类型&#34;&gt;对象的引用类型
+&lt;/h2&gt;&lt;p&gt;对象的引用类型有以下四种&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;强引用&lt;/li&gt;
+&lt;li&gt;软引用&lt;/li&gt;
+&lt;li&gt;弱引用&lt;/li&gt;
+&lt;li&gt;虚引用&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;强引用&#34;&gt;强引用
+&lt;/h3&gt;&lt;p&gt;强引用是 Java 中最常见的引用类型。使用 new 关键字赋值的引用就是强引用，只要强引用关联着对象，垃圾收集器就不会回收这部分对象，即使内存不足。&lt;/p&gt;
+&lt;h3 id=&#34;软引用&#34;&gt;软引用
+&lt;/h3&gt;&lt;p&gt;软引用指的是那些有用但是不是必须要的对象。当系统内存不足时，垃圾回收器会回收软引用指向的对象，避免内存溢出。在内存充足时，这些对象不会被回收。软引用通常用于实现缓存机制，允许程序在不影响性能的情况下利用多余内存。&lt;/p&gt;
+&lt;h3 id=&#34;弱引用&#34;&gt;弱引用
+&lt;/h3&gt;&lt;p&gt;弱引用是比软引用更弱的一种引用类型。只要垃圾回收器发现只有弱引用指向某个对象，该对象会立即被回收，无论系统内存是否充足。弱引用常用于防止内存泄漏，&lt;/p&gt;
+&lt;p&gt;典型应用是 &lt;strong&gt;&lt;code&gt;WeakHashMap&lt;/code&gt;&lt;/strong&gt; ，其中键是弱引用，当键不再被其他强引用持有时，键值对会被自动移除。它的优势在于避免对象长时间占用内存，适合短命对象或者临时缓存数据&lt;/p&gt;
+&lt;h3 id=&#34;虚引用&#34;&gt;虚引用
+&lt;/h3&gt;&lt;p&gt;虚引用主要用来跟踪对象被垃圾回收的过程。虚引用对对象的生存时间没有任何影响。如果一个对象仅有虚引用，那么它与没有引用一样，随时会被垃圾回收。&lt;/p&gt;
+&lt;h2 id=&#34;内存泄漏和内存溢出&#34;&gt;内存泄漏和内存溢出
+&lt;/h2&gt;&lt;h3 id=&#34;内存泄漏&#34;&gt;内存泄漏
+&lt;/h3&gt;&lt;p&gt;内存泄漏是指程序在运行过程中不再使用的对象仍然被引用，而无法被垃圾收集器回收，从而导致可用内存逐渐减少。虽然垃圾回收机制会自动回收不再使用的对象，但如果有对象仍被不再使用的引用持有，垃圾收集器无法回收这些内存，最终可能导致程序的内存使用不断增加。&lt;/p&gt;
+&lt;p&gt;主要原因：通常是因为长期存活的对象持有短期存活对象的引用，又没有及时释放，从而导致短期存活对象无法被回收而导致的。&lt;/p&gt;
+&lt;h4 id=&#34;内存泄漏的原因&#34;&gt;内存泄漏的原因
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;静态集合&lt;/strong&gt;：使用静态数据结构（如&lt;code&gt;HashMap&lt;/code&gt;或&lt;code&gt;ArrayList&lt;/code&gt;）存储对象，且未清理。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;事件监听&lt;/strong&gt;：未取消对事件源的监听，导致对象持续被引用。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;线程&lt;/strong&gt;：未停止的线程可能持有对象引用，无法被回收。（ThreadLocal）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;ThreadLocal 的内存泄漏问题&lt;/p&gt;
+&lt;p&gt;每个线程维护一个名为 &lt;code&gt;ThreadLocalMap&lt;/code&gt; 的 map。 当使用 &lt;code&gt;ThreadLocal&lt;/code&gt; 存储值时，实际上是将值存储在当前线程的 &lt;code&gt;ThreadLocalMap&lt;/code&gt; 中，其中 &lt;code&gt;ThreadLocal&lt;/code&gt; 实例本身作为 key，而要存储的值作为 value。&lt;/p&gt;
+&lt;p&gt;key和value具有不同的引用级别&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;key 是弱引用&lt;/strong&gt;：&lt;code&gt;ThreadLocalMap&lt;/code&gt; 中的 key 是 &lt;code&gt;ThreadLocal&lt;/code&gt; 的弱引用 (&lt;code&gt;WeakReference&amp;lt;ThreadLocal&amp;lt;?&amp;gt;&amp;gt;&lt;/code&gt;)。 这意味着，如果 &lt;code&gt;ThreadLocal&lt;/code&gt; 实例不再被任何强引用指向，垃圾回收器会在下次 GC 时回收该实例，导致 &lt;code&gt;ThreadLocalMap&lt;/code&gt; 中对应的 key 变为 &lt;code&gt;null&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;value 是强引用&lt;/strong&gt;：&lt;code&gt;ThreadLocalMap&lt;/code&gt; 中的 value 是强引用。 即使 key 被回收（变为 &lt;code&gt;null&lt;/code&gt;），value 仍然存在于 &lt;code&gt;ThreadLocalMap&lt;/code&gt; 中，被强引用，不会被回收。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;当 &lt;code&gt;ThreadLocal&lt;/code&gt; 实例失去强引用后，其对应的 value 仍然存在于 &lt;code&gt;ThreadLocalMap&lt;/code&gt; 中，因为 &lt;code&gt;Entry&lt;/code&gt; 对象强引用了它。如果线程持续存活（例如线程池中的线程），&lt;code&gt;ThreadLocalMap&lt;/code&gt; 也会一直存在，导致 key 为 &lt;code&gt;null&lt;/code&gt; 的 entry 无法被垃圾回收，造成内存泄漏。&lt;/p&gt;
+&lt;h3 id=&#34;内存溢出&#34;&gt;内存溢出
+&lt;/h3&gt;&lt;p&gt;内存溢出是指当程序请求分配内存时，由于没有足够的内存空间，从而抛出 OutOfMemoryError。&lt;/p&gt;
+&lt;h4 id=&#34;内存溢出的常见情况&#34;&gt;内存溢出的常见情况
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;堆内存溢出&lt;/strong&gt;：原因是代码中可能存在大对象分配，或者发生了内存泄露，导致在多次GC之后，还是无法找到一块足够大的内存容纳当前对象。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;检查对象创建逻辑，确保及时释放无用对象，或增大堆内存大小（&lt;code&gt;-Xmx&lt;/code&gt; 参数）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;栈溢出&lt;/strong&gt;：如果我们写一段程序不断的进行递归调用，而且没有退出条件，就会导致不断地进行压栈。类似这种情况，JVM 实际会抛出 StackOverFlowError；当然，如果 JVM 试图去扩展栈空间的的时候失败，则会抛出 OutOfMemoryError。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;元空间溢出&lt;/strong&gt;：系统会抛出Java.lang.OutOfMemoryError: Metaspace。出现这个异常的问题的原因是系统的代码非常多或引用的第三方包非常多或者通过动态代码生成类加载等方法，导致元空间的内存占用很大。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;增加元空间大小（&lt;code&gt;-XX:MaxMetaspaceSize&lt;/code&gt;）；优化代码以减少类加载和反射的频率。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
 </description>
         </item>
         

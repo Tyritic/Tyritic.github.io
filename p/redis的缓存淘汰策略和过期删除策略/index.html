@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="zh-cn" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="过期删除策略 Redis 数据过期主要有两种删除策略，分别为 定期删除、惰性删除 两种：\n定期删除：Redis 每隔一定时间（默认是 100 毫秒）会随机检查一定数量的键，如果发现过期键，则将其删除。这种方式能够在后台持续清理过期数据，防止内存膨胀。 惰性删除：在每次访问键时，Redis 检查该键是否已过期，如果已过期，则将其删除。这种策略保证了在使用过程中只删除不再需要的数据，但在不访问过期键时不会立即清除。 Key过期的判定 每当对一个 key 设置了过期时间时，Redis 会把该 key 带上过期时间存储到一个 过期字典 中，也就是说「过期字典」保存了数据库中所有 key 的过期时间。\n">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="Redis的缓存淘汰策略和过期删除策略">
 <title>Redis的缓存淘汰策略和过期删除策略</title>
 
 <link rel='canonical' href='https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5%E5%92%8C%E8%BF%87%E6%9C%9F%E5%88%A0%E9%99%A4%E7%AD%96%E7%95%A5/'>
 
 <link rel="stylesheet" href="/scss/style.min.00fdb13873a10c0d571b0a082e72c57836d458957efcda9eaef694985da2c45f.css"><meta property='og:title' content="Redis的缓存淘汰策略和过期删除策略">
-<meta property='og:description' content="过期删除策略 Redis 数据过期主要有两种删除策略，分别为 定期删除、惰性删除 两种：\n定期删除：Redis 每隔一定时间（默认是 100 毫秒）会随机检查一定数量的键，如果发现过期键，则将其删除。这种方式能够在后台持续清理过期数据，防止内存膨胀。 惰性删除：在每次访问键时，Redis 检查该键是否已过期，如果已过期，则将其删除。这种策略保证了在使用过程中只删除不再需要的数据，但在不访问过期键时不会立即清除。 Key过期的判定 每当对一个 key 设置了过期时间时，Redis 会把该 key 带上过期时间存储到一个 过期字典 中，也就是说「过期字典」保存了数据库中所有 key 的过期时间。\n">
+<meta property='og:description' content="Redis的缓存淘汰策略和过期删除策略">
 <meta property='og:url' content='https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5%E5%92%8C%E8%BF%87%E6%9C%9F%E5%88%A0%E9%99%A4%E7%AD%96%E7%95%A5/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='' /><meta property='article:published_time' content='2025-03-01T17:51:38&#43;08:00'/><meta property='article:modified_time' content='2025-03-11T03:24:15&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='数据库' /><meta property='article:published_time' content='2025-03-01T17:51:38&#43;08:00'/><meta property='article:modified_time' content='2025-03-12T13:46:04&#43;00:00'/>
 <meta name="twitter:title" content="Redis的缓存淘汰策略和过期删除策略">
-<meta name="twitter:description" content="过期删除策略 Redis 数据过期主要有两种删除策略，分别为 定期删除、惰性删除 两种：\n定期删除：Redis 每隔一定时间（默认是 100 毫秒）会随机检查一定数量的键，如果发现过期键，则将其删除。这种方式能够在后台持续清理过期数据，防止内存膨胀。 惰性删除：在每次访问键时，Redis 检查该键是否已过期，如果已过期，则将其删除。这种策略保证了在使用过程中只删除不再需要的数据，但在不访问过期键时不会立即清除。 Key过期的判定 每当对一个 key 设置了过期时间时，Redis 会把该 key 带上过期时间存储到一个 过期字典 中，也就是说「过期字典」保存了数据库中所有 key 的过期时间。\n">
+<meta name="twitter:description" content="Redis的缓存淘汰策略和过期删除策略">
     <link rel="shortcut icon" href="/favicon.ico" />
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -313,6 +313,10 @@
     
     <header class="article-category">
         
+            <a href="/categories/redis/" style="background-color: #2a9d8f; color: #fff;">
+                Redis
+            </a>
+        
     </header>
     
 
@@ -321,6 +325,10 @@
             <a href="/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5%E5%92%8C%E8%BF%87%E6%9C%9F%E5%88%A0%E9%99%A4%E7%AD%96%E7%95%A5/">Redis的缓存淘汰策略和过期删除策略</a>
         </h2>
     
+        
+        <h3 class="article-subtitle">
+            Redis的缓存淘汰策略和过期删除策略
+        </h3>
         
     </div>
 
@@ -452,6 +460,8 @@
     
     <section class="article-tags">
         
+            <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a>
+        
     </section>
 
 
@@ -465,7 +475,7 @@
 
 
         <span>
-            最后更新于 2025-03-11 03:24 UTC
+            最后更新于 2025-03-12 13:46 UTC
         </span>
     </section></footer>
 
@@ -500,6 +510,80 @@
     
 
     
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Redis的缓存设计</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/redis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96%E7%AD%96%E7%95%A5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Redis的持久化策略</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/redis%E7%9A%84java%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E4%B8%8Espringboot%E7%9A%84%E9%9B%86%E6%88%90/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Redis的Java客户端和与SpringBoot的集成</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Redis的读写效率</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/redis%E5%9F%BA%E7%A1%80/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Redis基础</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
 
      
     
