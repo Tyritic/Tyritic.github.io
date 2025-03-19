@@ -7,6 +7,333 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh-cn</language>
         <copyright>Tyritic</copyright><atom:link href="https://Tyritic.github.io/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>操作系统的IO模型</title>
+        <link>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/</link>
+        <pubDate>Sun, 16 Mar 2025 14:47:26 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/</guid>
+        <description>&lt;h2 id=&#34;常见的io模型&#34;&gt;常见的IO模型
+&lt;/h2&gt;&lt;h3 id=&#34;同步io型&#34;&gt;同步IO型
+&lt;/h3&gt;&lt;h4 id=&#34;阻塞型io模型&#34;&gt;阻塞型IO模型
+&lt;/h4&gt;&lt;p&gt;应用程序发起I/O操作后会被阻塞，直到操作完成才返回结果。期间调用方会被挂起，不能继续执行其他任务，直到请求的操作完成&lt;/p&gt;
+&lt;p&gt;此时 阻塞等待的是 &lt;strong&gt;内核数据准备好&lt;/strong&gt; 和 &lt;strong&gt;数据从内核态拷贝到用户态&lt;/strong&gt; 这两个过程。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/os-f06db5ff-661c-4ddf-9115-4ed9c9a21d01.png&#34;
+	width=&#34;816&#34;
+	height=&#34;485&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;阻塞I/O&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;168&#34;
+		data-flex-basis=&#34;403px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4 id=&#34;非阻塞型io模型&#34;&gt;非阻塞型IO模型
+&lt;/h4&gt;&lt;p&gt;I/O操作不会阻塞进程，在非阻塞操作中，调用方在发出请求后立即返回，即使操作未完成，调用方可以继续执行其他任务。若数据未准备好，操作会返回一个状态而不是阻塞。此时应⽤程序不断轮询内核，直到数据准备好。&lt;/p&gt;
+&lt;p&gt;但是 &lt;strong&gt;从内核拷贝到用户空间这一步，用户线程还是会被阻塞的&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/os-771e014e-7ed9-4101-8bb5-4413b8069fd6.png&#34;
+	width=&#34;813&#34;
+	height=&#34;676&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;非阻塞I/O&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;120&#34;
+		data-flex-basis=&#34;288px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4 id=&#34;io复用模型&#34;&gt;IO复用模型
+&lt;/h4&gt;&lt;p&gt;使用&lt;code&gt;select&lt;/code&gt;、&lt;code&gt;poll&lt;/code&gt;、&lt;code&gt;epoll&lt;/code&gt;等系统调用，允许程序同时等待多个I/O操作，当其中任意一个就绪时进行处理。当其中任何一个I/O操作准备就绪时，应用程序会被通知。通常使用select线程 ，我们可以往 select 线程注册需要被监听的连接，由 select 线程来监控它所管理的连接是否有数据已就绪，如果有则可以通知别的线程来 read 读取数据。&lt;/p&gt;
+&lt;p&gt;但是 &lt;strong&gt;从内核拷贝到用户空间这一步，用户线程还是会被阻塞的&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/os-86e54fa3-ad36-43c7-9d2d-5a68139c310f.png&#34;
+	width=&#34;843&#34;
+	height=&#34;667&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;基于非阻塞的I/O多路复用&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;126&#34;
+		data-flex-basis=&#34;303px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;异步io型&#34;&gt;异步IO型
+&lt;/h3&gt;&lt;p&gt;应用程序发起I/O操作后可以立即做其他事情，当I/O操作完成时，应用程序会得到通知。异步I/O模型由操作系统内核完成I/O操作，应用程序只需等待通知即可。&lt;/p&gt;
+&lt;p&gt;异步 I/O 是 &lt;strong&gt;内核数据准备好&lt;/strong&gt; 和 &lt;strong&gt;数据从内核态拷贝到用户态&lt;/strong&gt; 这两个过程都不⽤等待。&lt;/p&gt;
+&lt;p&gt;与多路复用模型的区别就是让内核直接把数据拷贝到用户空间之后再告知用户线程&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/os-869021ed-5e4e-4490-9174-7291d8ddf55c.png&#34;
+	width=&#34;781&#34;
+	height=&#34;614&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;异步/IO&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;127&#34;
+		data-flex-basis=&#34;305px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;同步和异步的区别&#34;&gt;同步和异步的区别
+&lt;/h3&gt;&lt;p&gt;同步和异步（Asynchronous） 是两种不同的任务执行方式，主要区别在于任务的执行是否需要等待其他任务完成&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;同步&lt;/strong&gt; ：在同步操作中，任务需要等待前一个任务完成后才能继续。调用者发起请求后，会被阻塞，直到任务完成并返回结果。调用者必须等待结果才能进行后续操作。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;异步&lt;/strong&gt; ：在异步操作中，任务在发出请求后可以立即继续执行，不需要等待请求的完成。请求的结果会通过回调机制在任务完成后通知调用者。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;零拷贝技术&#34;&gt;零拷贝技术
+&lt;/h2&gt;&lt;h3 id=&#34;解放cpu的技术-dma技术&#34;&gt;解放CPU的技术-DMA技术
+&lt;/h3&gt;&lt;p&gt;传统的IO流程&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;用户进程调用 read 方法，向操作系统发出 I/O 请求，请求读取数据到自己的内存缓冲区中，进程进入阻塞状态&lt;/li&gt;
+&lt;li&gt;CPU 发出对应的指令给磁盘控制器，然后返回&lt;/li&gt;
+&lt;li&gt;磁盘控制器收到指令后，于是就开始准备数据，会把数据放入到磁盘控制器的内部缓冲区中，然后产生一个 &lt;strong&gt;中断&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;CPU 收到中断信号后，停下手头的工作，接着把磁盘控制器的缓冲区的数据一次一个字节地读进自己的寄存器，然后再把寄存器里的数据写入到内存，而在数据传输的期间 CPU 是无法执行其他任务的。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;![传统IO中断](I_O 中断.png)&lt;/p&gt;
+&lt;p&gt;整个数据的传输过程，都要需要 CPU 亲自参与搬运数据的过程，而且这个过程，CPU 是不能做其他事情的。&lt;/p&gt;
+&lt;p&gt;DMA（直接内存访问技术）：&lt;strong&gt;在进行 I/O 设备和内存的数据传输的时候，数据搬运的工作全部交给 DMA 控制器，而 CPU 不再参与任何与数据搬运相关的事情，这样 CPU 就可以去处理别的事务&lt;/strong&gt; 。&lt;/p&gt;
+&lt;p&gt;DMA的工作流程&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;用户进程调用 read 方法，向操作系统发出 I/O 请求，请求读取数据到自己的内存缓冲区中，进程进入阻塞状态&lt;/li&gt;
+&lt;li&gt;CPU收到请求后，进一步将 I/O 请求发送 DMA，然后让 CPU 执行其他任务&lt;/li&gt;
+&lt;li&gt;DMA 进一步将 I/O 请求发送给磁盘；&lt;/li&gt;
+&lt;li&gt;磁盘收到 DMA 的 I/O 请求，把数据从磁盘读取到磁盘控制器的缓冲区中&lt;/li&gt;
+&lt;li&gt;DMA 收到磁盘的信号，将磁盘控制器缓冲区中的数据拷贝到内核缓冲区中，此时不占用 CPU，CPU 可以执行其他任务&lt;/li&gt;
+&lt;li&gt;当 DMA 读取了足够多的数据，就会发送中断信号给 CPU；&lt;/li&gt;
+&lt;li&gt;CPU 收到 DMA 的信号，知道数据已经准备好，于是将数据从内核拷贝到用户空间，系统调用返回&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;![DMA过程](DRM I_O 过程.png)&lt;/p&gt;
+&lt;p&gt;CPU 不再参与将数据从 &lt;strong&gt;磁盘控制器缓冲区搬运到内核空间&lt;/strong&gt; 的工作，这部分工作全程由 DMA 完成。&lt;/p&gt;
+&lt;h3 id=&#34;传统文件传输技术&#34;&gt;传统文件传输技术
+&lt;/h3&gt;&lt;p&gt;传统 I/O 的工作方式是，数据读取和写入是从用户空间到内核空间来回复制，而内核空间的数据是通过操作系统层面的 I/O 接口从磁盘读取或写入&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/%E4%BC%A0%E7%BB%9F%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93.png&#34;
+	width=&#34;1100&#34;
+	height=&#34;678&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;传统文件传输&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;162&#34;
+		data-flex-basis=&#34;389px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;期间共 &lt;strong&gt;发生了 4 次用户态与内核态的上下文切换&lt;/strong&gt; ，因为发生了两次系统调用，一次是 &lt;code&gt;read()&lt;/code&gt; ，一次是 &lt;code&gt;write()&lt;/code&gt;，每次系统调用都得先从用户态切换到内核态，等内核完成任务后，再从内核态切换回用户态。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;第一次上下文切换：把磁盘上的数据拷贝到操作系统内核的缓冲区里，这个拷贝的过程是通过 DMA 搬运的。&lt;/li&gt;
+&lt;li&gt;第二次上下文切换：把内核缓冲区的数据拷贝到用户的缓冲区里，于是我们应用程序就可以使用这部分数据了，这个拷贝到过程是由 CPU 完成的。&lt;/li&gt;
+&lt;li&gt;第三次拷贝：把刚才拷贝到用户的缓冲区里的数据，再拷贝到内核的 socket 的缓冲区里，这个过程依然还是由 CPU 搬运的。&lt;/li&gt;
+&lt;li&gt;第四次拷贝：把内核的 socket 缓冲区里的数据，拷贝到网卡的缓冲区里，这个过程又是由 DMA 搬运的。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;零拷贝技术-1&#34;&gt;零拷贝技术
+&lt;/h3&gt;&lt;h4 id=&#34;mmap--write&#34;&gt;mmap + write
+&lt;/h4&gt;&lt;p&gt;&lt;code&gt;mmap()&lt;/code&gt; 系统调用函数会直接把内核缓冲区里的数据「&lt;strong&gt;映射&lt;/strong&gt;」到用户空间，这样，操作系统内核与用户空间就不需要再进行任何的数据拷贝操作。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;应用进程调用了 &lt;code&gt;mmap()&lt;/code&gt; 后，DMA 会把磁盘的数据拷贝到内核的缓冲区里。接着，应用进程跟操作系统内核共享这个缓冲区；&lt;/li&gt;
+&lt;li&gt;应用进程再调用 &lt;code&gt;write()&lt;/code&gt;，操作系统直接将内核缓冲区的数据拷贝到 socket 缓冲区中，这一切都发生在内核态，由 CPU 来搬运数据；&lt;/li&gt;
+&lt;li&gt;最后，把内核的 socket 缓冲区里的数据，拷贝到网卡的缓冲区里，这个过程是由 DMA 搬运的。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;sendfile&#34;&gt;sendfile
+&lt;/h4&gt;&lt;p&gt;&lt;code&gt;sendfile()&lt;/code&gt; 可以替代前面的 &lt;code&gt;read()&lt;/code&gt; 和 &lt;code&gt;write()&lt;/code&gt; 这两个系统调用，这样就可以减少一次系统调用，也就减少了 2 次上下文切换的开销。&lt;/p&gt;
+&lt;p&gt;这个系统调用可以直接把内核缓冲区里的数据拷贝到 socket 缓冲区里，不再拷贝到用户态&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/senfile-3%E6%AC%A1%E6%8B%B7%E8%B4%9D.png&#34;
+	width=&#34;1100&#34;
+	height=&#34;686&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;sendfile&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;160&#34;
+		data-flex-basis=&#34;384px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;对于支持网卡支持 SG-DMA 技术的情况下， &lt;code&gt;sendfile()&lt;/code&gt; 系统调用的过程得到优化，具体过程如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;通过 DMA 将磁盘上的数据拷贝到内核缓冲区里；&lt;/li&gt;
+&lt;li&gt;缓冲区描述符和数据长度传到 socket 缓冲区，这样网卡的 SG-DMA 控制器就可以直接将内核缓存中的数据拷贝到网卡的缓冲区里，此过程不需要将数据从操作系统内核缓冲区拷贝到 socket 缓冲区中，这样就减少了一次数据拷贝；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/senfile-%E9%9B%B6%E6%8B%B7%E8%B4%9D.png&#34;
+	width=&#34;1160&#34;
+	height=&#34;686&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;SG-DMA&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;169&#34;
+		data-flex-basis=&#34;405px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h2 id=&#34;网络模型&#34;&gt;网络模型
+&lt;/h2&gt;&lt;h3 id=&#34;基本的socket模型&#34;&gt;基本的Socket模型
+&lt;/h3&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/tcp_socket.png&#34;
+	width=&#34;407&#34;
+	height=&#34;722&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;socket模型&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;56&#34;
+		data-flex-basis=&#34;135px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4 id=&#34;服务端&#34;&gt;服务端
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;服务端首先调用 &lt;code&gt;socket()&lt;/code&gt; 函数，创建网络协议为 IPv4，以及传输协议为 TCP 的 Socket&lt;/li&gt;
+&lt;li&gt;接着调用 &lt;code&gt;bind()&lt;/code&gt; 函数，给这个 Socket 绑定一个 &lt;strong&gt;IP 地址&lt;/strong&gt; 和 &lt;strong&gt;端口&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;绑定端口的目的：当内核收到 TCP 报文，通过 TCP 头里面的端口号，来找到应用程序，然后把数据传递给我们。&lt;/li&gt;
+&lt;li&gt;绑定 IP 地址的目的：一台机器是可以有多个网卡的，每个网卡都有对应的 IP 地址，当绑定一个网卡时，内核在收到该网卡上的包，才会发给我们&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;调用 &lt;code&gt;listen()&lt;/code&gt; 函数进行监听&lt;/li&gt;
+&lt;li&gt;服务端进入了监听状态后，通过调用 &lt;code&gt;accept()&lt;/code&gt; 函数，来从内核获取客户端的连接，如果没有客户端连接，则会阻塞等待客户端连接的到来。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在 TCP 连接的过程中，服务器的内核实际上为每个 Socket 维护了两个队列：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;一个是「还没完全建立」连接的队列，称为 &lt;strong&gt;TCP 半连接队列&lt;/strong&gt; ，这个队列都是没有完成三次握手的连接，此时服务端处于 &lt;code&gt;syn_rcvd&lt;/code&gt; 的状态；&lt;/li&gt;
+&lt;li&gt;一个是「已经建立」连接的队列，称为 &lt;strong&gt;TCP 全连接队列&lt;/strong&gt; ，这个队列都是完成了三次握手的连接，此时服务端处于 &lt;code&gt;established&lt;/code&gt; 状态；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;当 TCP 全连接队列不为空后，服务端的 &lt;code&gt;accept()&lt;/code&gt; 函数，就会从内核中的 TCP 全连接队列里拿出一个已经完成连接的 Socket 返回应用程序，后续数据传输都用这个 Socket。&lt;/p&gt;
+&lt;h4 id=&#34;客户端&#34;&gt;客户端
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;客户端创建好 Socket 后&lt;/li&gt;
+&lt;li&gt;调用 &lt;code&gt;connect()&lt;/code&gt; 函数发起连接，指明服务端的 IP 地址和端口号&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;连接建立后，客户端和服务端就开始相互传输数据了，双方都可以通过 &lt;code&gt;read()&lt;/code&gt; 和 &lt;code&gt;write()&lt;/code&gt; 函数来读写数据。&lt;/p&gt;
+&lt;h4 id=&#34;模型的限制&#34;&gt;模型的限制
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;文件描述符&lt;/strong&gt; ：Socket 实际上是一个文件，也就会对应一个文件描述符。在 Linux 下，单个进程打开的文件描述符数是有限制的&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;系统内存&lt;/strong&gt; ：每个 TCP 连接在内核中都有对应的数据结构，意味着每个连接都是会占用一定内存的；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;多进程模型&#34;&gt;多进程模型
+&lt;/h3&gt;&lt;p&gt;服务器的主进程负责监听客户的连接，一旦与客户端连接完成，accept() 函数就会返回一个「已连接 Socket」，这时就通过 &lt;code&gt;fork()&lt;/code&gt; 函数创建一个子进程。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;子进程会 &lt;strong&gt;复制父进程的文件描述符&lt;/strong&gt; ，于是就可以直接使用已连接 Socket 和客户端通信了&lt;/li&gt;
+&lt;li&gt;父进程将客户端服务交给子进程来处理，因此父进程不需要关心已连接 Socket，只需要关心监听 Socket&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/%E5%A4%9A%E8%BF%9B%E7%A8%8B.png&#34;
+	width=&#34;977&#34;
+	height=&#34;407&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;多进程模型&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;240&#34;
+		data-flex-basis=&#34;576px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;多线程模型&#34;&gt;多线程模型
+&lt;/h3&gt;&lt;p&gt;当服务器与客户端 TCP 完成连接后，通过 &lt;code&gt;pthread_create()&lt;/code&gt; 函数创建线程，然后将已连接 Socket的文件描述符传递给线程函数，接着在线程里和客户端进行通信，从而达到并发处理的目的。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/%E7%BA%BF%E7%A8%8B%E6%B1%A0.png&#34;
+	width=&#34;1382&#34;
+	height=&#34;452&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;线程池&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;305&#34;
+		data-flex-basis=&#34;733px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;线程池&lt;/strong&gt; 可以避免线程的频繁创建和销毁，所谓的线程池，就是提前创建若干个线程，这样当由新连接建立时，将这个已连接的 Socket 放入到一个队列里，然后线程池里的线程负责从队列中取出「已连接 Socket 」进行处理。&lt;/p&gt;
+&lt;h3 id=&#34;io多路复用模型&#34;&gt;IO多路复用模型
+&lt;/h3&gt;&lt;h4 id=&#34;selectpoll模型&#34;&gt;select/poll模型
+&lt;/h4&gt;&lt;p&gt;将已连接的 Socket 都放到一个 文件描述符集合 ，然后调用函数将文件描述符集合拷贝到内核里，让内核来检查是否有网络事件产生。&lt;/p&gt;
+&lt;p&gt;检查的方式，就是通过 &lt;strong&gt;遍历&lt;/strong&gt; 文件描述符集合的方式，当检查到有事件产生后，将此 Socket 标记为可读或可写， 接着再把整个文件描述符集合 &lt;strong&gt;拷贝&lt;/strong&gt; 回用户态里，然后用户态还需要再通过 &lt;strong&gt;遍历&lt;/strong&gt; 的方法找到可读或可写的 Socket，然后再对其处理。&lt;/p&gt;
+&lt;p&gt;poll模型和select模型没有本质区别，都是使用线性结构存储socket&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;select 使用固定长度的 BitsMap，表示文件描述符集合，而且所支持的文件描述符的个数是有限制的，&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;poll 使用动态数组，以链表形式来组织，突破了 select 的文件描述符个数限制&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;epoll模型&#34;&gt;epoll模型
+&lt;/h4&gt;&lt;p&gt;&lt;code&gt;epoll&lt;/code&gt;是Linux系统对&lt;code&gt;select&lt;/code&gt;和&lt;code&gt;poll&lt;/code&gt;的优化。优化在以下方面。&lt;/p&gt;
+&lt;p&gt;红黑树的使用：epoll 在内核里使用  &lt;strong&gt;红黑树&lt;/strong&gt; 代替线性结构跟踪进程所有待检测的文件描述符。红黑树的增删改一般时间复杂度是 &lt;code&gt;O(logn)&lt;/code&gt;。相较于select/poll 每次操作时都传入整个 socket 集合给内核，而 epoll 因为在内核维护了红黑树，可以保存所有待检测的 socket ，所以只需要传入一个待检测的 socket，减少了内核和用户空间大量的数据拷贝和内存分配。&lt;/p&gt;
+&lt;p&gt;事件驱动的机制： epoll 使用 &lt;strong&gt;事件驱动&lt;/strong&gt; 的机制，内核里 &lt;strong&gt;维护了一个链表来记录就绪事件&lt;/strong&gt; ，当某个 socket 有事件发生时，通过 &lt;strong&gt;回调函数&lt;/strong&gt; 内核会将其加入到这个就绪事件列表中，不需要像 select/poll 那样轮询扫描整个 socket 集合，大大提高了检测的效率。&lt;/p&gt;
+&lt;p&gt;epoll提供了两种事件触发机制 &lt;strong&gt;边缘触发&lt;/strong&gt; 和 &lt;strong&gt;水平触发&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;边缘触发：当被监控的 Socket 描述符上有可读事件发生时， &lt;strong&gt;服务器端只会从 epoll_wait 中苏醒一次&lt;/strong&gt; ，即使进程没有调用 read 函数从内核读取数据，也依然只苏醒一次，因此我们程序要保证一次性将内核缓冲区的数据读取完；&lt;/li&gt;
+&lt;li&gt;水平触发：当被监控的 Socket 上有可读事件发生时，&lt;strong&gt;服务器端不断地从 epoll_wait 中苏醒，直到内核缓冲区数据被 read 函数读完才结束&lt;/strong&gt; ，目的是告诉我们有数据需要读取；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;高性能网络模式&#34;&gt;高性能网络模式
+&lt;/h2&gt;&lt;h3 id=&#34;reactor模式&#34;&gt;Reactor模式
+&lt;/h3&gt;&lt;p&gt;Reactor模式是对 I/O 多路复用作了一层封装，让使用者不用考虑底层网络 API 的细节，只需要关注应用代码的编写。&lt;/p&gt;
+&lt;p&gt;Reactor模式的核心思想是 &lt;strong&gt;将I/O事件与相应的处理程序解耦&lt;/strong&gt; ，并通过 &lt;strong&gt;事件分发器&lt;/strong&gt; 来管理事件和响应操作。&lt;/p&gt;
+&lt;h4 id=&#34;组成部分&#34;&gt;组成部分
+&lt;/h4&gt;&lt;p&gt;Reactor 模式主要由 Reactor 和处理资源池这两个核心部分组成&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Reactor： 负责监听和分发事件，它通常封装了一个多路复用器（如&lt;code&gt;select&lt;/code&gt;、&lt;code&gt;epoll&lt;/code&gt;），在事件到达时将其分发给相应的事件处理器。&lt;/li&gt;
+&lt;li&gt;Handler：负责处理事件，每个事件处理器与一个具体的I/O事件绑定，定义了在事件发生时应该执行的逻辑。&lt;/li&gt;
+&lt;li&gt;Acceptor：在服务器端，&lt;code&gt;Acceptor&lt;/code&gt;用于接受新的客户端连接，并为每个新连接分配一个Handler进行后续的数据处理&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;工作流程&#34;&gt;工作流程
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Reactor&lt;/strong&gt; 通过多路复用器监听多个通道，等待事件（如连接到达、数据可读等）的发生。&lt;/li&gt;
+&lt;li&gt;当某个通道有事件发生时，Reactor将事件分发给相应的 &lt;strong&gt;Handler&lt;/strong&gt; 。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Handler&lt;/strong&gt; 根据事件类型执行相应的操作，如读取数据、写入数据或处理业务逻辑。&lt;/li&gt;
+&lt;li&gt;事件处理完成后，Reactor继续监听其他事件。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;proactor模式&#34;&gt;Proactor模式
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;Proactor 是异步网络模式， 感知的是已完成的读写事件&lt;/strong&gt; 。在发起异步读写请求时，需要传入数据缓冲区的地址（用来存放结果数据）等信息，这样系统内核才可以自动帮我们把数据的读写工作完成，这里的读写工作全程由操作系统来做，并不需要像 Reactor 那样还需要应用进程主动发起 read/write 来读写数据，操作系统完成读写工作后，就会通知应用进程直接处理数据。&lt;/p&gt;
+&lt;h4 id=&#34;工作流程-1&#34;&gt;工作流程
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;Proactor Initiator 负责创建 Proactor 和 Handler 对象，并将 Proactor 和 Handler 都通过 Asynchronous Operation Processor 注册到内核；&lt;/li&gt;
+&lt;li&gt;Asynchronous Operation Processor 负责处理注册请求，并处理 I/O 操作&lt;/li&gt;
+&lt;li&gt;Asynchronous Operation Processor 完成 I/O 操作后通知 Proactor&lt;/li&gt;
+&lt;li&gt;Proactor 根据不同的事件类型回调不同的 Handler 进行业务处理&lt;/li&gt;
+&lt;li&gt;Handler 完成业务处理&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/Proactor.png&#34;
+	width=&#34;1427&#34;
+	height=&#34;654&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;Proactor模式&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;218&#34;
+		data-flex-basis=&#34;523px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;reactor模式和proactor模式的区别&#34;&gt;Reactor模式和Proactor模式的区别
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Reactor 是非阻塞同步网络模式，感知的是就绪可读写事件&lt;/strong&gt; ：在每次感知到有事件发生（比如可读就绪事件）后，就需要应用进程主动调用 read 方法来完成数据的读取，也就是要应用进程主动将 socket 接收缓存中的数据读到应用进程内存中，这个过程是同步的，读取完数据后应用进程才能处理数据。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Proactor 是异步网络模式， 感知的是已完成的读写事件&lt;/strong&gt; ：在发起异步读写请求时，需要传入数据缓冲区的地址（用来存放结果数据）等信息，这样系统内核才可以自动帮我们把数据的读写工作完成，这里的读写工作全程由操作系统来做，并不需要像 Reactor 那样还需要应用进程主动发起 read/write 来读写数据，操作系统完成读写工作后，就会通知应用进程直接处理数据。&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        <item>
         <title>操作系统的文件系统</title>
         <link>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/</link>
         <pubDate>Fri, 14 Mar 2025 17:35:09 +0800</pubDate>

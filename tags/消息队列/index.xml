@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>消息队列 on Tyritic</title>
+        <link>https://Tyritic.github.io/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/</link>
+        <description>Recent content in 消息队列 on Tyritic</description>
+        <generator>Hugo -- gohugo.io</generator>
+        <language>zh-cn</language>
+        <copyright>Tyritic</copyright>
+        <lastBuildDate>Wed, 19 Mar 2025 10:37:07 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>Kafka的高性能原因</title>
+        <link>https://Tyritic.github.io/p/kafka%E7%9A%84%E9%AB%98%E6%80%A7%E8%83%BD%E5%8E%9F%E5%9B%A0/</link>
+        <pubDate>Tue, 18 Mar 2025 20:23:01 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/kafka%E7%9A%84%E9%AB%98%E6%80%A7%E8%83%BD%E5%8E%9F%E5%9B%A0/</guid>
+        <description>&lt;h2 id=&#34;kafka高性能的原因&#34;&gt;Kafka高性能的原因
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;批量收发消息&lt;/li&gt;
+&lt;li&gt;零拷贝&lt;/li&gt;
+&lt;li&gt;磁盘顺序读写&lt;/li&gt;
+&lt;li&gt;页缓存&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;批量收发消息&#34;&gt;批量收发消息
+&lt;/h2&gt;&lt;p&gt;Kafka 收发消息都是批量进行处理的。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;生产者发送消息时，不会直接把消息发送出去，而是把消息缓存起来，缓存消息量达到配置的批量大小后，才会发送出去。&lt;/li&gt;
+&lt;li&gt;Broker 收到消息后，并不会把批量消息解析成单条消息后落盘，而是作为批量消息进行落盘，同时也会把批量消息直接同步给其他副本。&lt;/li&gt;
+&lt;li&gt;消费者拉取消息，也不会按照单条进行拉取，而是按照批量进行拉取，拉取到一批消息后，再解析成单条消息进行消费。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;磁盘顺序读写&#34;&gt;磁盘顺序读写
+&lt;/h2&gt;&lt;p&gt;Kafka 采用不断追加写文件的方式来实现顺序写，从而提高磁盘的性能。顺序读写省去了寻址的时间，只要一次寻址，就可以连续读写。Kafka 的 Broker 在写消息数据时，首先为每个 Partition 创建一个文件，然后把数据顺序地追加到该文件对应的磁盘空间中，如果这个文件写满了，就再创建一个新文件继续追加写。这样大大减少了寻址时间，提高了读写性能。&lt;/p&gt;
+&lt;h2 id=&#34;页缓存&#34;&gt;页缓存
+&lt;/h2&gt;&lt;p&gt;在 Linux 系统中，PageCache 是磁盘文件在内存中建立的缓存。当应用程序读写文件时，并不会直接读写磁盘上的文件，而是操作 PageCache。应用程序写文件时，都先会把数据写入 PageCache，然后操作系统定期地将 PageCache 的数据写到磁盘上。而应用程序在读取文件数据时，首先会判断数据是否在 PageCache 中，如果在则直接读取，如果不在，则读取磁盘，并且将数据缓存到 PageCache。&lt;/p&gt;
+&lt;h2 id=&#34;零拷贝&#34;&gt;零拷贝
+&lt;/h2&gt;&lt;p&gt;Kafka Broker 将消息发送给消费端时，即使命中了 PageCache，也需要将 PageCache 中的数据先复制到应用程序的内存空间，然后从应用程序的内存空间复制到 Socket 缓存区，将数据发送出去。Kafka 采用了零拷贝技术把数据直接从 PageCache 复制到 Socket 缓冲区中，这样数据不用复制到用户态的内存空间，同时 DMA 控制器直接完成数据复制，不需要 CPU 参与。&lt;/p&gt;
+&lt;p&gt;零拷贝的技术原理参见往期博客&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>Kafka的消息顺序性和完整性</title>
+        <link>https://Tyritic.github.io/p/kafka%E7%9A%84%E6%B6%88%E6%81%AF%E9%A1%BA%E5%BA%8F%E6%80%A7%E5%92%8C%E5%AE%8C%E6%95%B4%E6%80%A7/</link>
+        <pubDate>Tue, 18 Mar 2025 19:40:28 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/kafka%E7%9A%84%E6%B6%88%E6%81%AF%E9%A1%BA%E5%BA%8F%E6%80%A7%E5%92%8C%E5%AE%8C%E6%95%B4%E6%80%A7/</guid>
+        <description>&lt;h2 id=&#34;消息顺序性的保证&#34;&gt;消息顺序性的保证
+&lt;/h2&gt;&lt;p&gt;Kafka 通过分区机制和消息键来保证消息的顺序性。在 Kafka 中，每个 Topic 可以分为多个分区，每个分区内的消息都是有序的。&lt;/p&gt;
+&lt;p&gt;在生产者端&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在同一个分区内，消息是有序的。&lt;/li&gt;
+&lt;li&gt;消息键将相关消息分配到同一分区，可以保证这些消息在同一分区内依然有序。&lt;/li&gt;
+&lt;li&gt;每次添加消息到 Partition(分区) 的时候都会采用尾加法&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Kafka默认的分区策略是基于消息键的哈希值&lt;/p&gt;
+&lt;p&gt;消费者端&lt;/p&gt;
+&lt;p&gt;消费者在消费消息时，同一个消费者线程只能同时消费一个分区的消息，这样可以保证消费端在处理某个分区内的消息时是按顺序的。如果 Kafka 集群中没有足够的消费者线程，某个消费者线程可能需要同时消费多个分区的消息，但这些分区之间的顺序是无法保证的。&lt;/p&gt;
+&lt;h2 id=&#34;消息完整性的保证&#34;&gt;消息完整性的保证
+&lt;/h2&gt;&lt;h3 id=&#34;生产者端的保证&#34;&gt;生产者端的保证
+&lt;/h3&gt;&lt;p&gt;生产者在发送消息时，需要通过消息确认机制来确保消息成功到达。生产者发送消息至 Broker ，需要处理 Broker 的响应，如果 Broker 返回写入失败等错误消息，重试发送。可以配置 &lt;code&gt;acks&lt;/code&gt; 参数来决定生产者在收到多少个副本的确认后认为消息发送成功。&lt;/p&gt;
+&lt;h3 id=&#34;消费者端的保证&#34;&gt;消费者端的保证
+&lt;/h3&gt;&lt;p&gt;消息在被追加到 Partition(分区)的时候都会分配一个特定的偏移量（offset）。偏移量（offset)表示 Consumer 当前消费到的 Partition(分区)的所在的位置。Kafka 通过偏移量（offset）可以保证消息在分区内的顺序性。在项目开发中通常建议关闭自动提交offset，&lt;strong&gt;每次在真正消费完消息之后再自己手动提交 offset&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;自动提交offset会导致以下问题，当消费者拉取到了分区的某个消息之后，消费者会自动提交了 offset。当消费者刚拿到这个消息准备进行真正消费的时候，突然挂掉了，消息实际上并没有被消费，但是 offset 却被自动提交了。&lt;/p&gt;
+&lt;h3 id=&#34;broker的保证&#34;&gt;Broker的保证
+&lt;/h3&gt;&lt;p&gt;Broker通过 &lt;strong&gt;多副本机制&lt;/strong&gt; 来保证消息不丢失。Kafka 中的每个分区都有多个副本（Replicas），这些副本分布在不同的 Broker 上。当一个 Broker 宕机时，其他持有该分区副本的 Broker 能够接管工作。&lt;/p&gt;
+&lt;p&gt;Kafka 的副本分为leader副本和follower副本。每个主题（topic）中的分区（partition）会有一个leader副本和多个follower副本。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;leader副本：每个 Kafka 分区都有一个 Leader，负责处理所有的读写请求&lt;/li&gt;
+&lt;li&gt;follower副本：定期从领导者副本中拉取数据，保持数据的一致性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;当leader副本宕机时，会在follower副本中选出一个新的领导者，确保数据的连续性和可用性。&lt;/p&gt;
+&lt;h2 id=&#34;消息重复消费的处理方案&#34;&gt;消息重复消费的处理方案
+&lt;/h2&gt;&lt;p&gt;Kafka中会出现消息重复的情况，根本原因：&lt;strong&gt;服务端侧已经消费的数据没有成功提交 offset&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;严格意义上是无法从根本上解决重复的消息，因为为了保证消息的可靠性会产生重复的消息。只能从业务层面解决重复消息的影响&lt;/p&gt;
+&lt;p&gt;只有让消费者的处理逻辑具有 &lt;strong&gt;幂等性&lt;/strong&gt; ，保证无论同一条消息被消费多少次，结果都是一样的，从而避免因重复消费带来的副作用。&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>SpringBoot整合Kafka</title>
+        <link>https://Tyritic.github.io/p/springboot%E6%95%B4%E5%90%88kafka/</link>
+        <pubDate>Tue, 18 Mar 2025 19:22:46 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/springboot%E6%95%B4%E5%90%88kafka/</guid>
+        <description>&lt;h2 id=&#34;springboot中整合kafka的流程&#34;&gt;SpringBoot中整合Kafka的流程
+&lt;/h2&gt;&lt;h3 id=&#34;引入依赖&#34;&gt;引入依赖
+&lt;/h3&gt;&lt;p&gt;引入 &lt;strong&gt;Spring for Apache Kafka&lt;/strong&gt; 依赖&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;9
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-xml&#34; data-lang=&#34;xml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;org.springframework.boot&lt;span class=&#34;nt&#34;&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;spring-boot-starter-web&lt;span class=&#34;nt&#34;&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;org.springframework.kafka&lt;span class=&#34;nt&#34;&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;spring-kafka&lt;span class=&#34;nt&#34;&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h3 id=&#34;配置kafka相关参数&#34;&gt;配置Kafka相关参数
+&lt;/h3&gt;&lt;p&gt;在application.xml中配置Kafka的相关参数&lt;/p&gt;
+&lt;h3 id=&#34;创建生产者&#34;&gt;创建生产者
+&lt;/h3&gt;&lt;p&gt;通常生产者作为Service类，使用 &lt;strong&gt;&lt;code&gt;KafkaTemplate&lt;/code&gt;&lt;/strong&gt; 的相关API来调用相关方法&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;15
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;16
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nn&#34;&gt;org.springframework.kafka.core.KafkaTemplate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nn&#34;&gt;org.springframework.stereotype.Service&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;nd&#34;&gt;@Service&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;kd&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;KafkaProducer&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;kd&#34;&gt;private&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;kd&#34;&gt;final&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;KafkaTemplate&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;kafkaTemplate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nf&#34;&gt;KafkaProducer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;KafkaTemplate&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;kafkaTemplate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;        &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;this&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;kafkaTemplate&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;kafkaTemplate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nf&#34;&gt;sendMessage&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;topic&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;message&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;        &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;kafkaTemplate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;send&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;topic&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;message&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;        &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;System&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;out&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;println&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;Sent message: &amp;#34;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;message&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h3 id=&#34;创建消费者&#34;&gt;创建消费者
+&lt;/h3&gt;&lt;p&gt;对监听的方法使用 &lt;strong&gt;&lt;code&gt;@KafkaListener&lt;/code&gt;&lt;/strong&gt; 注解，指定消息主题和消费者组&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nn&#34;&gt;org.apache.kafka.clients.consumer.ConsumerRecord&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nn&#34;&gt;org.springframework.kafka.annotation.KafkaListener&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nn&#34;&gt;org.springframework.stereotype.Service&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;nd&#34;&gt;@Service&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;kd&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;KafkaConsumer&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;nd&#34;&gt;@KafkaListener&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;topics&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;test-topic&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;groupId&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;my-group&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;kd&#34;&gt;public&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;nf&#34;&gt;listen&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ConsumerRecord&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;record&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;        &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;System&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;out&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;println&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;Received message: &amp;#34;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;record&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;value&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;());&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description>
+        </item>
+        <item>
+        <title>Kafka的架构设计</title>
+        <link>https://Tyritic.github.io/p/kafka%E7%9A%84%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/</link>
+        <pubDate>Tue, 18 Mar 2025 11:52:55 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/kafka%E7%9A%84%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/</guid>
+        <description>&lt;h2 id=&#34;kafka是什么&#34;&gt;Kafka是什么
+&lt;/h2&gt;&lt;p&gt;Kafka是一种分布式流事件处理平台，严格意义上不是一个纯消息队列，但是可以胜任消息队列的所有任务。&lt;/p&gt;
+&lt;p&gt;主要的应用场景&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;消息队列：用作高吞吐量的消息系统，将消息从一个系统传递到另一个系统。&lt;/li&gt;
+&lt;li&gt;日志收集：集中收集日志数据，然后通过Kafka传递到实时监控系统或存储系统。&lt;/li&gt;
+&lt;li&gt;流计算：处理实时数据流，将数据传递给实时计算系统&lt;/li&gt;
+&lt;li&gt;事件溯源：记录事件发生的历史，以便稍后进行数据回溯或重新处理。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;kafka的基本组件&#34;&gt;Kafka的基本组件
+&lt;/h2&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/kafka%E7%9A%84%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/message-queue20210507200944439.png&#34;
+	width=&#34;701&#34;
+	height=&#34;655&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;Kafka的基本组件（来自Java Guide）&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;107&#34;
+		data-flex-basis=&#34;256px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h3 id=&#34;生产者producer&#34;&gt;生产者（Producer)
+&lt;/h3&gt;&lt;p&gt;Producer 是生产者，负责创建消息并将其发送到 Kafka 主题（Topic）。 同时Producer 可以配置消息的分区策略，从而控制消息发送到在哪个分区中。 Producer 可以配置不同的持久化与可靠性策略。&lt;/p&gt;
+&lt;h3 id=&#34;消费者consumer&#34;&gt;消费者（Consumer)
+&lt;/h3&gt;&lt;p&gt;Consumer 是消费者，负责从 Kafka 主题中读取消息，通过订阅一个或多个 Topic，动态地拉取消息进行处理。Consumer 通常属于一个 Consumer Group，同一个 Group 中的各 Consumer 可以分配处理特定分区的数据，实现并行处理。&lt;/p&gt;
+&lt;h3 id=&#34;消息代理broker&#34;&gt;消息代理（Broker)
+&lt;/h3&gt;&lt;p&gt;Broker是 Kafka 的核心，用于消息存储和管理。每个 Kafka 集群可以包含一个或多个 Broker，负责接收、存储、以及发送数据。&lt;/p&gt;
+&lt;h3 id=&#34;协调器zookeeper&#34;&gt;协调器（ZooKeeper)
+&lt;/h3&gt;&lt;p&gt;Zookeeper用于 Kafka 的分布式协调和管理任务， 确保 Kafka 集群的高可用性和一致性。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Broker 注册&lt;/strong&gt; ：在 Zookeeper 上会有一个专门 &lt;strong&gt;用来进行 Broker 服务器列表记录&lt;/strong&gt; 的节点。每个 Broker 在启动时，都会到 Zookeeper 上进行注册，即到 &lt;code&gt;/brokers/ids&lt;/code&gt; 下创建属于自己的节点。每个 Broker 就会将自己的 IP 地址和端口等信息记录到该节点中去&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Topic 注册&lt;/strong&gt; ：在 Kafka 中，同一个 &lt;strong&gt;Topic 的消息会被分成多个分区&lt;/strong&gt; 并将其分布在多个 Broker 上， &lt;strong&gt;这些分区信息及与 Broker 的对应关系&lt;/strong&gt; 也都是由 Zookeeper 在维护。比如我创建了一个名字为 my-topic 的主题并且它有两个分区，对应到 zookeeper 中会创建这些文件夹：&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;负载均衡&lt;/strong&gt;：Kafka 通过给特定 Topic 指定多个 Partition, 而各个 Partition 可以分布在不同的 Broker 上, 这样便能提供比较好的并发能力。 对于同一个 Topic 的不同 Partition，Kafka 会尽力将这些 Partition 分布到不同的 Broker 服务器上。当生产者产生消息后也会尽量投递到不同 Broker 的 Partition 里面。当 Consumer 消费的时候，Zookeeper 可以根据当前的 Partition 数量以及 Consumer 数量来实现动态负载均衡。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;kafka的基本概念&#34;&gt;Kafka的基本概念
+&lt;/h2&gt;&lt;h3 id=&#34;topic主题&#34;&gt;Topic（主题）
+&lt;/h3&gt;&lt;p&gt;Topic是用来区分和隔离不同类型消息的单位。每一个 Topic 都有一个名称，生产者将消息发送到某个特定的 Topic 上，而消费者从某个特定的 Topic 接收消息。&lt;/p&gt;
+&lt;p&gt;主要作用&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;消息分类：Kafka 通过 Topic 来对消息进行分类管理，生产者和消费者通过 Topic 来组织和订阅消息。&lt;/li&gt;
+&lt;li&gt;隔离数据：不同业务或模块的数据可以通过不同的 Topic 隔离开，保证数据之间的独立性和安全性。&lt;/li&gt;
+&lt;li&gt;分区并行：每个 Topic 可以有多个分区，消息会被分布到不同分区上，实现并行处理，提升系统的吞吐量和伸缩性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;partition分区&#34;&gt;Partition（分区）
+&lt;/h3&gt;&lt;p&gt;Partition 是指一个Topic中的一个分区。Kafka 主题可以划分为多个分区，每个分区是一个有序的、不可变的消息序列。不同分区中的消息是并行地存储和处理的，这使得 Kafka 能够实现高吞吐量。&lt;/p&gt;
+&lt;p&gt;主要作用&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;并行处理&lt;/strong&gt; ：更多的分区可以让多个消费者实例并行处理消息，从而提升系统的吞吐量。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;负载均衡&lt;/strong&gt; ：通过增加分区数量，可以更好地分配负载，避免某个节点成为瓶颈。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;数据局部性&lt;/strong&gt; ：分区可以分布在不同的代理节点上，提高数据的可用性和可靠性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;consumer-group消费者组&#34;&gt;Consumer Group（消费者组）
+&lt;/h3&gt;&lt;p&gt;Consumer Group 是一组消费者（Consumer），它们共同协作来消费一个或多个主题（Topic）中的消息。每个Consumer Group都有一个唯一的标识符。所有属于同一组的消费者会协同工作，以保证一个组内的每条消息仅会被消费一次。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;每个Consumer Group内的每个消费者独立消费不同的分区（Partition）中的数据，一个分区只能被一个Consumer消费。&lt;/li&gt;
+&lt;li&gt;即使有多个消费者在同一个组内消费同一个Topic，Kafka也会确保每条消息只会被组内的其中一个消费者处理。这样极大地提高了消费的并发能力和处理速度，保证了消息的高效处理。&lt;/li&gt;
+&lt;li&gt;Consumer Group可以实现负载均衡。当有新的消费者加入或离开组时，Kafka会自动均衡分区的消费，将需要消费的分区重新分配给现存的消费者。&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        <item>
+        <title>消息队列基础</title>
+        <link>https://Tyritic.github.io/p/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%9F%BA%E7%A1%80/</link>
+        <pubDate>Tue, 18 Mar 2025 11:04:57 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%9F%BA%E7%A1%80/</guid>
+        <description>&lt;h2 id=&#34;什么是消息队列&#34;&gt;什么是消息队列
+&lt;/h2&gt;&lt;p&gt;消息队列是一种 &lt;strong&gt;异步通信机制&lt;/strong&gt; ，用于在 &lt;strong&gt;分布式系统&lt;/strong&gt; 中解耦发送方和接收方之间的通信。它通过在消息生产者和消费者之间引入一个 &lt;strong&gt;中间缓冲区&lt;/strong&gt; ，将消息存储在 broker 中，然后由消费者从 broker 中读取和处理消息。&lt;/p&gt;
+&lt;h2 id=&#34;消息队列中的核心概念&#34;&gt;消息队列中的核心概念
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;生产者（Producer）&lt;/strong&gt; ：负责向消息队列中发送消息的应用程序或服务。生产者将消息发送到指定的队列或主题（Topic），供消费者消费。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;消费者（Consumer）&lt;/strong&gt; ：从消息队列中读取和处理消息的应用程序或服务。消费者根据业务逻辑处理收到的消息，并可以向消息队列发送确认。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Broker&lt;/strong&gt; ：消息队列的核心组件，负责接收、存储和分发消息。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;队列（Queue）&lt;/strong&gt; ：存储消息的容器，消息按照先进先出（FIFO）的顺序在队列中存储。队列中的每条消息通常只能被一个消费者消费一次。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;主题（Topic）&lt;/strong&gt; ：用于在发布/订阅模型中，消息生产者将消息发布到一个主题，多个订阅该主题的消费者可以接收到相同的消息。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;消息队列的模型&#34;&gt;消息队列的模型
+&lt;/h2&gt;&lt;h3 id=&#34;队列模型点对点模型&#34;&gt;队列模型（点对点模型）
+&lt;/h3&gt;&lt;p&gt;在队列模型中，消息从生产者发送到队列，并且每条消息只能被一个消费者消费一次。消费之后，消息在队列中被删除。适用于任务处理类场景，如一个任务只需要一个处理者执行。&lt;/p&gt;
+&lt;p&gt;存在问题：生产者向队列中投放消息，但是队列会有多个消费者，多个消费者之间存在竞争关系，即 &lt;strong&gt;每条消息只能被一个消费者消费&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;会造成数据冗余的问题&lt;/p&gt;
+&lt;h3 id=&#34;发布-订阅模型&#34;&gt;发布-订阅模型
+&lt;/h3&gt;&lt;p&gt;在发布/订阅模型中，生产者将消息发布到某个主题（Topic），所有订阅了该主题的消费者都会接收到该消息。每个订阅者都会接收到相同的消息，适用于广播通知、实时推送等场景。可以将发布-订阅模型理解为将消费者都加入了一个群聊中，生产者发一条消息，加入了这个群聊的消费者都能收到这条消息。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%9F%BA%E7%A1%80/message-queue-pub-sub-model.png&#34;
+	width=&#34;701&#34;
+	height=&#34;296&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;发布/订阅（Pub/Sub）模型&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;236&#34;
+		data-flex-basis=&#34;568px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h2 id=&#34;消息队列的作用&#34;&gt;消息队列的作用
+&lt;/h2&gt;&lt;h3 id=&#34;服务解耦&#34;&gt;服务解耦
+&lt;/h3&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%9F%BA%E7%A1%80/message-queue-pub-sub-model.png&#34;
+	width=&#34;701&#34;
+	height=&#34;296&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;发布/订阅（Pub/Sub）模型&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;236&#34;
+		data-flex-basis=&#34;568px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;生产者和消费者无需同时在线，生产者可以发送消息后立即返回，而消费者在合适的时机处理消息。&lt;strong&gt;消息发送者（生产者）和消息接受者（消费者）之间没有直接耦合&lt;/strong&gt; ，消息发送者将消息发送至分布式消息队列即结束对消息的处理，消息接受者从分布式消息队列获取该消息后进行后续处理，并不需要知道该消息从何而来。 &lt;strong&gt;对新增业务，只要对该类消息感兴趣，即可订阅该消息，对原有系统和业务没有任何影响，从而实现可扩展性设计&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;削峰填谷和流量限制&#34;&gt;削峰填谷和流量限制
+&lt;/h3&gt;&lt;p&gt;在高并发场景下，消息队列可以暂存大量请求，平滑高峰流量，避免系统过载。在项目开发中，后端服务相对而言都是比较「弱」的，因为业务较重，处理时间较长。消息队列作为中间件可以起到缓冲的作用。网关的请求先放入消息队列中，后端服务尽自己最大能力去消息队列中消费请求。超时的请求可以直接返回错误。&lt;/p&gt;
+&lt;h3 id=&#34;异步处理&#34;&gt;异步处理
+&lt;/h3&gt;&lt;p&gt;将用户请求中包含的耗时操作，通过消息队列实现异步处理。&lt;/p&gt;
+&lt;p&gt;生产者将对应的消息发送到消息队列之后就立即返回结果，减少响应时间，提高用户体验。随后，消费者再对消息进行消费。请求数据在后续的业务校验、写数据库等操作中可能失败。因此，&lt;strong&gt;使用消息队列进行异步处理之后，需要适当修改业务流程进行配合&lt;/strong&gt;&lt;/p&gt;
+&lt;h2 id=&#34;推模式和拉模式&#34;&gt;推模式和拉模式
+&lt;/h2&gt;&lt;p&gt;推模式和拉模式指的是消费者和Broker之间的交互过程&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;推模式（Push）&lt;/strong&gt; ：消息队列将消息主动推送给消费者，适合实时性要求高、消费者能够及时处理消息的场景。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;优点&lt;/strong&gt; ：实时性好，消息可立即送达消费者。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;缺点&lt;/strong&gt; ：难以控制消费速度，容易导致消费者过载，尤其是在高并发时。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;拉模式（Pull）&lt;/strong&gt; ：消费者主动从消息队列中拉取消息，适合消费能力有限、需要根据自身处理能力调控速率的场景。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;优点&lt;/strong&gt; ：消费者可以根据自身负载决定拉取频率，避免过载；更适合批量处理。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;缺点&lt;/strong&gt; ：可能会导致消息延迟，实时性不如推模式，尤其是拉取频率较低时。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;选择策略&#34;&gt;选择策略
+&lt;/h3&gt;&lt;p&gt;个人认为相较于推模式，拉模式更加适应当下的需求。因为现在的消息队列都有持久化消息的需求，也就是说本身它就有个存储功能，它的使命就是接受消息，保存好消息使得消费者可以消费消息即可，身为 Broker 不应该有依赖于消费者的倾向。&lt;/p&gt;
+&lt;h3 id=&#34;在kafka中的实现&#34;&gt;在Kafka中的实现
+&lt;/h3&gt;&lt;p&gt;Kafka通过长轮询来实现拉模式。具体的做法都是通过消费者去 Broker 拉取消息时，当有消息的情况下 Broker 会直接返回消息，如果没有消息都会采取延迟处理的策略，即保持连接，暂时 hold 主请求，然后在对应队列或者分区有新消息到来的时候都会提醒消息来了，通过之前 hold 主的请求及时返回消息，保证消息的及时性。&lt;/p&gt;
+&lt;p&gt;在Kafka中设置了超时参数，消费者去 Broker 拉消息，定义了一个超时时间，也就是说消费者去请求消息，如果有的话马上返回消息，如果没有的话消费者等着直到超时，然后再次发起拉消息请求。并且 Broker 也得配合，如果消费者请求过来，有消息马上返回，没有消息那就建立一个延迟操作，等条件满足了再返回。&lt;/p&gt;
+</description>
+        </item>
+        
+    </channel>
+</rss>
