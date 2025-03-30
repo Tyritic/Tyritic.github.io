@@ -7,7 +7,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh-cn</language>
         <copyright>Tyritic</copyright>
-        <lastBuildDate>Sun, 23 Mar 2025 00:17:22 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Sun, 30 Mar 2025 13:51:45 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/index.xml" rel="self" type="application/rss+xml" /><item>
         <title>MySQL的慢查询和性能调优</title>
         <link>https://Tyritic.github.io/p/mysql%E7%9A%84%E6%85%A2%E6%9F%A5%E8%AF%A2%E5%92%8C%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/</link>
         <pubDate>Sun, 09 Mar 2025 18:35:25 +0800</pubDate>
@@ -610,7 +610,7 @@
 &lt;li&gt;更新数据库之前，删除一次缓存&lt;/li&gt;
 &lt;li&gt;更新完数据库后，再进行一次延迟删除&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;在&lt;strong&gt;第一步删除缓存&lt;/strong&gt;后，仍然存在并发请求：&lt;/p&gt;
+&lt;p&gt;在 &lt;strong&gt;第一步删除缓存&lt;/strong&gt; 后，仍然存在并发请求：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;另一个线程可能 &lt;strong&gt;读取旧数据并写回缓存&lt;/strong&gt; ，导致缓存回滚。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;延迟一段时间&lt;/strong&gt; 后，第二次删除可以清理这类脏数据，保证缓存不包含旧数据。&lt;/li&gt;
@@ -629,6 +629,7 @@
 		data-flex-basis=&#34;362px&#34;
 	
 &gt;&lt;/p&gt;
+&lt;p&gt;由图可知需要保证第二次删除缓存要在回写缓存之后，常见策略是 &lt;strong&gt;让请求 A 的最后一次删除，等待 500ms&lt;/strong&gt;&lt;/p&gt;
 </description>
         </item>
         <item>
@@ -4903,13 +4904,13 @@ update、delete的效率。&lt;/li&gt;
 &lt;li&gt;max_trx_id ：这个并不是 m_ids 的最大值，而是 &lt;strong&gt;创建 Read View 时当前数据库中应该给下一个事务的 id 值&lt;/strong&gt; ，也就是全局事务中最大的事务 id 值 + 1；&lt;/li&gt;
 &lt;li&gt;creator_trx_id ：指的是 &lt;strong&gt;创建该 Read View 的事务的事务 id&lt;/strong&gt; 。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;并发事务&lt;img src=&#34;https://Tyritic.github.io/p/mysql%E4%BA%8B%E5%8A%A1/ReadView.drawio.png&#34;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/mysql%E4%BA%8B%E5%8A%A1/ReadView.drawio.png&#34;
 	width=&#34;707&#34;
 	height=&#34;332&#34;
 	
 	loading=&#34;lazy&#34;
 	
-		alt=&#34;img&#34;
+		alt=&#34;并发事务&#34;
 	
 	
 		class=&#34;gallery-image&#34; 
@@ -4919,9 +4920,9 @@ update、delete的效率。&lt;/li&gt;
 &gt;&lt;/p&gt;
 &lt;h3 id=&#34;可见性实现&#34;&gt;可见性实现
 &lt;/h3&gt;&lt;ul&gt;
-&lt;li&gt;如果记录的 trx_id 值小于 Read View 中的 &lt;code&gt;min_trx_id&lt;/code&gt; 值，表示这个版本的记录是在创建 Read View &lt;strong&gt;前&lt;/strong&gt; 已经提交的事务生成的，所以该版本的记录对当前事务 &lt;strong&gt;可见&lt;/strong&gt; 。&lt;/li&gt;
-&lt;li&gt;如果记录的 trx_id 值大于等于 Read View 中的 &lt;code&gt;max_trx_id&lt;/code&gt; 值，表示这个版本的记录是在创建 Read View &lt;strong&gt;后&lt;/strong&gt;才启动的事务生成的，所以该版本的记录对当前事务 &lt;strong&gt;不可见&lt;/strong&gt; 。&lt;/li&gt;
-&lt;li&gt;如果记录的 trx_id 值在 Read View 的 &lt;code&gt;min_trx_id&lt;/code&gt; 和 &lt;code&gt;max_trx_id&lt;/code&gt;之间，需要判断 trx_id 是否在 m_ids 列表中：
+&lt;li&gt;如果记录的 &lt;code&gt;trx_id&lt;/code&gt; 值小于 Read View 中的 &lt;code&gt;min_trx_id&lt;/code&gt; 值，表示这个版本的记录是在创建 Read View &lt;strong&gt;前&lt;/strong&gt; 已经提交的事务生成的，所以该版本的记录对当前事务 &lt;strong&gt;可见&lt;/strong&gt; 。&lt;/li&gt;
+&lt;li&gt;如果记录的 &lt;code&gt;trx_id&lt;/code&gt; 值大于等于 Read View 中的 &lt;code&gt;max_trx_id&lt;/code&gt; 值，表示这个版本的记录是在创建 Read View &lt;strong&gt;后&lt;/strong&gt;才启动的事务生成的，所以该版本的记录对当前事务 &lt;strong&gt;不可见&lt;/strong&gt; 。&lt;/li&gt;
+&lt;li&gt;如果记录的 &lt;code&gt;trx_id&lt;/code&gt; 值在 Read View 的 &lt;code&gt;min_trx_id&lt;/code&gt; 和 &lt;code&gt;max_trx_id&lt;/code&gt;之间，需要判断 &lt;code&gt;trx_id&lt;/code&gt; 是否在 m_ids 列表中：
 &lt;ul&gt;
 &lt;li&gt;如果记录的 trx_id  &lt;strong&gt;在&lt;/strong&gt;  &lt;code&gt;m_ids&lt;/code&gt; 列表中，表示生成该版本记录的活跃事务依然活跃着（还没提交事务），所以该版本的记录对当前事务&lt;strong&gt;不可见&lt;/strong&gt;。&lt;/li&gt;
 &lt;li&gt;如果记录的 trx_id  &lt;strong&gt;不在&lt;/strong&gt;  &lt;code&gt;m_ids&lt;/code&gt;列表中，表示生成该版本记录的活跃事务已经被提交，所以该版本的记录对当前事务 &lt;strong&gt;可见&lt;/strong&gt; 。&lt;/li&gt;

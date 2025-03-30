@@ -1,13 +1,117 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
     <channel>
-        <title>Langchain4j on Tyritic</title>
+        <title>LangChain4j on Tyritic</title>
         <link>https://Tyritic.github.io/categories/langchain4j/</link>
-        <description>Recent content in Langchain4j on Tyritic</description>
+        <description>Recent content in LangChain4j on Tyritic</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>zh-cn</language>
         <copyright>Tyritic</copyright><atom:link href="https://Tyritic.github.io/categories/langchain4j/index.xml" rel="self" type="application/rss+xml" /><item>
-        <title>langchain4j实现RAG系统</title>
+        <title>模型上下文协议（MCP）</title>
+        <link>https://Tyritic.github.io/p/%E6%A8%A1%E5%9E%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%8F%E8%AE%AEmcp/</link>
+        <pubDate>Thu, 27 Mar 2025 10:00:39 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/%E6%A8%A1%E5%9E%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%8F%E8%AE%AEmcp/</guid>
+        <description>&lt;h2 id=&#34;llm的一些缺陷&#34;&gt;LLM的一些缺陷
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;市面上的LLM大部分是基于网络上通用知识训练得来的，缺乏对垂直领域相关的知识，类似一个盲目自信的人对于不了解不理解的问题也会编造一些内容（ &lt;strong&gt;幻觉&lt;/strong&gt; 问题）&lt;/li&gt;
+&lt;li&gt;LLM的知识不具备实时性，例如向LLM询问今天的天气时LLM无法给出正确答案&lt;/li&gt;
+&lt;li&gt;LLM无法主动从网络等各种来源主动获取知识，即LLM目前只能作为 &lt;strong&gt;规划者&lt;/strong&gt; 而无法成为 &lt;strong&gt;执行者&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;传统解决方案函数调用&#34;&gt;传统解决方案——函数调用
+&lt;/h2&gt;&lt;p&gt;Function-Call于2023年由OpenAI提出。在此之前，LLM 主要通过自然语言回答问题，无法直接执行 API 调用或插件交互。这一机制的核心在于  &lt;strong&gt;模型能够以结构化的 JSON 格式输出函数参数&lt;/strong&gt; 。&lt;/p&gt;
+&lt;p&gt;工作流程如下&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;模型识别用户输入的意图判断是否需要使用Function-Call&lt;/li&gt;
+&lt;li&gt;模型生成一个结构化的JSON对象来包装函数的相关参数并转发到应用程序的对应函数中&lt;/li&gt;
+&lt;li&gt;应用程序执行函数并将结果返回给模型&lt;/li&gt;
+&lt;li&gt;模型将应用程序返回的结果进行整理并以自然语言整理出最终回答、&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;但是 function call 也有其局限性，重点在于function call 平台依赖性强，不同 LLM 平台的 function call API 实现差异较大。例如，OpenAI 的函数调用方式与 Google 的不兼容，开发者在切换模型时需要重写代码，增加了适配成本。&lt;/p&gt;
+&lt;h2 id=&#34;mcp协议是什么&#34;&gt;MCP协议是什么
+&lt;/h2&gt;&lt;p&gt;MCP全称模型上下文协议，是由Claude公司推出的标准化LLM与外部数据源与工具的交互形式。跳转&lt;a class=&#34;link&#34; href=&#34;https://modelcontextprotocol.io/introduction&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;官方文档&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;引用Claude对此的描述&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;MCP is an open protocol that standardizes how applications provide context to LLMs. Think of MCP like a USB-C port for AI applications. Just as USB-C provides a standardized way to connect your devices to various peripherals and accessories, MCP provides a standardized way to connect AI models to different data sources and tools.&lt;/p&gt;&lt;/blockquote&gt;
+&lt;p&gt;MCP（模型上下文协议）是一种开放协议，它对应用程序向大语言模型（LLM）提供上下文的方式进行了标准化。可以把 MCP 想象成人工智能应用程序的 USB-C 接口。就像 USB-C 接口为将设备连接到各种外围设备和配件提供了一种标准化的方式一样，MCP 也为将人工智能模型连接到不同的数据源和工具提供了一种标准化的方式。&lt;/p&gt;
+&lt;p&gt;可以从以下角度理解MCP协议&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;MCP协议类似于一个人工智能应用程序的拓展坞，通过拓展坞可以以标准化的形式将LLM连接到各种外部工具和数据源&lt;/li&gt;
+&lt;li&gt;同时也可以将MCP协议理解为Function-Call的标准化和优化，MCP协议依然是建立在Function-Call的基础上的&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;mcp协议相较于function-call的改进&#34;&gt;MCP协议相较于Function-Call的改进
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Tool&lt;/strong&gt; ：基于Function-Call实现对外部工具的调用，使得模型可以进行具体的操作&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Resource&lt;/strong&gt; ：AI可以读取的数据，比如文件内容、数据库查询结果或API的响应&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Prompt&lt;/strong&gt; ：服务器提供给AI的预写消息或模板，帮助AI理解如何使用资源和工具&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;mcp的相关概念&#34;&gt;MCP的相关概念
+&lt;/h2&gt;&lt;h3 id=&#34;核心架构&#34;&gt;核心架构
+&lt;/h3&gt;&lt;p&gt;MCP 遵循客户端-服务器架构，所有传输都使用 &lt;a class=&#34;link&#34; href=&#34;https://www.jsonrpc.org/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;JSON-RPC&lt;/a&gt; 2.0 来交换消息。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%A8%A1%E5%9E%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%8F%E8%AE%AEmcp/77afbba7a4543387ddb1f1827dac0b71.png&#34;
+	width=&#34;1512&#34;
+	height=&#34;1040&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;核心架构&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;145&#34;
+		data-flex-basis=&#34;348px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;主机&lt;/strong&gt; ：启动连接的 LLM 应用程序&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;客户端&lt;/strong&gt; ：嵌入在主机内，在主机应用程序内与服务器保持一比一连接&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;服务器&lt;/strong&gt; ：连接到具体的数据源或工具，向客户端提供资源、工具和提示
+&lt;ul&gt;
+&lt;li&gt;资源（Resources）：类似文件的数据，可以被客户端读取，如 API 响应或文件内容。&lt;/li&gt;
+&lt;li&gt;工具（Tools）：可以被 LLM 调用的函数（需要用户批准）。&lt;/li&gt;
+&lt;li&gt;提示（Prompts）：预先编写的模板，帮助用户完成特定任务。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;资源&lt;/strong&gt; ：服务器可以访问到的资源
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;本地资源&lt;/strong&gt; : MCP 服务器可以安全访问的计算机资源（数据库、文件、服务）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;远程职业&lt;/strong&gt; : MCP 服务器可以连接到的互联网上可用的资源（API）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;工作流程&#34;&gt;工作流程
+&lt;/h3&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%A8%A1%E5%9E%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%8F%E8%AE%AEmcp/image-20250327140914648.png&#34;
+	width=&#34;1186&#34;
+	height=&#34;326&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;工作流程&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;363&#34;
+		data-flex-basis=&#34;873px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;初始化：主机应用程序启动并初始化客户端，每个客户端与一个服务器建立连接。&lt;/li&gt;
+&lt;li&gt;功能协商：客户端和服务器之间进行功能协商，确定它们可以相互提供哪些功能和服务。&lt;/li&gt;
+&lt;li&gt;请求处理：客户端根据用户请求或AI模型的需要，向服务器发送请求。服务器处理这些请求，并可能与本地或远程资源进行交互。
+&lt;ul&gt;
+&lt;li&gt;将用户的查询连同工具描述通过 function calling一起发送给 LLM。&lt;/li&gt;
+&lt;li&gt;LLM 决定是否需要使用工具以及使用哪些工具。&lt;/li&gt;
+&lt;li&gt;如果需要使用工具，MCP client 会通过 MCP server 执行相应的工具调用。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;响应返回：服务器将处理结果返回给客户端，客户端再将信息传递回主机应用程序。&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        <item>
+        <title>LangChain4j实现RAG系统</title>
         <link>https://Tyritic.github.io/p/langchain4j%E5%AE%9E%E7%8E%B0rag%E7%B3%BB%E7%BB%9F/</link>
         <pubDate>Fri, 07 Mar 2025 10:05:10 +0800</pubDate>
         
@@ -86,7 +190,7 @@
 		data-flex-basis=&#34;608px&#34;
 	
 &gt;&lt;/p&gt;
-&lt;h2 id=&#34;langchain4j提供的解决方案&#34;&gt;langchain4j提供的解决方案
+&lt;h2 id=&#34;langchain4j提供的解决方案&#34;&gt;LangChain4j提供的解决方案
 &lt;/h2&gt;&lt;h3 id=&#34;easyrag&#34;&gt;EasyRAG
 &lt;/h3&gt;&lt;p&gt;langchain4j提供的最简单的RAG实现，只需提供文档和指定向量数据库即可实现最基础的RAG，langchain4j的默认嵌入模型bge-small-en-v1.5在量化后仅仅需要24MB内存&lt;/p&gt;
 &lt;ul&gt;
@@ -110,7 +214,7 @@
 &lt;/div&gt;
 &lt;/div&gt;&lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;在AiService中配置向量数据库，向量数据库摄取器，easyrag中内置了嵌入模型&lt;/p&gt;
+&lt;p&gt;在AiService中配置向量数据库，内容检索器，easyrag中内置了嵌入模型&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
@@ -175,21 +279,92 @@
 &lt;/ul&gt;
 &lt;h4 id=&#34;文档处理&#34;&gt;文档处理
 &lt;/h4&gt;&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;&lt;code&gt;Document Loader&lt;/code&gt;&lt;/strong&gt; ：文档加载器用于从不同来源加载文档&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;Document Loader&lt;/code&gt;&lt;/strong&gt; ：文档加载器用于从不同来源加载文档（可以不指定文档解析器，langchain4j会自动选择合适的文档解析器&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;&lt;code&gt;Document Parser&lt;/code&gt;&lt;/strong&gt; ：文档解析器用于解析不同格式的文档&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;&lt;code&gt;DocumentTransformer&lt;/code&gt;&lt;/strong&gt;  ：文档转换器，用于对文档执行各种转换,如清理、过滤、增强或总结。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;&lt;code&gt;DocumentSplitter&lt;/code&gt;&lt;/strong&gt; ：文档拆分器，用于将文档拆分成更小的片段:&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h4 id=&#34;嵌入处理&#34;&gt;嵌入处理
 &lt;/h4&gt;&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;&lt;code&gt;EmbeddingModel&lt;/code&gt;&lt;/strong&gt;  ：表示一种将文本转换为 &lt;code&gt;Embedding&lt;/code&gt; 的模型。需要接入外部的嵌入模型进行文本向量化&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;EmbeddingModel&lt;/code&gt;&lt;/strong&gt;  ：表示一种将文本转换为 &lt;code&gt;Embedding&lt;/code&gt; 向量的模型。需要接入外部的嵌入模型进行文本向量化&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;&lt;code&gt;EmbeddingStore&lt;/code&gt;&lt;/strong&gt;  ：表示一个嵌入存储库(向量数据库),用于存储和高效搜索相似的嵌入。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;&lt;code&gt;EmbeddingStoreIngestor&lt;/code&gt;&lt;/strong&gt;  ：负责将文档嵌入并存储到 &lt;code&gt;EmbeddingStore&lt;/code&gt; 中的嵌入存储摄取器&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;内容检索&#34;&gt;内容检索
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;ContentRetriever&lt;/code&gt;&lt;/strong&gt;  ：内容检索器，根据用户的查询从底层数据源中获取内容&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;检索增强&#34;&gt;检索增强
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;RetrievalAugmentor&lt;/code&gt;&lt;/strong&gt; ：检索增强器是 RAG的核心，它通过从不同的数据源中检索相关内容来增强用户的消息。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;QueryTransformer&lt;/code&gt;&lt;/strong&gt; ：查询转换器用于将原始查询转换为一个或多个新的查询，以提高检索的准确性。常见的转换策略&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;查询压缩：使用大语言模型（LLM）压缩查询和对话上下文，生成一个简明的查询。&lt;/li&gt;
+&lt;li&gt;查询扩展：将简单的查询扩展为多个相关的查询。&lt;/li&gt;
+&lt;li&gt;查询重写：对查询进行改写，使其更适合检索。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;QueryRouter&lt;/code&gt;&lt;/strong&gt;  ：查询路由器负责将查询分配到合适的内容检索器。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;默认实现为查询会路由到所有的内容检索器中&lt;/li&gt;
+&lt;li&gt;目前的实现为使用LLM来决定路由&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;ContentAggregator&lt;/code&gt;&lt;/strong&gt; ：内容聚合器，负责聚合多个来源的排序列表。它可以从多个查询和多个内容检索器中汇总结果，并将它们整合成一个统一的排序列表。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;默认的内容聚合器使用 &lt;strong&gt;两阶段倒数排名融合&lt;/strong&gt;（Reciprocal Rank Fusion）方法来对多个排名列表进行融合。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Re-Ranking Content Aggregator&lt;/strong&gt; ：这个聚合器使用特定的 &lt;strong&gt;评分模型&lt;/strong&gt; 进行重新排序。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;ContentInjector&lt;/code&gt;&lt;/strong&gt; ：内容注入器负责将从内容聚合器返回的内容（&lt;code&gt;s&lt;/code&gt;）注入到用户消息中。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;默认实现：将返回的内容简单地附加到用户消息的末尾，并为这些内容加上一个前缀。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;rag构建步骤&#34;&gt;RAG构建步骤
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;构建对应的大语言模型&lt;/li&gt;
+&lt;li&gt;构建嵌入模型EmbeddingModel和向量数据库EmbeddingStore&lt;/li&gt;
+&lt;li&gt;构建内容检索器，配置内容检索器中嵌入模型和向量数据库，同时根据需要构建内容检索器的其他属性
+&lt;ul&gt;
+&lt;li&gt;嵌入模型&lt;/li&gt;
+&lt;li&gt;向量数据库&lt;/li&gt;
+&lt;li&gt;返回结果条数&lt;/li&gt;
+&lt;li&gt;得分的最低值&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;构建查询转换器：使用压缩查询转换器的情况比较多&lt;/li&gt;
+&lt;li&gt;如果数据源只有一个可以不配置查询路由器和内容聚合器&lt;/li&gt;
+&lt;li&gt;构建检索增强器，需要配置以下属性
+&lt;ul&gt;
+&lt;li&gt;查询转换器：配置查询优化策略&lt;/li&gt;
+&lt;li&gt;内容检索器：配置数据源&lt;/li&gt;
+&lt;li&gt;查询路由器（可选）：配置多个数据源时的路由策略&lt;/li&gt;
+&lt;li&gt;内容聚合器（可选）：配置多个数据源时的内容聚合模型&lt;/li&gt;
+&lt;li&gt;内容注入器：配置提示词的注入策略&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;rag管道&#34;&gt;RAG管道
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;加载文档&lt;/strong&gt; ：使用适当的文档加载器和文档解析器载入文档&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;转换文档&lt;/strong&gt; ：使用文档转换器清理或增强文档&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;拆分文档&lt;/strong&gt; ：使用合适的文档拆分器将文档拆分为更小的片段&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;嵌入文档&lt;/strong&gt; ：使用嵌入模型将文档片段转换为嵌入向量再用摄取器将向量存储到向量数据库中&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;检索相关内容&lt;/strong&gt; : 使用配置好的检索增强器对文档进行检索&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;聚合注入内容&lt;/strong&gt; : 使用内容聚合器将检索到的相关内容进行结果重排后聚合再使用内容注入器注入到用户查询中，提供给语言模型,生成最终响应&lt;/li&gt;
 &lt;/ul&gt;
 </description>
         </item>
         <item>
-        <title>langchain4j的模型交互</title>
+        <title>LangChain4j的模型交互</title>
         <link>https://Tyritic.github.io/p/langchain4j%E7%9A%84%E6%A8%A1%E5%9E%8B%E4%BA%A4%E4%BA%92/</link>
         <pubDate>Thu, 06 Mar 2025 15:40:51 +0800</pubDate>
         
@@ -1095,8 +1270,8 @@
         <pubDate>Thu, 06 Mar 2025 14:33:36 +0800</pubDate>
         
         <guid>https://Tyritic.github.io/p/langchain4j%E5%9F%BA%E7%A1%80%E5%92%8C%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/</guid>
-        <description>&lt;h2 id=&#34;langchain4j&#34;&gt;langchain4j
-&lt;/h2&gt;&lt;p&gt;langchain4j是langchain的java版本，目的是简化将 LLM 集成到 Java 应用程序中的过程&lt;/p&gt;
+        <description>&lt;h2 id=&#34;langchain4j&#34;&gt;LangChain4j
+&lt;/h2&gt;&lt;p&gt;LangChain4j是LangChain的java版本，目的是简化将 LLM 集成到 Java 应用程序中的过程&lt;/p&gt;
 &lt;h3 id=&#34;核心功能&#34;&gt;核心功能
 &lt;/h3&gt;&lt;ol&gt;
 &lt;li&gt;&lt;strong&gt;统一API&lt;/strong&gt;：LangChain4j提供了标准化的API，使得可以方便地接入主流的LLM提供商，可以轻松切换不同的模型和存储，而无需重写代码。&lt;/li&gt;
@@ -1129,17 +1304,43 @@
 &lt;p&gt;在SpringBoot框架中引入langchain4j-ollama支持&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
-&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;15
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;16
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;17
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;18
 &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
 &lt;td class=&#34;lntd&#34;&gt;
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-xml&#34; data-lang=&#34;xml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;dev.langchain4j&lt;span class=&#34;nt&#34;&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;langchain4j-ollama-spring-boot-starter&lt;span class=&#34;nt&#34;&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;lt;version&amp;gt;&lt;/span&gt;1.0.0-beta1&lt;span class=&#34;nt&#34;&gt;&amp;lt;/version&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;dev.langchain4j&lt;span class=&#34;nt&#34;&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;langchain4j-ollama&lt;span class=&#34;nt&#34;&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;version&amp;gt;&lt;/span&gt;1.0.0-beta1&lt;span class=&#34;nt&#34;&gt;&amp;lt;/version&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;nt&#34;&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;dev.langchain4j&lt;span class=&#34;nt&#34;&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;nt&#34;&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;langchain4j&lt;span class=&#34;nt&#34;&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;nt&#34;&gt;&amp;lt;version&amp;gt;&lt;/span&gt;1.0.0-beta1&lt;span class=&#34;nt&#34;&gt;&amp;lt;/version&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c&#34;&gt;&amp;lt;!-- 如果要通过application.yml中自动配置Bean才引入 --&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;         &lt;span class=&#34;nt&#34;&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;dev.langchain4j&lt;span class=&#34;nt&#34;&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;         &lt;span class=&#34;nt&#34;&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;langchain4j-ollama-spring-boot-starter&lt;span class=&#34;nt&#34;&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;         &lt;span class=&#34;nt&#34;&gt;&amp;lt;version&amp;gt;&lt;/span&gt;1.0.0-beta1&lt;span class=&#34;nt&#34;&gt;&amp;lt;/version&amp;gt;&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
@@ -1160,6 +1361,25 @@
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;       &lt;span class=&#34;nt&#34;&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;langchain4j-spring-boot-starter&lt;span class=&#34;nt&#34;&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;       &lt;span class=&#34;nt&#34;&gt;&amp;lt;version&amp;gt;&lt;/span&gt;1.0.0-beta1&lt;span class=&#34;nt&#34;&gt;&amp;lt;/version&amp;gt;&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;引入RAG的相关支持&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-xml&#34; data-lang=&#34;xml&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nt&#34;&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;nt&#34;&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;dev.langchain4j&lt;span class=&#34;nt&#34;&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;nt&#34;&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;langchain4j-easy-rag&lt;span class=&#34;nt&#34;&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;nt&#34;&gt;&amp;lt;version&amp;gt;&lt;/span&gt;1.0.0-beta1&lt;span class=&#34;nt&#34;&gt;&amp;lt;/version&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
 &lt;/div&gt;&lt;/li&gt;

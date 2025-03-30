@@ -1991,17 +1991,7 @@ $$&lt;p&gt;
 &lt;p&gt;你找了个夜晚，偷偷把老师桌面上和你爸爸配对的公钥，换成了你的公钥，那么下次你在请假的时候，你继续模仿你爸爸的字迹写了个请假条，然后用你的私钥做个了「数字签名」。&lt;/p&gt;
 &lt;p&gt;但是老师并不知道自己的公钥被你替换过了，所以他还是按照往常一样用公钥解密，由于这个公钥和你的私钥是配对的，老师当然能用这个被替换的公钥解密出来，并且确认了内容的完整性，于是老师就会以为是家长写的请假条，又允许你请假了。&lt;/p&gt;
 &lt;h4 id=&#34;通信过程&#34;&gt;通信过程
-&lt;/h4&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/640&#34;
-	
-	
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;通信过程&#34;
-	
-	
-&gt;&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;第一阶段&lt;/strong&gt;是TLS四次握手，这一阶段主要是利用&lt;strong&gt;非对称加密&lt;/strong&gt;的特性各种交换信息，最后得到一个&amp;quot;会话秘钥&amp;quot;。&lt;/p&gt;
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;第一阶段&lt;/strong&gt;是TLS四次握手，这一阶段主要是利用&lt;strong&gt;非对称加密&lt;/strong&gt;的特性各种交换信息，最后得到一个&amp;quot;会话秘钥&amp;quot;。&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;第二阶段&lt;/strong&gt;是则是在第一阶段的&amp;quot;&lt;strong&gt;会话秘钥&lt;/strong&gt;&amp;ldquo;基础上，进行&lt;strong&gt;对称加密&lt;/strong&gt;通信。&lt;/p&gt;
 &lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E5%BA%94%E7%94%A8%E5%B1%82%E5%8D%8F%E8%AE%AE/640.png&#34;
 	width=&#34;1080&#34;
@@ -2033,16 +2023,16 @@ $$&lt;p&gt;
 &lt;li&gt;服务器的数字证书，包含被CA私钥加密过的服务器公钥。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
-&lt;li&gt;第三次握手：客户端收到服务器的回应之后，通过浏览器或者操作系统中的 CA 公钥，确认服务器的数字证书的真实性。客户端会&lt;strong&gt;从数字证书中取出服务器的公钥&lt;/strong&gt;，然后使用它加密报文，向服务器发送如下信息：
+&lt;li&gt;第三次握手：通过浏览器或者操作系统中的 CA 公钥，确认服务器的数字证书的真实性。同时生成会话密钥： 客户端使用客户端随机数，服务器随机数和 &lt;strong&gt;&lt;code&gt;pre_master_key&lt;/code&gt;&lt;/strong&gt; 这三个随机数进行计算得到一个 &lt;strong&gt;会话秘钥&lt;/strong&gt; 。客户端会 &lt;strong&gt;从数字证书中取出服务器的公钥&lt;/strong&gt; ，然后使用它加密报文的 &lt;strong&gt;&lt;code&gt;pre-master key&lt;/code&gt;&lt;/strong&gt; ，向服务器发送如下信息：
 &lt;ul&gt;
 &lt;li&gt;一个随机数 &lt;strong&gt;&lt;code&gt;（pre-master key）&lt;/code&gt;&lt;/strong&gt; ：该随机数由客户端生成，并被服务器公钥加密。&lt;/li&gt;
-&lt;li&gt;会话密钥： 客户端这边&lt;strong&gt;已经拥有三个随机数&lt;/strong&gt;：客户端随机数，服务器随机数和 &lt;strong&gt;&lt;code&gt;pre_master_key&lt;/code&gt;&lt;/strong&gt; ，用这三个随机数进行计算得到一个&lt;strong&gt;会话秘钥&lt;/strong&gt;&amp;quot;。此时客户端通知服务端，后面会用这个会话秘钥进行对称机密通信。&lt;/li&gt;
-&lt;li&gt;内容摘要：客户端会把迄今为止的通信数据内容生成一个摘要，用 &lt;strong&gt;会话秘钥&lt;/strong&gt; 加密一下，发给服务器做校验，此时客户端这边的握手流程就结束了，因此也叫&lt;strong&gt;Finished报文&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;加密通信算法改变通知：表示随后的信息都将用会话秘钥加密通信。&lt;/li&gt;
+&lt;li&gt;内容摘要：客户端会把迄今为止的通信数据内容生成一个摘要，用 &lt;strong&gt;会话秘钥&lt;/strong&gt; 加密，发给服务器做校验，此时客户端这边的握手流程就结束了，因此也叫 &lt;strong&gt;Finished报文&lt;/strong&gt; 。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
-&lt;li&gt;第四次握手：服务器收到客户端的第三个随机数 &lt;strong&gt;&lt;code&gt;（pre-master key）&lt;/code&gt;&lt;/strong&gt; 之后，通过协商的加密算法，计算出本次通信的 &lt;strong&gt;会话秘钥&lt;/strong&gt; 。
+&lt;li&gt;第四次握手：服务器收到客户端的第三个随机数 &lt;strong&gt;&lt;code&gt;（pre-master key）&lt;/code&gt;&lt;/strong&gt; 之后通过服务器私钥进行解密获得原文，通过与客户端协商的加密算法，计算出本次通信的 &lt;strong&gt;会话秘钥&lt;/strong&gt; 。
 &lt;ul&gt;
-&lt;li&gt;会话密钥：服务端此时拿到客户端传来的 &lt;strong&gt;&lt;code&gt;pre_master_key&lt;/code&gt;&lt;/strong&gt;（虽然被服务器公钥加密过，但服务器有私钥，能解密获得原文），集齐三个随机数，跟客户端一样，用这三个随机数通过同样的算法获得一个&amp;rdquo;&lt;strong&gt;会话秘钥&lt;/strong&gt;&amp;quot;。此时服务器告诉客户端，后面会用这个&amp;quot;会话秘钥&amp;quot;进行加密通信。&lt;/li&gt;
+&lt;li&gt;加密通信算法改变通知，表示随后的信息都将用会话秘钥加密通信。&lt;/li&gt;
 &lt;li&gt;服务器握手结束通知，表示服务器的握手阶段已经结束。这一项同时把之前所有内容的发生的数据做个摘要，用来供客户端校验。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
