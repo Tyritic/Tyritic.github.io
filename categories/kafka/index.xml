@@ -43,22 +43,26 @@
         
         <guid>https://Tyritic.github.io/p/kafka%E7%9A%84%E6%B6%88%E6%81%AF%E9%A1%BA%E5%BA%8F%E6%80%A7%E5%92%8C%E5%AE%8C%E6%95%B4%E6%80%A7/</guid>
         <description>&lt;h2 id=&#34;消息顺序性的保证&#34;&gt;消息顺序性的保证
-&lt;/h2&gt;&lt;p&gt;Kafka 通过分区机制和消息键来保证消息的顺序性。在 Kafka 中，每个 Topic 可以分为多个分区，每个分区内的消息都是有序的。&lt;/p&gt;
-&lt;p&gt;在生产者端&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;在同一个分区内，消息是有序的。&lt;/li&gt;
-&lt;li&gt;消息键将相关消息分配到同一分区，可以保证这些消息在同一分区内依然有序。&lt;/li&gt;
-&lt;li&gt;每次添加消息到 Partition(分区) 的时候都会采用尾加法&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Kafka默认的分区策略是基于消息键的哈希值&lt;/p&gt;
-&lt;p&gt;消费者端&lt;/p&gt;
-&lt;p&gt;消费者在消费消息时，同一个消费者线程只能同时消费一个分区的消息，这样可以保证消费端在处理某个分区内的消息时是按顺序的。如果 Kafka 集群中没有足够的消费者线程，某个消费者线程可能需要同时消费多个分区的消息，但这些分区之间的顺序是无法保证的。&lt;/p&gt;
-&lt;h2 id=&#34;消息完整性的保证&#34;&gt;消息完整性的保证
+&lt;/h2&gt;&lt;p&gt;Kafka 通过分区机制和消息键来保证消息的顺序性。在 Kafka 中，每个 Topic 可以分为多个分区，每个分区内的消息都是有序的。消息在被追加到 Partition(分区)的时候都会分配一个特定的偏移量（offset）。Kafka 通过偏移量（offset）来保证消息在分区内的顺序性。&lt;/p&gt;
+&lt;p&gt;对于生产者端，因为在同一个分区内，消息是有序的。 因此可以使用消息键和指定分区将相关消息分配到同一分区，可以保证这些消息在同一分区内依然有序。&lt;/p&gt;
+&lt;p&gt;对于消费者端：消费者在消费消息时，同一个消费者线程只能同时消费一个分区的消息，这样可以保证消费端在处理某个分区内的消息时是按顺序的。如果 Kafka 集群中没有足够的消费者线程，某个消费者线程可能需要同时消费多个分区的消息，但这些分区之间的顺序是无法保证的。&lt;/p&gt;
+&lt;h2 id=&#34;消息可靠性的保证&#34;&gt;消息可靠性的保证
 &lt;/h2&gt;&lt;h3 id=&#34;生产者端的保证&#34;&gt;生产者端的保证
-&lt;/h3&gt;&lt;p&gt;生产者在发送消息时，需要通过消息确认机制来确保消息成功到达。生产者发送消息至 Broker ，需要处理 Broker 的响应，如果 Broker 返回写入失败等错误消息，重试发送。可以配置 &lt;code&gt;acks&lt;/code&gt; 参数来决定生产者在收到多少个副本的确认后认为消息发送成功。&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;生产者在发送消息时，需要通过消息确认机制来确保消息成功到达。生产者发送消息至 Broker ，需要处理 Broker 的响应，如果 Broker 返回写入失败等错误消息，重试发送。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;设置合适的重试次数 &lt;strong&gt;&lt;code&gt;retries&lt;/code&gt;&lt;/strong&gt; 和重试间隔：决定生产者端的重试次数&lt;/li&gt;
+&lt;li&gt;配置合适的 &lt;strong&gt;&lt;code&gt;acks&lt;/code&gt;&lt;/strong&gt; 参数：决定生产者在收到多少个副本的确认后认为消息发送成功。
+&lt;ul&gt;
+&lt;li&gt;acks=0：生产者不会等待任何服务器的确认。消息可能会丢失，但性能最高。&lt;/li&gt;
+&lt;li&gt;acks=1：生产者会在领导者副本（leader）成功接收到数据后收到确认。数据可靠性得到了基本保障，但如果领导者副本崩溃，仍有可能丢失消息。&lt;/li&gt;
+&lt;li&gt;acks=all（或 -1）：生产者会等待所有同步副本（ISR）接收到数据后收到确认。数据可靠性最高，但性能会有所下降，因为需要等多个副本都确认接收。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h3 id=&#34;消费者端的保证&#34;&gt;消费者端的保证
-&lt;/h3&gt;&lt;p&gt;消息在被追加到 Partition(分区)的时候都会分配一个特定的偏移量（offset）。偏移量（offset)表示 Consumer 当前消费到的 Partition(分区)的所在的位置。Kafka 通过偏移量（offset）可以保证消息在分区内的顺序性。在项目开发中通常建议关闭自动提交offset，&lt;strong&gt;每次在真正消费完消息之后再自己手动提交 offset&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;自动提交offset会导致以下问题，当消费者拉取到了分区的某个消息之后，消费者会自动提交了 offset。当消费者刚拿到这个消息准备进行真正消费的时候，突然挂掉了，消息实际上并没有被消费，但是 offset 却被自动提交了。&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;消息在被追加到 Partition(分区)的时候都会分配一个特定的偏移量（offset）。偏移量（offset）表示 Consumer 当前消费到的 Partition(分区)的所在的位置。Kafka 通过偏移量（offset）可以保证消息在分区内的顺序性。&lt;/p&gt;
+&lt;p&gt;自动提交offset会导致以下问题：当消费者拉取到了分区的某个消息之后，消费者会自动提交了 offset。当消费者刚拿到这个消息准备进行真正消费的时候，突然挂掉了，消息实际上并没有被消费，但是 offset 却被自动提交了。&lt;/p&gt;
+&lt;p&gt;通常的解决方法：&lt;strong&gt;手动关闭自动提交 offset，每次在真正消费完消息之后再自己手动提交 offset 。&lt;/strong&gt; 但是这样会带来消息被重新消费的问题。比如你刚刚消费完消息之后，还没提交 offset，结果自己挂掉了，那么这个消息理论上就会被消费两次。&lt;/p&gt;
 &lt;h3 id=&#34;broker的保证&#34;&gt;Broker的保证
 &lt;/h3&gt;&lt;p&gt;Broker通过 &lt;strong&gt;多副本机制&lt;/strong&gt; 来保证消息不丢失。Kafka 中的每个分区都有多个副本（Replicas），这些副本分布在不同的 Broker 上。当一个 Broker 宕机时，其他持有该分区副本的 Broker 能够接管工作。&lt;/p&gt;
 &lt;p&gt;Kafka 的副本分为leader副本和follower副本。每个主题（topic）中的分区（partition）会有一个leader副本和多个follower副本。&lt;/p&gt;
@@ -67,6 +71,161 @@
 &lt;li&gt;follower副本：定期从领导者副本中拉取数据，保持数据的一致性。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;当leader副本宕机时，会在follower副本中选出一个新的领导者，确保数据的连续性和可用性。&lt;/p&gt;
+&lt;style type=&#34;text/css&#34;&gt;
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+&lt;/style&gt;&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;在 Kafka 中，ISR (In-Sync Replica) 是一组与 Leader 副本保持同步的所有副本。具体来说，ISR 包含那些能够及时复制 Leader 副本中最新消息的副本。ISR 中的副本保证了它们的数据与 Leader 的数据一致或者仅仅落后很少量的数据，这些副本在副本集合中被认为是“同步”的。&lt;/p&gt;
+&lt;p&gt;一个副本如果长时间无法与 Leader 同步（可能因为网络延迟、故障等原因），它就会被移出 ISR 集合。只有在其再次追上 Leader 后，才会被重新加入 ISR 集合。&lt;/p&gt;&lt;/div&gt;
+
+&lt;h3 id=&#34;选举机制&#34;&gt;选举机制
+&lt;/h3&gt;&lt;p&gt;Kafka的选举有以下几种&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Kafka Controller的选举&lt;/li&gt;
+&lt;li&gt;Partition Leader的选举&lt;/li&gt;
+&lt;li&gt;Consumer Group Coordinator(消费组协调者)的选举。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Kafka Controller的选举过程&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;启动竞争&lt;/strong&gt; ：集群启动时，各个 Broker 节点会尝试在 ZooKeeper 中创建一个临时节点&lt;code&gt;/controller&lt;/code&gt;。ZooKeeper 是一个分布式协调服务，可保障只有一个节点能成功创建该节点。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;确定控制器&lt;/strong&gt; ：成功创建&lt;code&gt;/controller&lt;/code&gt;节点的 Broker 会成为控制器，并在该节点中记录自身的 Broker ID 等信息。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;故障处理&lt;/strong&gt; ：若控制器所在节点发生故障，其创建的临时节点会自动消失。其他 Broker 监听到这一变化后，会重新竞争创建&lt;code&gt;/controller&lt;/code&gt;节点，从而选出新的控制器。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Partition Leader的选举过程&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;控制器主导&lt;/strong&gt; ：分区首领选举由控制器负责。控制器会维护分区的状态信息，当检测到首领副本不可用时，会触发选举流程。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;优先副本选择&lt;/strong&gt; ：Kafka 优先选择分区的优先副本作为首领。优先副本是在分区创建时指定的第一个副本。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;存活副本选举&lt;/strong&gt; ：若优先副本不可用，控制器会从同步副本集合（ISR）中选择一个副本作为新的首领。同步副本是指与首领副本保持同步的副本。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;元数据更新&lt;/strong&gt; ：选举出新首领后，控制器会更新集群元数据，通知其他 Broker 新的首领信息。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Consumer Group Coordinator(消费组协调者)的选举&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;协调器确定&lt;/strong&gt;：消费者组中的消费者在启动时，会向 Kafka 集群发送请求，Kafka 根据消费者组 ID 的哈希值选择一个 Broker 作为协调器。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;注册与通知&lt;/strong&gt; ：消费者向选定的协调器注册自己，协调器会维护消费者组的成员信息，并将分区分配方案通知给各个消费者。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;故障处理&lt;/strong&gt; ：若协调器所在 Broker 故障，消费者会收到通知，重新发起协调器选举。&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h2 id=&#34;消息重复消费的处理方案&#34;&gt;消息重复消费的处理方案
 &lt;/h2&gt;&lt;p&gt;Kafka中会出现消息重复的情况，根本原因：&lt;strong&gt;服务端侧已经消费的数据没有成功提交 offset&lt;/strong&gt;&lt;/p&gt;
 &lt;p&gt;严格意义上是无法从根本上解决重复的消息，因为为了保证消息的可靠性会产生重复的消息。只能从业务层面解决重复消息的影响&lt;/p&gt;

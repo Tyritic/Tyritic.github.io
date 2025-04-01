@@ -10,7 +10,7 @@
 <meta property='og:description' content="SpringBoot框架的底层原理">
 <meta property='og:url' content='https://Tyritic.github.io/p/springboot%E5%BA%95%E5%B1%82%E5%8E%9F%E7%90%86/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开发' /><meta property='article:tag' content='框架原理' /><meta property='article:published_time' content='2024-11-08T18:47:12&#43;08:00'/><meta property='article:modified_time' content='2025-03-31T02:22:40&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开发' /><meta property='article:tag' content='框架原理' /><meta property='article:published_time' content='2024-11-08T18:47:12&#43;08:00'/><meta property='article:modified_time' content='2025-04-01T14:06:53&#43;00:00'/>
 <meta name="twitter:title" content="SpringBoot底层原理">
 <meta name="twitter:description" content="SpringBoot框架的底层原理">
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -288,6 +288,17 @@
             <nav id="TableOfContents">
   <ol>
     <li><a href="#起步依赖">起步依赖</a></li>
+    <li><a href="#springboot的启动流程">SpringBoot的启动流程</a>
+      <ol>
+        <li><a href="#springbootapplication-注解">@SpringBootApplication 注解</a>
+          <ol>
+            <li><a href="#组成部分">组成部分</a></li>
+            <li><a href="#作用">作用</a></li>
+          </ol>
+        </li>
+        <li><a href="#总体流程">总体流程</a></li>
+      </ol>
+    </li>
     <li><a href="#自动配置">自动配置</a>
       <ol>
         <li><a href="#概念">概念</a></li>
@@ -370,7 +381,7 @@
 
 
                 <time class="article-time--reading">
-                    阅读时长: 4 分钟
+                    阅读时长: 5 分钟
                 </time>
             </div>
 
@@ -378,7 +389,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：1762 字
+                     字数统计：2197 字
                 </time>
             </div>
 
@@ -398,9 +409,98 @@
     
     <h2 id="起步依赖">起步依赖
 </h2><p>原理：SpringBoot框架提供的起步依赖通过<strong>Maven的依赖传递</strong>集成了开发中常见的依赖</p>
+<h2 id="springboot的启动流程">SpringBoot的启动流程
+</h2><h3 id="springbootapplication-注解">@SpringBootApplication 注解
+</h3><p>这是SpringBoot启动的核心注解</p>
+<h4 id="组成部分">组成部分
+</h4><ul>
+<li>
+<p><strong><code>@SpringBootConfiguration</code></strong>：</p>
+<ul>
+<li>
+<p>Spring 的 <code>@Configuration</code> 注解的特殊形式，表示这是一个 Spring 配置类，Spring 会根据该类来加载和注册 Bean。</p>
+</li>
+<li>
+<p>作用类似于传统的 XML 配置文件，它让类中的 <code>@Bean</code> 方法生效，并将其注册到 Spring 容器中。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong><code>@EnableAutoConfiguration</code></strong>：</p>
+<ul>
+<li>
+<p>Spring Boot 的自动配置机制的核心，负责启用 Spring Boot 的自动配置功能。</p>
+</li>
+<li>
+<p>Spring Boot 会根据应用的类路径、已添加的依赖以及定义的配置（如 <code>application.properties</code> 或 <code>application.yml</code>），自动配置 Spring 应用的相关组件和 Bean，简化了手动配置</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong><code>@ComponentScan</code></strong>：</p>
+<ul>
+<li>
+<p>启用组件扫描功能，自动发现并注册 <code>@Component</code>、<code>@Service</code>、<code>@Repository</code>、<code>@Controller</code> 等注解标注的 Spring 组件。</p>
+</li>
+<li>
+<p>它会扫描 <code>@SpringBootApplication</code> 所在类的当前包及其子包，自动将符合条件的组件加载到 Spring 容器中。</p>
+</li>
+</ul>
+</li>
+</ul>
+<h4 id="作用">作用
+</h4><ul>
+<li><strong>简化配置</strong> ：通过这个组合注解，Spring Boot 项目可以不用手动配置 <code>@Configuration</code>、<code>@EnableAutoConfiguration</code>、<code>@ComponentScan</code>，使应用更易于启动和管理。</li>
+<li><strong>自动配置</strong> ：借助自动配置机制，开发者无需手动配置许多 Spring 组件，Spring Boot 会根据项目依赖来自动注入所需的 Bean。</li>
+<li><strong>组件扫描</strong> ：自动扫描和加载定义在项目中的 Spring 组件，简化了 Bean 注册过程。</li>
+</ul>
+<h3 id="总体流程">总体流程
+</h3><ul>
+<li>
+<p><strong>启动 main() 方法</strong></p>
+<ul>
+<li>
+<p>应用从 <code>main()</code> 方法启动，并通过 <code>SpringApplication.run()</code> 引导应用启动。</p>
+</li>
+<li>
+<p>应用会创建<code>SpringApplication</code> 对象，推断应用类型、设置初始化器、设置启动监听器、确定主应用类。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>准备环境（ConfigurableEnvironment）</strong></p>
+<ul>
+<li>Spring Boot 在启动过程中准备应用环境，加载配置文件、系统环境变量以及命令行参数。</li>
+</ul>
+</li>
+<li>
+<p><strong>创建ApplicationContext</strong></p>
+<ul>
+<li>创建应用上下文，加载配置类和自动配置类，注册 Bean 并执行依赖注入等初始化操作。</li>
+</ul>
+</li>
+<li>
+<p><strong>刷新ApplicationContext并启动内嵌 Web 服务器</strong></p>
+<ul>
+<li>对于 Web 应用，Spring Boot 会自动启动嵌入式 Web 容器（如 Tomcat），并注册相关的 Servlet 和 Filter。</li>
+</ul>
+</li>
+<li>
+<p><strong>自动配置</strong></p>
+<ul>
+<li>通过 <strong><code>@EnableAutoConfiguration</code></strong> 自动配置各种组件</li>
+</ul>
+</li>
+<li>
+<p><strong>请求处理</strong></p>
+<ul>
+<li>内嵌的 <strong><code>DispatcherServlet</code></strong> 负责处理 HTTP 请求。</li>
+</ul>
+</li>
+</ul>
 <h2 id="自动配置">自动配置
 </h2><h3 id="概念">概念
-</h3><p>当spring容器启动后，一些配置类、bean对象就自动存入到了I0C容器中，不需要手动去声明，从而简化了开发，省去了繁琐的配置操作。</p>
+</h3><p>当spring容器启动后，一些配置类、bean对象就自动存入到了IOC容器中，不需要手动去声明，从而简化了开发，省去了繁琐的配置操作。</p>
 <h3 id="实现方案">实现方案
 </h3><h4 id="方案一componentscan-组件扫描依赖">方案一：@ComponentScan 组件扫描依赖
 </h4><div class="highlight"><div class="chroma">
@@ -418,7 +518,7 @@
 </span></span></span></code></pre></td></tr></table>
 </div>
 </div><h4 id="方案二lmport-导入">方案二：@lmport 导入
-</h4><p>使用@lmport导入的类会被Spring加载到I0C容器中，导入形式主要有以下几种:</p>
+</h4><p>使用 <strong><code>@lmport</code></strong> 导入的类会被Spring加载到I0C容器中，导入形式主要有以下几种:</p>
 <ul>
 <li>导入 普通类</li>
 <li>导入 配置类</li>
@@ -444,7 +544,7 @@
 </div><h3 id="源码分析">源码分析
 </h3><ol>
 <li>
-<p>查看启动类的注解**@SpringBootApplication**的源码</p>
+<p>查看启动类的注解 <strong><code>@SpringBootApplication</code></strong> 的源码</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -613,14 +713,14 @@
   <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
 </svg>
 
-    </span>提示</p><p>问：为什么在启动类中可以声明第三方Bean对象？</p>
-<p>答：@SpringBootApplication中封装了@SpringBootConfiguration，表明启动类也是一个配置类</p>
-<p>问：为什么启动类只会扫描启动类所在包及其子包的组件</p>
-<p>答：@SpringBootApplication中封装了@ComponentScan的注解</p></div>
+    </span>提示</p><p>为什么在启动类中可以声明第三方Bean对象？</p>
+<p><strong><code>@SpringBootApplication</code></strong> 中封装了 <strong><code>@SpringBootConfiguration</code></strong> ，表明启动类也是一个配置类</p>
+<p>为什么启动类只会扫描启动类所在包及其子包的组件</p>
+<p><strong><code>@SpringBootApplication</code></strong> 中封装了 <strong><code>@ComponentScan</code></strong> 的注解</p></div>
 
 </li>
 <li>
-<p>由 <strong>@SpringBootApplication</strong> 的注解源码可知自动配置由注解 <strong>@EnableAutoConfiguration</strong> 提供，查看 @EnableAutoConfiguration的注解</p>
+<p>由 <strong><code>@SpringBootApplication</code></strong> 的注解源码可知自动配置由注解 <strong><code>@EnableAutoConfiguration</code></strong> 提供，查看 <strong><code>@EnableAutoConfiguration</code></strong> 的注解</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -638,25 +738,25 @@
 </span><span class="lnt">13
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">@Target({ElementType.TYPE})
-</span></span><span class="line"><span class="cl">@Retention(RetentionPolicy.RUNTIME)
-</span></span><span class="line"><span class="cl">@Documented
-</span></span><span class="line"><span class="cl">@Inherited
-</span></span><span class="line"><span class="cl">@AutoConfigurationPackage
-</span></span><span class="line"><span class="cl">@Import({AutoConfigurationImportSelector.class})
-</span></span><span class="line"><span class="cl">public @interface EnableAutoConfiguration {
-</span></span><span class="line"><span class="cl">    String ENABLED_OVERRIDE_PROPERTY = &#34;spring.boot.enableautoconfiguration&#34;;
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    Class&lt;?&gt;[] exclude() default {};
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    String[] excludeName() default {};
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="nd">@Target</span><span class="p">({</span><span class="n">ElementType</span><span class="p">.</span><span class="na">TYPE</span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nd">@Retention</span><span class="p">(</span><span class="n">RetentionPolicy</span><span class="p">.</span><span class="na">RUNTIME</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nd">@Documented</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nd">@Inherited</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nd">@AutoConfigurationPackage</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nd">@Import</span><span class="p">({</span><span class="n">AutoConfigurationImportSelector</span><span class="p">.</span><span class="na">class</span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">public</span><span class="w"> </span><span class="nd">@interface</span><span class="w"> </span><span class="n">EnableAutoConfiguration</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">ENABLED_OVERRIDE_PROPERTY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&#34;spring.boot.enableautoconfiguration&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">Class</span><span class="o">&lt;?&gt;[]</span><span class="w"> </span><span class="n">exclude</span><span class="p">()</span><span class="w"> </span><span class="k">default</span><span class="w"> </span><span class="p">{};</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="nf">excludeName</span><span class="p">()</span><span class="w"> </span><span class="k">default</span><span class="w"> </span><span class="p">{};</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
 </div>
-</div><p>可以看出 <strong>@EnableAutoConfiguration</strong> 注解通过 <strong>@Import</strong>注解导入 ImportSelector 接口实现类来实现自动配置</p>
+</div><p>可以看出 <strong><code>@EnableAutoConfiguration</code></strong> 注解通过 <strong><code>@Import</code></strong> 注解导入 ImportSelector 接口实现类来实现自动配置</p>
 </li>
 <li>
-<p><strong>查看AutoConfigurationImportSelector.class</strong> 的源码</p>
+<p><strong>查看 <code>AutoConfigurationImportSelector.class</code></strong>  的源码</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -679,10 +779,10 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><p><strong>selectImports</strong>方法返回要导入的Bean对象的全类名</p>
+</div><p><strong><code>selectImports</code></strong> 方法返回要导入的Bean对象的全类名</p>
 </li>
 <li>
-<p>从 <strong>AutoConfigurationImportSelector.class</strong> 的源码可以知道返回值从 <strong>autoConfigurationEntry.getConfigurations()</strong> 获得而<strong>autoConfigurationEntry</strong> 由 <strong>AutoConfigurationImportSelector.getAutoConfigurationEntry</strong>方法获得。查看 <strong>getAutoConfigurationEntry</strong> 的源码</p>
+<p>从 <strong><code>AutoConfigurationImportSelector.class</code></strong> 的源码可以知道返回值从 <strong><code>autoConfigurationEntry.getConfigurations()</code></strong> 获得而 <strong><code>autoConfigurationEntry</code></strong>  由 <strong><code>AutoConfigurationImportSelector.getAutoConfigurationEntry</code></strong> 方法获得。查看 <strong><code>getAutoConfigurationEntry</code></strong> 的源码</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -721,7 +821,7 @@
 </div>
 </div></li>
 <li>
-<p>从 <strong>AutoConfigurationImportSelector.getAutoConfigurationEntry</strong>看出 <strong>configuration</strong>是一个List&lt;String&gt;对象，从<strong>AutoConfigurationImportSelector.getCandidateConfigurations(annotationMetadata, attributes)</strong> 中获得。查看<strong>AutoConfigurationImportSelector.getCandidateConfigurations(annotationMetadata, attributes)</strong> 的源码</p>
+<p>从 <strong><code>AutoConfigurationImportSelector.getAutoConfigurationEntry</code></strong> 看出 <strong><code>configuration</code></strong> 是一个List&lt;String&gt;对象，从  <strong><code>AutoConfigurationImportSelector.getCandidateConfigurations(annotationMetadata, attributes)</code></strong>  中获得。查看 <strong><code>AutoConfigurationImportSelector.getCandidateConfigurations(annotationMetadata, attributes)</code></strong> 的源码</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -742,32 +842,52 @@
 </li>
 </ol>
 <h3 id="实现过程">实现过程
-</h3><ol>
+</h3><ul>
 <li>
-<p><strong>@SpringBootApplication</strong>注解封装了 <strong>@EnableAutoConfiguration</strong> 来实现自动配置</p>
+<p><strong><code>@SpringBootApplication</code></strong> 注解封装了 <strong><code>@EnableAutoConfiguration</code></strong> 来实现自动配置</p>
 </li>
 <li>
-<p><strong>@EnableAutoConfiguration</strong> 封装了 <strong>@Import</strong> 注解，该注解以引入 <strong>ImportSelector</strong>接口的实现类<strong>AutoConfigurationImportSelector</strong> 来完成自动装配</p>
+<p><strong><code>@EnableAutoConfiguration</code></strong> 封装了 <strong><code>@Import</code></strong> 注解，该注解以引入 <strong><code>ImportSelector</code></strong> 接口的实现类 <strong><code>AutoConfigurationImportSelector</code></strong> 来完成自动装配</p>
 </li>
 <li>
-<p><strong>AutoConfigurationImportSelector</strong> 获取 <strong>AutoConfigurationEntry</strong> 对象，该对象具有成员变量<strong>Configurations</strong>用于存储Bean对象的全类名</p>
+<p><strong><code>AutoConfigurationImportSelector</code></strong> 获取 <strong><code>AutoConfigurationEntry</code></strong> 对象，该对象具有成员变量 <strong><code>Configurations</code></strong> 用于存储Bean对象的全类名</p>
 </li>
 <li>
-<p><strong>AutoConfigurationEntry</strong> 使用 <strong>getCandidateConfigurations</strong>方法，SpringBoot框架会自动加载 <strong>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</strong> 配置文件并封装到 <strong>configurations</strong> 这个List集合中</p>
+<p><strong><code>AutoConfigurationEntry</code></strong> 使用 <strong><code>getCandidateConfigurations</code></strong> 方法，SpringBoot框架会自动加载 <strong><code>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code></strong> 配置文件并封装到 <strong>configurations</strong> 这个List集合中</p>
 </li>
 <li>
-<p><strong>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</strong> 中封装了Bean对象的声明</p>
+<p><strong><code>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code></strong> 中封装了Bean对象的声明</p>
 </li>
-</ol>
+</ul>
+<p><img src="/p/springboot%E5%BA%95%E5%B1%82%E5%8E%9F%E7%90%86/640.png"
+	width="1080"
+	height="363"
+	
+	loading="lazy"
+	
+		alt="自动配置原理"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="297"
+		data-flex-basis="714px"
+	
+></p>
+<p>总而言之</p>
+<ul>
+<li><strong><code>@SpringBootApplication</code></strong> 内封装了 <strong><code>@SpringBootConfiguration</code></strong> 表示SpringBoot启动类本身就是一个配置类，同时封装了**<code>@EnableConfiguration</code>** 注解实现自动装配</li>
+<li><strong><code>@EnableConfiguration</code></strong> 通过 <strong><code>@Import</code></strong> 引入了 <strong><code>AutoConfigurationImportSelector</code></strong> 类，这个类实现了**<code>ImportSelector</code>** 接口，这个接口的作用就是收集需要导入的配置类，配合 <strong><code>@Import()</code></strong> 就将相应的类导入到 Spring 容器中。</li>
+<li>扫描 classpath 下所有的 <strong><code>META-INF/spring.factories</code></strong> 中的文件，根据文件中指定的配置类加载相应的 Bean 的自动配置。</li>
+</ul>
 <h3 id="条件配置">条件配置
-</h3><p><strong>@Conditional</strong>
+</h3><p><strong><code>@Conditional</code></strong>
 作用：按照一定的条件进行判断，在满足给定条件后才会注册对应的bean对象到SpringIOC容器中。</p>
 <p>位置：方法、类</p>
-<p><strong>@Conditional</strong> 本身是一个父注解，派生出大量的子注解:</p>
+<p><strong><code>@Conditional</code></strong> 本身是一个父注解，派生出大量的子注解:</p>
 <ul>
-<li><strong>@Conditional0nClass</strong>：判断环境中是否有对应字节码文件，才注册bean到IOC容器。</li>
-<li><strong>@ConditionalOnMissingBean</strong>：判断环境中没有对应的bean(类型或名称)，才注册bean到IOC容器。</li>
-<li><strong>@ConditionalOnProperty</strong>：判断配置文件中有对应属性和值，才注册bean到IOC容器。</li>
+<li><strong><code>@Conditional0nClass</code></strong> ：判断环境中是否有对应字节码文件，才注册bean到IOC容器。</li>
+<li><strong><code>@ConditionalOnMissingBean</code></strong> ：判断环境中没有对应的bean(类型或名称)，才注册bean到IOC容器。</li>
+<li><strong><code>@ConditionalOnProperty</code></strong>：判断配置文件中有对应属性和值，才注册bean到IOC容器。</li>
 </ul>
 
 </section>
@@ -794,7 +914,7 @@
 
 
         <span>
-            最后更新于 2025-03-31 02:22 UTC
+            最后更新于 2025-04-01 14:06 UTC
         </span>
     </section></footer>
 
@@ -810,19 +930,6 @@
     <h2 class="section-title">相关文章</h2>
     <div class="related-content">
         <div class="flex article-list--tile">
-            
-                
-<article class="">
-    <a href="/p/springboot%E9%85%8D%E7%BD%AE%E4%BC%98%E5%85%88%E7%BA%A7/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">SpringBoot配置优先级</h2>
-        </div>
-    </a>
-</article>
-
             
                 
 <article class="">
@@ -871,6 +978,19 @@
 
         <div class="article-details">
             <h2 class="article-title">RestTemplate和Restful风格接口</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/springboot%E7%83%AD%E9%83%A8%E7%BD%B2%E5%92%8C%E6%97%A5%E5%BF%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">SpringBoot热部署和日志</h2>
         </div>
     </a>
 </article>

@@ -616,6 +616,7 @@
 &lt;/h2&gt;&lt;ul&gt;
 &lt;li&gt;JDK1.7中的 &lt;strong&gt;&lt;code&gt;HashMap&lt;/code&gt;&lt;/strong&gt; 使用头插法插入元素，在多线程的环境下，扩容的时候有可能导致环形链表的出现，形成死循环。因此，JDK1.8使用尾插法插入元素，在扩容时会保持链表元素原本的顺序，不会出现环形链表的问题。&lt;/li&gt;
 &lt;li&gt;多线程同时执行 &lt;strong&gt;&lt;code&gt;put&lt;/code&gt;&lt;/strong&gt; 操作，如果计算出来的索引位置是相同的，那会造成前一个 key 被后一个 key 覆盖，从而导致元素的丢失。&lt;/li&gt;
+&lt;li&gt;在一个线程中调用 **&lt;code&gt;get()&lt;/code&gt;**方法读取数据，而另一个线程同时修改了结构（如增加或删除元素），可能会导致读取操作得到错误的结果或抛出  &lt;strong&gt;&lt;code&gt;ConcurrentModificationException&lt;/code&gt;&lt;/strong&gt; 。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2 id=&#34;自定义hashmap&#34;&gt;自定义HashMap
 &lt;/h2&gt;&lt;h3 id=&#34;内部节点类&#34;&gt;内部节点类
@@ -1456,7 +1457,7 @@
 &gt;&lt;/p&gt;
 &lt;h3 id=&#34;加锁机制&#34;&gt;加锁机制
 &lt;/h3&gt;&lt;h4 id=&#34;分段锁加锁机制jdk-17以前&#34;&gt;&lt;strong&gt;分段锁加锁机制（JDK 1.7以前）&lt;/strong&gt;
-&lt;/h4&gt;&lt;p&gt;在 &lt;strong&gt;&lt;code&gt;ConcurrentHashMap&lt;/code&gt;&lt;/strong&gt; 中，将整个数据结构分为多个 Segment，每个 &lt;strong&gt;Segment&lt;/strong&gt; 都类似于一个小的 HashMap，每个 Segment 都有自己的锁，不同 &lt;strong&gt;&lt;code&gt;Segment&lt;/code&gt;&lt;/strong&gt; 之间的操作互不影响，从而提高并发性能。&lt;/p&gt;
+&lt;/h4&gt;&lt;p&gt;在 &lt;strong&gt;&lt;code&gt;ConcurrentHashMap&lt;/code&gt;&lt;/strong&gt; 中，将整个数据结构分为多个 &lt;strong&gt;&lt;code&gt;Segment&lt;/code&gt;&lt;/strong&gt;，每个 &lt;strong&gt;&lt;code&gt;Segment&lt;/code&gt;&lt;/strong&gt; 都类似于一个小的 &lt;strong&gt;&lt;code&gt;HashMap&lt;/code&gt;&lt;/strong&gt;，每个 &lt;strong&gt;&lt;code&gt;Segment&lt;/code&gt;&lt;/strong&gt; 都有自己的锁，不同 &lt;strong&gt;&lt;code&gt;Segment&lt;/code&gt;&lt;/strong&gt; 之间的操作互不影响，从而提高并发性能。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;不同 &lt;strong&gt;&lt;code&gt;Segment&lt;/code&gt;&lt;/strong&gt; 的并发写入（可以并发执行）&lt;/li&gt;
 &lt;li&gt;同一 &lt;strong&gt;&lt;code&gt;Segment&lt;/code&gt;&lt;/strong&gt; 的一写一读（可以并发执行）&lt;/li&gt;
@@ -1487,7 +1488,8 @@
 &lt;li&gt;&lt;strong&gt;扩容过程&lt;/strong&gt;：每个 &lt;strong&gt;&lt;code&gt;Segment&lt;/code&gt;&lt;/strong&gt; 维护自己的负载因子，当 &lt;strong&gt;&lt;code&gt;Segment&lt;/code&gt;&lt;/strong&gt; 中的元素数量超过阈值时，该 &lt;strong&gt;&lt;code&gt;Segment&lt;/code&gt;&lt;/strong&gt; 的 &lt;strong&gt;&lt;code&gt;HashMap&lt;/code&gt;&lt;/strong&gt; 会扩容，整体的  &lt;strong&gt;&lt;code&gt;ConcurrentHashMap&lt;/code&gt;&lt;/strong&gt; 并不是一次性全部扩容。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h4 id=&#34;悲观锁和乐观锁jdk-17以后&#34;&gt;&lt;strong&gt;悲观锁和乐观锁（JDK 1.7以后）&lt;/strong&gt;
-&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;get操作（读操作）&lt;/strong&gt;&lt;/p&gt;
+&lt;/h4&gt;&lt;p&gt;JDK 1.8 移除了 &lt;strong&gt;&lt;code&gt;Segment&lt;/code&gt;&lt;/strong&gt;，锁的粒度变得更加细化，锁只在链表或红黑树的&lt;strong&gt;节点级别&lt;/strong&gt;上进行。通过 CAS 进行插入操作，只有在更新链表或红黑树时才使用 &lt;strong&gt;&lt;code&gt;synchronized&lt;/code&gt;&lt;/strong&gt; ，并且只锁住链表或树的&lt;strong&gt;头节点&lt;/strong&gt;，进一步减少了锁的竞争，并发度大大增加。只要 hash 不冲突，就不会产生并发，就不会影响其他 Node 的读写，效率大幅提升。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;get操作（读操作）&lt;/strong&gt;&lt;/p&gt;
 &lt;p&gt;​		&lt;strong&gt;get&lt;/strong&gt;操作是无锁的。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;直接定位到目标桶，读取链表或红黑树中的数据。&lt;/li&gt;
@@ -1515,9 +1517,13 @@
 &lt;li&gt;&lt;strong&gt;基于 CAS 的扩容&lt;/strong&gt;：在扩容时，&lt;strong&gt;&lt;code&gt;ConcurrentHashMap&lt;/code&gt;&lt;/strong&gt; 采用了类似 &lt;strong&gt;&lt;code&gt;HashMap&lt;/code&gt;&lt;/strong&gt; 的方式，但通过&lt;strong&gt;CAS 操作&lt;/strong&gt;确保线程安全，避免了锁住整个数组。在扩容时，多个线程可以同时帮助完成扩容操作。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;渐进式扩容&lt;/strong&gt;：JDK 1.8 的 &lt;strong&gt;&lt;code&gt;ConcurrentHashMap&lt;/code&gt;&lt;/strong&gt; 引入了渐进式扩容机制，扩容时并不是一次性将所有数据重新分配，而是多个线程共同参与，逐步迁移旧数据到新数组中，降低了扩容时的性能开销。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;为什么不允许键和值为-null&#34;&gt;为什么不允许键和值为 &lt;strong&gt;&lt;code&gt;null&lt;/code&gt;&lt;/strong&gt;
+&lt;h3 id=&#34;为什么不允许键和值为-null&#34;&gt;为什么不允许键和值为 null
 &lt;/h3&gt;&lt;p&gt;&lt;code&gt;ConcurrentHashMap&lt;/code&gt; 的 key 和 value 不能为 &lt;strong&gt;&lt;code&gt;null&lt;/code&gt;&lt;/strong&gt; 主要是为了避免二义性。&lt;strong&gt;&lt;code&gt;null&lt;/code&gt;&lt;/strong&gt; 是一个特殊的值，表示没有对象或没有引用。如果你用 &lt;strong&gt;&lt;code&gt;null&lt;/code&gt;&lt;/strong&gt; 作为键，那么你就无法区分这个键是否存在于 &lt;code&gt;ConcurrentHashMap&lt;/code&gt; 中，还是根本没有这个键。&lt;/p&gt;
 &lt;p&gt;如果你用 &lt;strong&gt;&lt;code&gt;null&lt;/code&gt;&lt;/strong&gt; 作为值，那么你就无法区分这个值是否是真正存储在 &lt;code&gt;ConcurrentHashMap&lt;/code&gt; 中的，还是因为找不到对应的键而返回的。&lt;/p&gt;
+&lt;h2 id=&#34;synchronizedmap方法&#34;&gt;synchronizedMap方法
+&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;Collections.synchronizedMap()&lt;/code&gt;&lt;/strong&gt; 是 &lt;strong&gt;Java 提供的线程安全 &lt;code&gt;Map&lt;/code&gt;&lt;/strong&gt;，它包装一个普通 &lt;code&gt;Map&lt;/code&gt;（如 &lt;code&gt;HashMap&lt;/code&gt;），并在 &lt;strong&gt;所有操作上加锁&lt;/strong&gt;，确保线程安全。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;synchronizedMap&lt;/code&gt;&lt;/strong&gt; 是通过对所有操作加锁实现的，它的所有方法都被**&lt;code&gt;synchronize&lt;/code&gt;**修饰，导致每次只能由一个线程对他进行读写操作&lt;/p&gt;
+&lt;p&gt;性能不如**&lt;code&gt;ConcurrentHashMap&lt;/code&gt;**：因为对整体加锁的原因导致只有一个线程能够对它进行读写操作，不适合高并发环境&lt;/p&gt;
 </description>
         </item>
         <item>
@@ -2611,7 +2617,7 @@
 &lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;支持随机访问：&lt;/strong&gt;
 &lt;ul&gt;
-&lt;li&gt;因为底层是数组，&lt;strong&gt;&lt;code&gt;ArrayList&lt;/code&gt;&lt;/strong&gt; 支持快速随机访问，时间复杂度为$ O(1)$。&lt;/li&gt;
+&lt;li&gt;因为底层是数组，&lt;strong&gt;&lt;code&gt;ArrayList&lt;/code&gt;&lt;/strong&gt; 支持快速随机访问，时间复杂度为 $ O(1)$ 。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;线程不安全：&lt;/strong&gt;
@@ -2787,7 +2793,7 @@
 &lt;li&gt;而线程1 set完之后 &lt;strong&gt;&lt;code&gt;size++&lt;/code&gt;&lt;/strong&gt;，这时候线程2再进来 &lt;strong&gt;&lt;code&gt;size&lt;/code&gt;&lt;/strong&gt; 就是 &lt;strong&gt;n+1&lt;/strong&gt;，数组的大小只有&lt;strong&gt;n+1&lt;/strong&gt;，而你要设置下标索引为&lt;strong&gt;n+1&lt;/strong&gt;的就会越界（数组的下标索引 &lt;strong&gt;&lt;code&gt;size&lt;/code&gt;&lt;/strong&gt; 从0开始）；&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;&lt;code&gt;size&lt;/code&gt;&lt;/strong&gt; 与add的数量不符
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;size&lt;/code&gt;&lt;/strong&gt; 与 &lt;strong&gt;&lt;code&gt;add&lt;/code&gt;&lt;/strong&gt; 的数量不符
 &lt;ul&gt;
 &lt;li&gt;因为 &lt;strong&gt;&lt;code&gt;size++&lt;/code&gt;&lt;/strong&gt; 本身不是原子操作，可以分为三步：
 &lt;ul&gt;
@@ -2796,7 +2802,7 @@
 &lt;li&gt;将新的 &lt;strong&gt;size&lt;/strong&gt; 值覆盖掉原来的&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
-&lt;li&gt;线程1和线程2拿到一样的 &lt;strong&gt;size&lt;/strong&gt; 值加完了同时覆盖，就会导致一次没有加上，所以肯定不会与&lt;code&gt;add&lt;/code&gt;的数量保持一致的；&lt;/li&gt;
+&lt;li&gt;线程1和线程2拿到一样的 &lt;strong&gt;size&lt;/strong&gt; 值加完了同时覆盖，就会导致一次没有加上，所以肯定不会与&lt;code&gt;add&lt;/code&gt;的数量保持一致的&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;

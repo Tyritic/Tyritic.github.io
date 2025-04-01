@@ -213,7 +213,7 @@
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;令牌自动填充&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;每 &lt;code&gt;1/r&lt;/code&gt; 秒，系统会向桶内添加 &lt;strong&gt;新令牌&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;每 &lt;strong&gt;&lt;code&gt;1/r&lt;/code&gt;&lt;/strong&gt; 秒，系统会向桶内添加 &lt;strong&gt;新令牌&lt;/strong&gt;。&lt;/li&gt;
 &lt;li&gt;新增的令牌 &lt;strong&gt;不会超过桶的最大容量&lt;/strong&gt;。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;突发流量处理&lt;/strong&gt;&lt;/p&gt;
@@ -959,10 +959,11 @@
 &lt;h2 id=&#34;底层实现&#34;&gt;底层实现
 &lt;/h2&gt;&lt;p&gt;Redis 中的 &lt;strong&gt;ZSet（有序集合，Sorted Set）&lt;/strong&gt; 是一种由 &lt;strong&gt;跳表（Skip List）&lt;/strong&gt; 和 &lt;strong&gt;哈希表（Hash Table）&lt;/strong&gt; 组成的数据结构。ZSet 结合了集合（Set）的特性和排序功能，能够存储具有唯一性的成员，并根据成员的分数（score）进行排序。&lt;/p&gt;
 &lt;p&gt;ZSet 的实现由两个核心数据结构组成：&lt;/p&gt;
-&lt;ol&gt;
+&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;跳表（Skip List）&lt;/strong&gt;：用于存储数据的排序和快速查找。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;哈希表（Hash Table）&lt;/strong&gt;：用于存储成员与其分数的映射，提供快速查找。&lt;/li&gt;
-&lt;/ol&gt;
+&lt;/ul&gt;
+&lt;p&gt;当 Zset 元素数量较少时，Redis 会使用压缩列表（Zip List）来节省内存&lt;/p&gt;
 &lt;h3 id=&#34;跳表的实现原理&#34;&gt;跳表的实现原理
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;跳表是在链表基础上改进过来的，实现了一种「多层」的有序链表&lt;/strong&gt;&lt;/p&gt;
 &lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84zset/1719804939236-89f12a47-b851-4d06-a5f3-399e1119db57.png&#34;
@@ -988,7 +989,13 @@
 &lt;li&gt;跨度：用于记录两个节点之间的距离。跨度是用来计算排位（rank）的：在查找某个节点的过程中，将沿途访问过的所有层的跨度累计起来，得到的结果就是目标节点在跳跃表中的排位。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h4 id=&#34;查找操作&#34;&gt;查找操作
-&lt;/h4&gt;&lt;p&gt;从最高层开始，逐层向下，直到找到目标元素或确定元素不存在。查找效率高，时间复杂度为 O(logn)&lt;/p&gt;
+&lt;/h4&gt;&lt;p&gt;从最高层开始，逐层向下，直到找到目标元素或确定元素不存在。查找效率高，时间复杂度为$ O(logn)$&lt;/p&gt;
+&lt;p&gt;跳表会从头节点的最高层开始，逐一遍历每一层。在遍历某一层的跳表节点时，会用跳表节点中的 SDS 类型的元素和元素的权重来进行判断，共有两个判断条件：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果当前节点的权重小于要查找的权重时，跳表就会访问该层上的下一个节点。&lt;/li&gt;
+&lt;li&gt;如果当前节点的权重等于要查找的权重时，并且当前节点的 SDS 类型数据「小于」要查找的数据时，跳表就会访问该层上的下一个节点。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如果上面两个条件都不满足，或者下一个节点为空时，跳表就会使用目前遍历到的节点的 level 数组里的下一层指针，然后沿着下一层指针继续查找，这就相当于跳到了下一层接着查找。&lt;/p&gt;
 &lt;h4 id=&#34;插入操作&#34;&gt;插入操作
 &lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;首先从最高层开始查找插入位置&lt;/li&gt;

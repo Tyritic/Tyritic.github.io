@@ -7,7 +7,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh-cn</language>
         <copyright>Tyritic</copyright>
-        <lastBuildDate>Mon, 31 Mar 2025 02:22:40 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Tue, 01 Apr 2025 14:06:53 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/index.xml" rel="self" type="application/rss+xml" /><item>
         <title>MySQL的慢查询和性能调优</title>
         <link>https://Tyritic.github.io/p/mysql%E7%9A%84%E6%85%A2%E6%9F%A5%E8%AF%A2%E5%92%8C%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/</link>
         <pubDate>Sun, 09 Mar 2025 18:35:25 +0800</pubDate>
@@ -26,13 +26,47 @@
 &lt;h3 id=&#34;使用join优化&#34;&gt;使用JOIN优化
 &lt;/h3&gt;&lt;p&gt;对于 JOIN 操作，可以通过优化子查询、小表驱动大表、适当增加冗余字段、避免 join 太多表等方式来进行优化。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;尽量减少使用子查询，特别是在 select 列表和 where 子句中的子查询，往往会导致性能问题，因为它们可能会为每一行外层查询执行一次子查询。&lt;/li&gt;
+&lt;li&gt;尽量减少使用子查询，特别是在 select 列表和 where 子句中的子查询，往往会导致性能问题，因为它们可能会为每一行外层查询执行一次子查询。通常使用JOIN联表查询来代替子查询&lt;/li&gt;
 &lt;li&gt;小表驱动大表：在执行 JOIN 操作时，应尽量让行数较少的表（小表）驱动行数较多的表（大表），这样可以减少查询过程中需要处理的数据量。&lt;/li&gt;
-&lt;li&gt;避免使用JOIN关联太多表，&lt;/li&gt;
-&lt;li&gt;不要使用 join 关联太多的表，最多不要超过 3 张表。因为 join 太多表会降低查询的速度，返回的数据量也会变得非常大，不利于后续的处理。&lt;/li&gt;
+&lt;li&gt;避免使用JOIN关联太多表因为 JOIN 太多表会降低查询的速度，返回的数据量也会变得非常大，不利于后续的处理。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;索引优化&#34;&gt;索引优化
-&lt;/h2&gt;&lt;p&gt;参考&lt;a class=&#34;link&#34; href=&#34;https://tyritic.github.io/p/mysql%E7%B4%A2%E5%BC%95/#%E7%B4%A2%E5%BC%95%E4%BC%98%E5%8C%96%E6%96%B9%E6%B3%95&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+&lt;h3 id=&#34;使用union优化&#34;&gt;使用UNION优化
+&lt;/h3&gt;&lt;h4 id=&#34;条件下推&#34;&gt;条件下推
+&lt;/h4&gt;&lt;p&gt;条件下推是指将 where、limit 等子句下推到 union 的各个子查询中，以便优化器可以充分利用这些条件进行优化。&lt;/p&gt;
+&lt;p&gt;例如下列SQL语句&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;SELECT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;FROM&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;SELECT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;FROM&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;A&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;UNION&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;SELECT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;FROM&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;B&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;AS&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sub&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;WHERE&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sub&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;id&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;可以将where子句的条件下推到union的各个子查询&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;SELECT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;FROM&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;A&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;WHERE&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;id&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;UNION&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;SELECT&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;FROM&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;B&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;WHERE&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;id&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h3 id=&#34;索引优化&#34;&gt;索引优化
+&lt;/h3&gt;&lt;p&gt;参考&lt;a class=&#34;link&#34; href=&#34;https://tyritic.github.io/p/mysql%E7%B4%A2%E5%BC%95/#%E7%B4%A2%E5%BC%95%E4%BC%98%E5%8C%96%E6%96%B9%E6%B3%95&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
     &gt;往期博客&lt;/a&gt;&lt;/p&gt;
 </description>
         </item>
@@ -390,7 +424,7 @@
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;令牌自动填充&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;每 &lt;code&gt;1/r&lt;/code&gt; 秒，系统会向桶内添加 &lt;strong&gt;新令牌&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;每 &lt;strong&gt;&lt;code&gt;1/r&lt;/code&gt;&lt;/strong&gt; 秒，系统会向桶内添加 &lt;strong&gt;新令牌&lt;/strong&gt;。&lt;/li&gt;
 &lt;li&gt;新增的令牌 &lt;strong&gt;不会超过桶的最大容量&lt;/strong&gt;。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;突发流量处理&lt;/strong&gt;&lt;/p&gt;
@@ -4575,12 +4609,13 @@ update、delete的效率。&lt;/li&gt;
 &lt;/h4&gt;&lt;p&gt;基于哈希表的结构，适用于等值查询（如 &lt;code&gt;=&lt;/code&gt;），查询速度非常快，但不支持范围查询（如 &lt;code&gt;&amp;gt;&lt;/code&gt;、&lt;code&gt;&amp;lt;&lt;/code&gt;）。哈希索引不存储数据的顺序，常用于 &lt;strong&gt;Memory&lt;/strong&gt; 引擎。&lt;/p&gt;
 &lt;h3 id=&#34;按物理存储分类&#34;&gt;按物理存储分类
 &lt;/h3&gt;&lt;p&gt;从物理存储的角度来看，索引分为聚集索引和辅助索引&lt;/p&gt;
-&lt;h4 id=&#34;聚集索引&#34;&gt;聚集索引
-&lt;/h4&gt;&lt;p&gt;聚集索引就是索引结构和数据一起存放的索引，InnoDB 中的主键索引就属于聚簇索引。&lt;/p&gt;
-&lt;p&gt;在聚集索引中，它的叶子节点中包含整条记录，可以直接访问完整数据。在整个数据库有且只有一个&lt;/p&gt;
-&lt;h4 id=&#34;非聚集索引&#34;&gt;非聚集索引
-&lt;/h4&gt;&lt;p&gt;非聚集索引就是索引结构和数据分开存放的索引。MySQL 的 MyISAM 引擎，不管主键还是非主键，使用的都是非聚簇索引。&lt;/p&gt;
-&lt;p&gt;对于非聚集索引，它的叶子节点只包含主键值和索引值。&lt;/p&gt;
+&lt;h4 id=&#34;聚簇索引&#34;&gt;聚簇索引
+&lt;/h4&gt;&lt;p&gt;聚簇索引就是索引结构和数据一起存放的索引。查询到了索引就可以直接访问到整个记录。&lt;/p&gt;
+&lt;p&gt;InnoDB 中的主键索引就属于聚簇索引。在聚簇索引中，它的B+树索引的叶子节点中包含整条记录，可以直接访问完整数据。在整个数据库有且只有一个&lt;/p&gt;
+&lt;h4 id=&#34;非聚簇索引&#34;&gt;非聚簇索引
+&lt;/h4&gt;&lt;p&gt;非聚簇索引就是索引结构和数据分开存放的索引，查询到了索引还需要通过索引中指向记录的指针访问记录。&lt;/p&gt;
+&lt;p&gt;MySQL 的 MyISAM 引擎，不管主键还是非主键，使用的都是非聚簇索引。&lt;/p&gt;
+&lt;p&gt;对于非聚簇索引，它的B+树索引的叶子节点只包含主键值和索引值。&lt;/p&gt;
 &lt;p&gt;通过非聚簇索引查找记录的过程（回表）&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;找到二级索引中的 B+Tree 的索引值，找到对应的叶子节点，&lt;/li&gt;
@@ -4687,8 +4722,8 @@ update、delete的效率。&lt;/li&gt;
 &lt;h2 id=&#34;索引失效的情况和排查&#34;&gt;索引失效的情况和排查
 &lt;/h2&gt;&lt;h3 id=&#34;索引失效情况&#34;&gt;索引失效情况
 &lt;/h3&gt;&lt;ul&gt;
-&lt;li&gt;创建了组合索引，但查询条件未遵守最左匹配原则;&lt;/li&gt;
-&lt;li&gt;在索引列上进行计算、函数、类型转换等操作;&lt;/li&gt;
+&lt;li&gt;创建了组合索引，但查询条件未遵守最左匹配原则&lt;/li&gt;
+&lt;li&gt;在索引列上进行计算、函数、类型转换等操作&lt;/li&gt;
 &lt;li&gt;以 % 开头的 LIKE 查询比如 &lt;code&gt;LIKE &#39;%abc&#39;&lt;/code&gt;&lt;/li&gt;
 &lt;li&gt;查询条件中使用 OR，且 OR 的前后条件中有一个列没有索引，涉及的索引都不会被使用到&lt;/li&gt;
 &lt;/ul&gt;
@@ -4711,6 +4746,10 @@ update、delete的效率。&lt;/li&gt;
 &lt;li&gt;如果我们使用自增主键，那么每次插入的新数据就会按顺序添加到当前索引节点的位置，不需要移动已有的数据，当页面写满，就会自动开辟一个新页面。因为每次 &lt;strong&gt;插入一条新记录，都是追加操作，不需要重新移动数据&lt;/strong&gt; ，因此这种插入数据的方法效率非常高。&lt;/li&gt;
 &lt;li&gt;如果使用非自增主键，由于每次插入主键的索引值都是随机的，因此每次插入新的数据时，就可能会插入到现有数据页中间的某个位置，这将不得不移动其它数据来满足新数据的插入，甚至需要从一个页面复制数据到另外一个页面，我们通常将这种情况称为 &lt;strong&gt;页分裂&lt;/strong&gt; 。页分裂还有可能会造成大量的内存碎片，导致索引结构不紧凑，从而影响查询效率。&lt;/li&gt;
 &lt;/ul&gt;
+&lt;h3 id=&#34;避免在索引列上使用函数和表达式计算&#34;&gt;避免在索引列上使用函数和表达式计算
+&lt;/h3&gt;&lt;p&gt;在 where 子句中直接对列使用函数会导致索引失效，因为数据库需要对每行的列应用函数后再进行比较，无法直接利用索引。不过，从 MySQL 8.0 开始，索引特性增加了函数索引，即可以针对函数计算后的值建立一个索引，也就是说该索引的值是函数计算后的值，所以就可以通过扫描索引来查询数据。&lt;/p&gt;
+&lt;h3 id=&#34;避免对索引使用最左模糊匹配&#34;&gt;避免对索引使用最左模糊匹配
+&lt;/h3&gt;&lt;p&gt;因为索引 B+ 树是按照「索引值」有序排列存储的，只能根据前缀进行比较。所以不知道从哪个索引值开始比较，于是就只能通过全表扫描的方式来查询。&lt;/p&gt;
 </description>
         </item>
         <item>
@@ -4900,10 +4939,10 @@ update、delete的效率。&lt;/li&gt;
 &lt;/h3&gt;&lt;p&gt;ReadView（读视图）是 InnoDB 为了实现一致性读而创建的数据结构，它用于确定在特定事务中哪些版本的行记录是可见的。可以理解为数据快照&lt;/p&gt;
 &lt;p&gt;Read View 有四个重要的字段：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;m_ids ：指的是在创建 Read View 时，当前数据库中「活跃事务」的 &lt;strong&gt;事务 id 列表&lt;/strong&gt;，注意是一个列表，&lt;strong&gt;“活跃事务”指的就是，启动了但还没提交的事务&lt;/strong&gt;。&lt;/li&gt;
-&lt;li&gt;min_trx_id ：指的是在创建 Read View 时，当前数据库中「活跃事务」中事务 &lt;strong&gt;id 最小的事务&lt;/strong&gt; ，也就是 m_ids 的最小值。&lt;/li&gt;
-&lt;li&gt;max_trx_id ：这个并不是 m_ids 的最大值，而是 &lt;strong&gt;创建 Read View 时当前数据库中应该给下一个事务的 id 值&lt;/strong&gt; ，也就是全局事务中最大的事务 id 值 + 1；&lt;/li&gt;
-&lt;li&gt;creator_trx_id ：指的是 &lt;strong&gt;创建该 Read View 的事务的事务 id&lt;/strong&gt; 。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;m_ids&lt;/code&gt;&lt;/strong&gt; ：指的是在创建 Read View 时，当前数据库中「活跃事务」的 &lt;strong&gt;事务 id 列表&lt;/strong&gt;，注意是一个列表，&lt;strong&gt;“活跃事务”指的就是，启动了但还没提交的事务&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;min_trx_id&lt;/code&gt;&lt;/strong&gt; ：指的是在创建 Read View 时，当前数据库中「活跃事务」中事务 &lt;strong&gt;id 最小的事务&lt;/strong&gt; ，也就是 m_ids 的最小值。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;max_trx_id&lt;/code&gt;&lt;/strong&gt; ：这个并不是 m_ids 的最大值，而是 &lt;strong&gt;创建 Read View 时当前数据库中应该给下一个事务的 id 值&lt;/strong&gt; ，也就是全局事务中最大的事务 id 值 + 1；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;creator_trx_id&lt;/code&gt;&lt;/strong&gt; ：指的是 &lt;strong&gt;创建该 Read View 的事务的事务 id&lt;/strong&gt; 。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/mysql%E4%BA%8B%E5%8A%A1/ReadView.drawio.png&#34;
 	width=&#34;707&#34;
@@ -4911,7 +4950,7 @@ update、delete的效率。&lt;/li&gt;
 	
 	loading=&#34;lazy&#34;
 	
-		alt=&#34;并发事务&#34;
+		alt=&#34;ReadView结构&#34;
 	
 	
 		class=&#34;gallery-image&#34; 
@@ -5092,9 +5131,20 @@ update、delete的效率。&lt;/li&gt;
 &lt;/div&gt;
 &lt;/div&gt;&lt;h2 id=&#34;mysql的日志级别&#34;&gt;MySQL的日志级别
 &lt;/h2&gt;&lt;ul&gt;
-&lt;li&gt;binlog ：是 MySQL 中的二进制日志文件，用于记录 MySQL 服务器上的所有更新和修改操作。它可以记录所有的 DDL和 DML操作，包括对表结构的更改、数据的插入、修改、删除等等。binlog是在事务提交后生成的，因此可以用于恢复数据库。是位于 &lt;strong&gt;Server&lt;/strong&gt; 层的日志&lt;/li&gt;
-&lt;li&gt;redolog ：用于恢复数据，保证数据的一致性和持久性。当 MySQL 发生修改时，redolog 会将这些操作记录下来，并写入磁盘。这样，当 MySQL 发生宕机或崩溃时，通过重放 redolog 就可以恢复数据。实现了事务中的 &lt;strong&gt;持久性&lt;/strong&gt; ，主要&lt;strong&gt;用于故障恢复&lt;/strong&gt;；&lt;/li&gt;
-&lt;li&gt;undolog：用于回滚操作。当 MySQL 发生事务回滚时，undolog 会记录这些操作并将其写入磁盘。这样，当 MySQL 需要回滚时，通过重放 undolog 就可以回滚事务。实现了事务中的 &lt;strong&gt;原子性&lt;/strong&gt; ，主要 &lt;strong&gt;用于事务回滚和 MVCC&lt;/strong&gt; 。&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;binlog ：是 MySQL 中的二进制日志文件，用于记录 MySQL 服务器上的所有更新和修改操作。它可以记录所有的 DDL和 DML操作，包括对表结构的更改、数据的插入、修改、删除等等。binlog是在事务提交后生成的，因此可以用于恢复数据库。是位于 &lt;strong&gt;Server&lt;/strong&gt; 层的日志&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;STATEMENT：每一条修改数据的 SQL 都会被记录到 binlog 中（相当于记录了逻辑操作，所以针对这种格式， binlog 可以称为逻辑日志），主从复制中 slave 端再根据 SQL 语句重现。但 STATEMENT 有动态函数的问题，比如你用了 uuid 或者 now 这些函数，你在主库上执行的结果并不是你在从库执行的结果，这种随时在变的函数会导致复制的数据不一致；&lt;/li&gt;
+&lt;li&gt;ROW：记录行数据最终被修改成什么样了（这种格式的日志，就不能称为逻辑日志了），不会出现 STATEMENT 下动态函数的问题。但 ROW 的缺点是每行数据的变化结果都会被记录，比如执行批量 update 语句，更新多少行数据就会产生多少条记录，使 binlog 文件过大，而在 STATEMENT 格式下只会记录一个 update 语句而已；&lt;/li&gt;
+&lt;li&gt;MIXED：包含了 STATEMENT 和 ROW 模式，它会根据不同的情况自动使用 ROW 模式和 STATEMENT 模式；&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;redolog ：用于恢复数据，保证数据的一致性和持久性。当 MySQL 发生修改时，redolog 会将这些操作记录下来，并写入磁盘。这样，当 MySQL 发生宕机或崩溃时，通过重放 redolog 就可以恢复数据。实现了事务中的 &lt;strong&gt;持久性&lt;/strong&gt; ，主要&lt;strong&gt;用于故障恢复&lt;/strong&gt;；&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;undolog：用于回滚操作。当 MySQL 发生事务回滚时，undolog 会记录这些操作并将其写入磁盘。这样，当 MySQL 需要回滚时，通过重放 undolog 就可以回滚事务。实现了事务中的 &lt;strong&gt;原子性&lt;/strong&gt; ，主要 &lt;strong&gt;用于事务回滚和 MVCC&lt;/strong&gt; 。&lt;/p&gt;
+&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div
   class=&#34;notice tip&#34;
