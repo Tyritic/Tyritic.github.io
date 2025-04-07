@@ -294,7 +294,7 @@
 &lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3 id=&#34;标记-复制算法&#34;&gt;标记-复制算法
-&lt;/h3&gt;&lt;p&gt;为了解决碎片空间的问题，出现了对标记-复制算法的改进。&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;为了解决碎片空间的问题，出现了对标记-清除算法的改进。&lt;/p&gt;
 &lt;p&gt;原理：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;将内存分成两块，每次申请内存时都使用其中的一块&lt;/li&gt;
@@ -363,7 +363,7 @@
 &lt;/h2&gt;&lt;p&gt;根据对象的分代机制，针对各代有不同的垃圾回收机制&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;Young GC（Minor GC）：针对新生代的垃圾回收&lt;/li&gt;
-&lt;li&gt;Major GC：针对老年代的垃圾回收&lt;/li&gt;
+&lt;li&gt;Major GC（Old GC）：针对老年代的垃圾回收&lt;/li&gt;
 &lt;li&gt;Full GC：全堆垃圾回收&lt;/li&gt;
 &lt;li&gt;Mix GC：混合垃圾回收，同时回收新生代和部分老年代区域&lt;/li&gt;
 &lt;/ul&gt;
@@ -459,18 +459,17 @@
 &lt;li&gt;并发标记：在此阶段，标记所有灰色对象引用的对象为灰色，然后将灰色对象自身标记为黑色。这个过程是并发的，和应用线程同时进行。&lt;/li&gt;
 &lt;li&gt;重新标记：重新标记阶段的目标是处理并发标记阶段遗漏的引用变化。为了确保所有存活对象都被正确标记，remark 需要在 STW 暂停期间执行。&lt;/li&gt;
 &lt;li&gt;使用写屏障（Write Barrier）来捕捉并发标记阶段应用线程对对象引用的更新。通过遍历这些更新的引用来修正标记状态，确保遗漏的对象不会被错误地回收。&lt;/li&gt;
-&lt;/ul&gt;&lt;/div&gt;
-
+&lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;缺点&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;对 CPU 资源敏感；&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;无法处理浮动垃圾；&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;它使用的回收算法-“标记-清除”算法会导致收集结束时会有大量空间碎片产生。&lt;/strong&gt;&lt;/li&gt;
-&lt;/ul&gt;
+&lt;li&gt;对 CPU 资源敏感&lt;/li&gt;
+&lt;li&gt;无法处理浮动垃圾&lt;/li&gt;
+&lt;li&gt;它使用的回收算法-“标记-清除”算法会导致收集结束时会有大量空间碎片产生。&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
 &lt;h4 id=&#34;g1收集器&#34;&gt;G1收集器
 &lt;/h4&gt;&lt;p&gt;&lt;strong&gt;G1 (Garbage-First) 是一款面向服务器的垃圾收集器,主要针对配备多颗处理器及大容量内存的机器. 以极高概率满足 GC 停顿时间要求的同时,还具备高吞吐量性能特征。&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;G1 把 Java 堆划分为多个大小相等的独立区域Region，每个区域都可以扮演新生代或老年代的角色。&lt;/p&gt;
-&lt;p&gt;同时，G1 还有一个专门为大对象设计的 Region，叫 Humongous 区。&lt;/p&gt;
+&lt;p&gt;G1 把 Java 堆划分为多个大小相等的独立区域Region，每个区域都可以扮演新生代或老年代的角色。同时，G1 还有一个专门为大对象设计的 Region，叫 Humongous 区。&lt;/p&gt;
 &lt;p&gt;G1 基于&lt;strong&gt;标记&amp;ndash;整理&lt;/strong&gt; 算法, 不会产生空间碎片&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;工作流程&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
@@ -518,7 +517,7 @@
         
         <guid>https://Tyritic.github.io/p/jvm%E7%9A%84%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6/</guid>
         <description>&lt;h2 id=&#34;类加载器的作用&#34;&gt;类加载器的作用
-&lt;/h2&gt;&lt;p&gt;Java 的类加载器（ClassLoader）是 JVM 中用于动态加载类文件的组件。它将 &lt;code&gt;.class&lt;/code&gt; 文件中的字节码加载到内存中，并将其转换为 &lt;code&gt;Class&lt;/code&gt; 对象，以供 JVM 执行。JVM 的操作对象是 Class 文件，JVM 把 Class 文件中描述类的数据结构加载到内存中，并对数据进行校验、解析和初始化，最终转化成可以被 JVM 直接使用的类型，这个过程被称为类加载机制。&lt;/p&gt;
+&lt;/h2&gt;&lt;p&gt;Java 的类加载器（ClassLoader）是 JVM 中用于动态加载类文件的组件。它将 &lt;strong&gt;&lt;code&gt;.class&lt;/code&gt;&lt;/strong&gt; 文件中的字节码加载到内存中，并将其转换为 &lt;strong&gt;&lt;code&gt;Class&lt;/code&gt;&lt;/strong&gt; 对象，以供 JVM 执行。JVM 的操作对象是 &lt;strong&gt;&lt;code&gt;Class&lt;/code&gt;&lt;/strong&gt; 文件，JVM 把 &lt;strong&gt;&lt;code&gt;Class&lt;/code&gt;&lt;/strong&gt; 文件中描述类的数据结构加载到内存中，并对数据进行校验、解析和初始化，最终转化成可以被 JVM 直接使用的类型，这个过程被称为类加载机制。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;动态加载类&lt;/strong&gt; ：在运行时根据需要加载类，而不是在编译时加载所有类。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;隔离不同的类命名空间&lt;/strong&gt; ：通过不同的类加载器，可以隔离同名类，使得它们不会相互冲突&lt;/li&gt;
@@ -702,7 +701,7 @@
 &lt;/ul&gt;&lt;/div&gt;
 
 &lt;h3 id=&#34;初始化&#34;&gt;初始化
-&lt;/h3&gt;&lt;p&gt;初始化阶段是执行初始化方法  &lt;code&gt;&amp;lt;clinit&amp;gt; ()&lt;/code&gt; 方法的过程，是类加载的最后一步，这一步 JVM 才开始真正执行类中定义的 Java 程序代码(字节码)。&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;初始化阶段是执行初始化方法  &lt;strong&gt;&lt;code&gt;&amp;lt;clinit&amp;gt; ()&lt;/code&gt;&lt;/strong&gt; 方法的过程，是类加载的最后一步，这一步 JVM 才开始真正执行类中定义的 Java 程序代码(字节码)。&lt;/p&gt;
 &lt;p&gt;初始化的时机&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;创建类的实例时。&lt;/li&gt;
@@ -764,8 +763,7 @@
 
 &lt;h3 id=&#34;破环双亲委派模型的方法&#34;&gt;破环双亲委派模型的方法
 &lt;/h3&gt;&lt;p&gt;重写 ClassLoader 的 &lt;code&gt;loadClass()&lt;/code&gt; 方法。&lt;/p&gt;
-&lt;p&gt;举例：JDBC 的接口（如 &lt;code&gt;java.sql.Driver&lt;/code&gt;）是由 Java 核心库提供的，由&lt;code&gt;BootstrapClassLoader&lt;/code&gt; 加载。而 SPI 的实现（如&lt;code&gt;com.mysql.cj.jdbc.Driver&lt;/code&gt;）是由第三方供应商提供的，它们是由应用程序类加载器或者自定义类加载器来加载的。&lt;/p&gt;
-&lt;p&gt;默认情况下，一个类及其依赖类由同一个类加载器加载。所以，加载 SPI 的接口的类加载器（&lt;code&gt;BootstrapClassLoader&lt;/code&gt;）也会用来加载 SPI 的实现。按照双亲委派模型，&lt;code&gt;BootstrapClassLoader&lt;/code&gt; 是无法找到 SPI 的实现类的，因为它无法委托给子类加载器去尝试加载。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;JDBC&lt;/code&gt;&lt;/strong&gt; 的接口是类库定义的，但实现是在各大数据库厂商提供的 &lt;code&gt;jar&lt;/code&gt; 包中，那通过顶层的启动类加载器是找不到这个实现类的，所以就需要通过底层的应用程序加载器去完成这个任务&lt;/p&gt;
 &lt;p&gt;解决方案：使用线程上下文类加载器，通过 &lt;code&gt;setContextClassLoader()&lt;/code&gt; 默认设置了应用程序类加载器，然后通过 &lt;code&gt;Thread.current.currentThread().getContextClassLoader()&lt;/code&gt; 获得类加载器来加载。&lt;/p&gt;
 </description>
         </item>
@@ -1314,9 +1312,9 @@
 &lt;li&gt;&lt;strong&gt;类型指针（Class Pointer）&lt;/strong&gt; ：指向对象对应的类的元数据，用于确定该对象的类型。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;数组长度（只有数组才有）&lt;/strong&gt;&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;实例数据&#34;&gt;&lt;strong&gt;实例数据&lt;/strong&gt;
+&lt;h3 id=&#34;实例数据&#34;&gt;实例数据
 &lt;/h3&gt;&lt;p&gt;存储对象的实际数据，即类的字段（包括从父类继承的字段）。&lt;/p&gt;
-&lt;h3 id=&#34;对齐填充&#34;&gt;&lt;strong&gt;对齐填充&lt;/strong&gt;
+&lt;h3 id=&#34;对齐填充&#34;&gt;对齐填充
 &lt;/h3&gt;&lt;p&gt;为了满足内存对齐要求（一般是 8 字节对齐），JVM 可能会在对象末尾添加填充字节。例如，一个对象大小为 12 字节，JVM 会增加 4 字节填充，使其达到 16 字节对齐。&lt;/p&gt;
 &lt;h2 id=&#34;对象的访问定位&#34;&gt;对象的访问定位
 &lt;/h2&gt;&lt;p&gt;虚拟机访问对象的主要方式有以下方式&lt;/p&gt;
@@ -1391,7 +1389,7 @@
 &lt;/h3&gt;&lt;p&gt;虚引用主要用来跟踪对象被垃圾回收的过程。虚引用对对象的生存时间没有任何影响。如果一个对象仅有虚引用，那么它与没有引用一样，随时会被垃圾回收。&lt;/p&gt;
 &lt;h2 id=&#34;内存泄漏和内存溢出&#34;&gt;内存泄漏和内存溢出
 &lt;/h2&gt;&lt;h3 id=&#34;内存泄漏&#34;&gt;内存泄漏
-&lt;/h3&gt;&lt;p&gt;内存泄漏是指程序在运行过程中不再使用的对象仍然被引用，而无法被垃圾收集器回收，从而导致可用内存逐渐减少。虽然垃圾回收机制会自动回收不再使用的对象，但如果有对象仍被不再使用的引用持有，垃圾收集器无法回收这些内存，最终可能导致程序的内存使用不断增加。&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;内存泄漏是指程序在使用完内存后，未能及时释放，导致占用的内存无法再被使用。随着时间的推移，内存泄漏会导致可用内存逐渐减少&lt;/p&gt;
 &lt;p&gt;主要原因：通常是因为长期存活的对象持有短期存活对象的引用，又没有及时释放，从而导致短期存活对象无法被回收而导致的。&lt;/p&gt;
 &lt;h4 id=&#34;内存泄漏的原因&#34;&gt;内存泄漏的原因
 &lt;/h4&gt;&lt;ul&gt;
@@ -1399,8 +1397,8 @@
 &lt;li&gt;&lt;strong&gt;事件监听&lt;/strong&gt;：未取消对事件源的监听，导致对象持续被引用。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;线程&lt;/strong&gt;：未停止的线程可能持有对象引用，无法被回收。（ThreadLocal）&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;ThreadLocal 的内存泄漏问题&lt;/p&gt;
-&lt;p&gt;每个线程维护一个名为 &lt;code&gt;ThreadLocalMap&lt;/code&gt; 的 map。 当使用 &lt;code&gt;ThreadLocal&lt;/code&gt; 存储值时，实际上是将值存储在当前线程的 &lt;code&gt;ThreadLocalMap&lt;/code&gt; 中，其中 &lt;code&gt;ThreadLocal&lt;/code&gt; 实例本身作为 key，而要存储的值作为 value。&lt;/p&gt;
+&lt;h4 id=&#34;threadlocal-的内存泄漏问题&#34;&gt;ThreadLocal 的内存泄漏问题
+&lt;/h4&gt;&lt;p&gt;每个线程维护一个名为 &lt;code&gt;ThreadLocalMap&lt;/code&gt; 的 map。 当使用 &lt;code&gt;ThreadLocal&lt;/code&gt; 存储值时，实际上是将值存储在当前线程的 &lt;code&gt;ThreadLocalMap&lt;/code&gt; 中，其中 &lt;code&gt;ThreadLocal&lt;/code&gt; 实例本身作为 key，而要存储的值作为 value。&lt;/p&gt;
 &lt;p&gt;key和value具有不同的引用级别&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;key 是弱引用&lt;/strong&gt;：&lt;code&gt;ThreadLocalMap&lt;/code&gt; 中的 key 是 &lt;code&gt;ThreadLocal&lt;/code&gt; 的弱引用 (&lt;code&gt;WeakReference&amp;lt;ThreadLocal&amp;lt;?&amp;gt;&amp;gt;&lt;/code&gt;)。 这意味着，如果 &lt;code&gt;ThreadLocal&lt;/code&gt; 实例不再被任何强引用指向，垃圾回收器会在下次 GC 时回收该实例，导致 &lt;code&gt;ThreadLocalMap&lt;/code&gt; 中对应的 key 变为 &lt;code&gt;null&lt;/code&gt;。&lt;/li&gt;

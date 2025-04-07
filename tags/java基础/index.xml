@@ -7,7 +7,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh-cn</language>
         <copyright>Tyritic</copyright>
-        <lastBuildDate>Tue, 01 Apr 2025 14:06:53 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/java%E5%9F%BA%E7%A1%80/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Mon, 07 Apr 2025 14:21:25 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/java%E5%9F%BA%E7%A1%80/index.xml" rel="self" type="application/rss+xml" /><item>
         <title>JVM的垃圾回收</title>
         <link>https://Tyritic.github.io/p/jvm%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/</link>
         <pubDate>Wed, 12 Mar 2025 11:36:21 +0800</pubDate>
@@ -295,7 +295,7 @@
 &lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3 id=&#34;标记-复制算法&#34;&gt;标记-复制算法
-&lt;/h3&gt;&lt;p&gt;为了解决碎片空间的问题，出现了对标记-复制算法的改进。&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;为了解决碎片空间的问题，出现了对标记-清除算法的改进。&lt;/p&gt;
 &lt;p&gt;原理：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;将内存分成两块，每次申请内存时都使用其中的一块&lt;/li&gt;
@@ -364,7 +364,7 @@
 &lt;/h2&gt;&lt;p&gt;根据对象的分代机制，针对各代有不同的垃圾回收机制&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;Young GC（Minor GC）：针对新生代的垃圾回收&lt;/li&gt;
-&lt;li&gt;Major GC：针对老年代的垃圾回收&lt;/li&gt;
+&lt;li&gt;Major GC（Old GC）：针对老年代的垃圾回收&lt;/li&gt;
 &lt;li&gt;Full GC：全堆垃圾回收&lt;/li&gt;
 &lt;li&gt;Mix GC：混合垃圾回收，同时回收新生代和部分老年代区域&lt;/li&gt;
 &lt;/ul&gt;
@@ -460,18 +460,17 @@
 &lt;li&gt;并发标记：在此阶段，标记所有灰色对象引用的对象为灰色，然后将灰色对象自身标记为黑色。这个过程是并发的，和应用线程同时进行。&lt;/li&gt;
 &lt;li&gt;重新标记：重新标记阶段的目标是处理并发标记阶段遗漏的引用变化。为了确保所有存活对象都被正确标记，remark 需要在 STW 暂停期间执行。&lt;/li&gt;
 &lt;li&gt;使用写屏障（Write Barrier）来捕捉并发标记阶段应用线程对对象引用的更新。通过遍历这些更新的引用来修正标记状态，确保遗漏的对象不会被错误地回收。&lt;/li&gt;
-&lt;/ul&gt;&lt;/div&gt;
-
+&lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;缺点&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;对 CPU 资源敏感；&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;无法处理浮动垃圾；&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;它使用的回收算法-“标记-清除”算法会导致收集结束时会有大量空间碎片产生。&lt;/strong&gt;&lt;/li&gt;
-&lt;/ul&gt;
+&lt;li&gt;对 CPU 资源敏感&lt;/li&gt;
+&lt;li&gt;无法处理浮动垃圾&lt;/li&gt;
+&lt;li&gt;它使用的回收算法-“标记-清除”算法会导致收集结束时会有大量空间碎片产生。&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
 &lt;h4 id=&#34;g1收集器&#34;&gt;G1收集器
 &lt;/h4&gt;&lt;p&gt;&lt;strong&gt;G1 (Garbage-First) 是一款面向服务器的垃圾收集器,主要针对配备多颗处理器及大容量内存的机器. 以极高概率满足 GC 停顿时间要求的同时,还具备高吞吐量性能特征。&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;G1 把 Java 堆划分为多个大小相等的独立区域Region，每个区域都可以扮演新生代或老年代的角色。&lt;/p&gt;
-&lt;p&gt;同时，G1 还有一个专门为大对象设计的 Region，叫 Humongous 区。&lt;/p&gt;
+&lt;p&gt;G1 把 Java 堆划分为多个大小相等的独立区域Region，每个区域都可以扮演新生代或老年代的角色。同时，G1 还有一个专门为大对象设计的 Region，叫 Humongous 区。&lt;/p&gt;
 &lt;p&gt;G1 基于&lt;strong&gt;标记&amp;ndash;整理&lt;/strong&gt; 算法, 不会产生空间碎片&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;工作流程&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;

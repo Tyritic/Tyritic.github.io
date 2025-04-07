@@ -10,7 +10,7 @@
 <meta property='og:description' content="Redis中的排序集合-ZSet">
 <meta property='og:url' content='https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84zset/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开发' /><meta property='article:published_time' content='2025-02-26T19:53:16&#43;08:00'/><meta property='article:modified_time' content='2025-04-01T14:06:53&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开发' /><meta property='article:published_time' content='2025-02-26T19:53:16&#43;08:00'/><meta property='article:modified_time' content='2025-04-07T14:21:25&#43;00:00'/>
 <meta name="twitter:title" content="Redis中的Zset">
 <meta name="twitter:description" content="Redis中的排序集合-ZSet">
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -296,6 +296,7 @@
             <li><a href="#数据结构">数据结构</a></li>
             <li><a href="#查找操作">查找操作</a></li>
             <li><a href="#插入操作">插入操作</a></li>
+            <li><a href="#删除操作">删除操作</a></li>
           </ol>
         </li>
         <li><a href="#跳表和b树的区别">跳表和B+树的区别</a></li>
@@ -374,7 +375,7 @@
 
 
                 <time class="article-time--reading">
-                    阅读时长: 5 分钟
+                    阅读时长: 8 分钟
                 </time>
             </div>
 
@@ -382,7 +383,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：2245 字
+                     字数统计：3630 字
                 </time>
             </div>
 
@@ -465,17 +466,64 @@
 <p>跳表的查找复杂度就是 $O(logN)$。</p>
 <p>跳表是一个带有层级关系的链表，而且每一层级可以包含多个节点，每一个节点通过指针连接起来，实现这一特性就是靠跳表节点结构体中的 <strong>zskiplistLevel 结构体类型的 level 数组</strong> 。</p>
 <h4 id="数据结构">数据结构
-</h4><ul>
-<li>层：跳跃表节点的 level 数组可以包含多个元素，每个元素都包含一个指向其它节点的指针，程序可以通过这些层来加快访问其它节点的速度，一般来说，层的数量月多，访问其它节点的速度就越快。每次创建一个新的跳跃表节点的时候，程序都根据幂次定律，随机生成一个介于 1 和 32 之间的值作为 level 数组的大小，这个大小就是层的“高度”</li>
-<li>前进指针：每个层都有一个指向表尾的前进指针（<code>level[i].forward</code> 属性），用于从表头向表尾方向访问节点。</li>
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">zskiplistNode</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//Zset 对象的元素值
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">sds</span> <span class="n">ele</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//元素权重值
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">double</span> <span class="n">score</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//后向指针
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">struct</span> <span class="n">zskiplistNode</span> <span class="o">*</span><span class="n">backward</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">    <span class="c1">//节点的level数组，保存每层上的前向指针和跨度
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">struct</span> <span class="n">zskiplistLevel</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">struct</span> <span class="n">zskiplistNode</span> <span class="o">*</span><span class="n">forward</span><span class="p">;</span> <span class="c1">//每一层的前进指针
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">span</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="n">level</span><span class="p">[];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">zskiplistNode</span><span class="p">;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>
+<p>对象的元素值ele</p>
+</li>
+<li>
+<p>元素的权重值score</p>
+</li>
+<li>
+<p>后向指针</p>
+</li>
+<li>
+<p>层：跳跃表节点的 level 数组可以包含多个元素，每个元素都包含一个指向其它节点的指针，程序可以通过这些层来加快访问其它节点的速度，一般来说，层的数量越多，访问其它节点的速度就越快。每次创建一个新的跳跃表节点的时候，程序都根据幂次定律，随机生成一个介于 1 和 32 之间的值作为 level 数组的大小，这个大小就是层的“高度”</p>
+<ul>
+<li>前进指针：每个层都有一个指向表尾的前进指针（ <strong><code>level[i].forward</code></strong> 属性），用于从表头向表尾方向访问节点。</li>
 <li>跨度：用于记录两个节点之间的距离。跨度是用来计算排位（rank）的：在查找某个节点的过程中，将沿途访问过的所有层的跨度累计起来，得到的结果就是目标节点在跳跃表中的排位。</li>
+</ul>
+</li>
 </ul>
 <h4 id="查找操作">查找操作
 </h4><p>从最高层开始，逐层向下，直到找到目标元素或确定元素不存在。查找效率高，时间复杂度为$ O(logn)$</p>
 <p>跳表会从头节点的最高层开始，逐一遍历每一层。在遍历某一层的跳表节点时，会用跳表节点中的 SDS 类型的元素和元素的权重来进行判断，共有两个判断条件：</p>
 <ul>
 <li>如果当前节点的权重小于要查找的权重时，跳表就会访问该层上的下一个节点。</li>
-<li>如果当前节点的权重等于要查找的权重时，并且当前节点的 SDS 类型数据「小于」要查找的数据时，跳表就会访问该层上的下一个节点。</li>
+<li>如果当前节点的权重等于要查找的权重时，并且当前节点的 SDS 类型数据小于要查找的数据时，跳表就会访问该层上的下一个节点。</li>
 </ul>
 <p>如果上面两个条件都不满足，或者下一个节点为空时，跳表就会使用目前遍历到的节点的 level 数组里的下一层指针，然后沿着下一层指针继续查找，这就相当于跳到了下一层接着查找。</p>
 <h4 id="插入操作">插入操作
@@ -487,6 +535,207 @@
 </ul>
 </li>
 <li>在相应的层中插入节点并更新指针。</li>
+</ul>
+<p><strong>示例</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">Level</span><span class="w"> </span><span class="n">4</span><span class="p">:</span><span class="w"> </span><span class="n">1</span><span class="w">  </span><span class="n">3</span><span class="w">  </span><span class="n">5</span><span class="w">  </span><span class="n">9</span><span class="w">  </span><span class="n">15</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">Level</span><span class="w"> </span><span class="n">3</span><span class="p">:</span><span class="w"> </span><span class="n">1</span><span class="w">  </span><span class="n">3</span><span class="w">  </span><span class="n">5</span><span class="w">  </span><span class="n">9</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">Level</span><span class="w"> </span><span class="n">2</span><span class="p">:</span><span class="w"> </span><span class="n">1</span><span class="w">  </span><span class="n">3</span><span class="w">  </span><span class="n">5</span><span class="w">  </span><span class="n">7</span><span class="w">  </span><span class="n">9</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">Level</span><span class="w"> </span><span class="n">1</span><span class="p">:</span><span class="w"> </span><span class="n">1</span><span class="w">  </span><span class="n">3</span><span class="w">  </span><span class="n">5</span><span class="w">  </span><span class="n">7</span><span class="w">  </span><span class="n">9</span><span class="w">  </span><span class="n">11</span><span class="w">  </span><span class="n">13</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">Level</span><span class="w"> </span><span class="n">0</span><span class="p">:</span><span class="w"> </span><span class="n">1</span><span class="w">  </span><span class="n">3</span><span class="w">  </span><span class="n">5</span><span class="w">  </span><span class="n">7</span><span class="w">  </span><span class="n">9</span><span class="w">  </span><span class="n">11</span><span class="w">  </span><span class="n">13</span><span class="w">  </span><span class="n">15</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>
+<p>定位插入位置：需要定位新节点 <code>8</code> 应该插入的位置。我们从跳表的最高层开始，逐层向下查找。</p>
+<ul>
+<li>
+<p><strong>第 4 层</strong></p>
+<ul>
+<li>从 <code>1 -&gt; 3 -&gt; 5 -&gt; 9 -&gt; 15</code> 开始。</li>
+<li>由于 <code>8</code> 小于 <code>15</code> 且大于 <code>9</code>，我们向下跳到第 3 层。</li>
+</ul>
+</li>
+<li>
+<p><strong>第 3 层</strong></p>
+<ul>
+<li>
+<p>从 <code>1 -&gt; 3 -&gt; 5 -&gt; 9</code> 开始。</p>
+</li>
+<li>
+<p>由于 <code>8</code> 小于 <code>9</code> 且大于 <code>5</code>，我们向下跳到第 2 层。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>第 2 层</strong></p>
+<ul>
+<li>
+<p>从 <code>1 -&gt; 3 -&gt; 5 -&gt; 7 -&gt; 9</code> 开始。</p>
+</li>
+<li>
+<p>由于 <code>8</code> 小于 <code>9</code> 且大于 <code>7</code>，我们向下跳到第 1 层。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>第 1 层</strong></p>
+<ul>
+<li>
+<p>从 <code>1 -&gt; 3 -&gt; 5 -&gt; 7 -&gt; 9 -&gt; 11 -&gt; 13</code> 开始。</p>
+</li>
+<li>
+<p>由于 <code>8</code> 小于 <code>9</code> 且大于 <code>7</code>，我们找到应该插入的位置，向下跳到第 0 层。</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>确定新节点的层数：随机确定新节点的层数。假设我们通过概率方法，决定新节点 <code>8</code> 将有 3 层（在最高的层数为 3 层）。</p>
+</li>
+<li>
+<p>插入新节点</p>
+<ul>
+<li><strong>第 0 层（最底层）</strong>
+<ul>
+<li>在第 0 层，我们插入节点 <code>8</code>，保持有序性。<code>8</code> 位于 <code>7</code> 和 <code>9</code> 之间，因此我们将 <code>7</code> 的指针指向 <code>8</code>，<code>8</code> 的指针指向 <code>9</code>，然后更新链表。更新后的第 0 层指针：<code>1 -&gt; 3 -&gt; 5 -&gt; 7 -&gt; 8 -&gt; 9 -&gt; 11 -&gt; 13 -&gt; 15</code></li>
+</ul>
+</li>
+<li><strong>第 1 层</strong>
+<ul>
+<li>在第 1 层，我们插入节点 <code>8</code>，<code>8</code> 位于 <code>7</code> 和 <code>9</code> 之间。我们将 <code>7</code> 的指针指向 <code>8</code>，<code>8</code> 的指针指向 <code>9</code>，更新链表。更新后的第 1 层指针<code>1 -&gt; 3 -&gt; 5 -&gt; 7 -&gt; 8 -&gt; 9 -&gt; 11 -&gt; 13</code></li>
+</ul>
+</li>
+<li><strong>第 2 层</strong>
+<ul>
+<li>在第 2 层，我们插入节点 <code>8</code>，<code>8</code> 位于 <code>7</code> 和 <code>9</code> 之间。我们将 <code>7</code> 的指针指向 <code>8</code>，<code>8</code> 的指针指向 <code>9</code>，更新链表。更新后的第 2 层指针：<code>1 -&gt; 3 -&gt; 5 -&gt; 7 -&gt; 8 -&gt; 9</code></li>
+</ul>
+</li>
+<li><strong>第 3 层</strong>
+<ul>
+<li>在第 3 层，我们插入节点 <code>8</code>，<code>8</code> 位于 <code>7</code> 和 <code>9</code> 之间。我们将 <code>7</code> 的指针指向 <code>8</code>，<code>8</code> 的指针指向 <code>9</code>，更新链表。更新后的第 3 层指针：<code>1 -&gt; 3 -&gt; 5 -&gt; 7 -&gt; 8 -&gt; 9</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>最终跳表结构</p>
+<p>插入节点 <code>8</code> 后，跳表的结构应该如下所示：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Level 4: 1  3  5  7  8  9  15
+</span></span><span class="line"><span class="cl">Level 3: 1  3  5  7  8  9
+</span></span><span class="line"><span class="cl">Level 2: 1  3  5  7  8  9
+</span></span><span class="line"><span class="cl">Level 1: 1  3  5  7  8  9  11  13
+</span></span><span class="line"><span class="cl">Level 0: 1  3  5  7  8  9  11  13  15
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+</ul>
+<h4 id="删除操作">删除操作
+</h4><ul>
+<li>查找删除操作</li>
+<li>对于每一层，检查该层是否存在待删除的节点。如果该节点存在，则需要更新该层中前后节点的指针，将它们连接起来。</li>
+<li>继续往下处理，直到删除节点的层次遍历完毕。</li>
+</ul>
+<p><strong>示例</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Level 4: 1  3  5  9  15
+</span></span><span class="line"><span class="cl">Level 3: 1  3  5  9
+</span></span><span class="line"><span class="cl">Level 2: 1  3  5  7  9
+</span></span><span class="line"><span class="cl">Level 1: 1  3  5  7  9  11  13
+</span></span><span class="line"><span class="cl">Level 0: 1  3  5  7  9  11  13  15
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>
+<p>定位节点：需要找到节点 <code>9</code> 在各层的位置。假设我们从最高层开始：</p>
+<ul>
+<li>在第 4 层（最上层），节点 <code>9</code> 存在。</li>
+<li>在第 3 层，节点 <code>9</code> 存在。</li>
+<li>在第 2 层，节点 <code>9</code> 存在。</li>
+<li>在第 1 层，节点 <code>9</code> 存在。</li>
+<li>在第 0 层（底层），节点 <code>9</code> 存在。</li>
+</ul>
+</li>
+<li>
+<p>删除节点并更新指针：从最高层开始删除节点 <code>9</code>，并逐层更新指针。</p>
+<ul>
+<li>
+<p><strong>删除第 4 层的节点 <code>9</code></strong></p>
+<ul>
+<li>在第 4 层，节点 <code>9</code>的前驱是 <code>5</code>，后继是 <code>15</code>。我们需要将 <code>5</code> 的指针指向 <code>15</code>，即跳过 <code>9</code>。</li>
+<li>更新后的第 4 层指针：<code>1 -&gt; 3 -&gt; 5 -&gt; 15</code>。</li>
+</ul>
+</li>
+<li>
+<p><strong>删除第 3 层的节点 <code>9</code></strong></p>
+<ul>
+<li>
+<p>在第 3 层，节点 <code>9</code>的前驱是 <code>5</code>，后继是 <code>None</code>。我们需要将 <code>5</code> 的指针指向 <code>None</code>。</p>
+</li>
+<li>
+<p>更新后的第 3 层指针：<code>1 -&gt; 3 -&gt; 5</code>。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>删除第 2 层的节点 <code>9</code></strong></p>
+</li>
+<li>
+<p>在第 2 层，节点 <code>9</code>的前驱是 <code>7</code>，后继是 <code>None</code>。我们需要将 <code>7</code> 的指针指向 <code>None</code>。</p>
+</li>
+<li>
+<p>更新后的第 2 层指针：<code>1 -&gt; 3 -&gt; 5 -&gt; 7</code>。</p>
+</li>
+<li>
+<p><strong>删除第 1 层的节点 <code>9</code></strong></p>
+<ul>
+<li>
+<p>在第 1 层，节点 <code>9</code>的前驱是 <code>7</code>，后继是 <code>11</code>。我们需要将 <code>7</code> 的指针指向 <code>11</code>，即跳过 <code>9</code>。</p>
+</li>
+<li>
+<p>更新后的第 1 层指针：<code>1 -&gt; 3 -&gt; 5 -&gt; 7 -&gt; 11 -&gt; 13</code>。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>删除第 0 层的节点 <code>9</code></strong></p>
+<ul>
+<li>
+<p>在第 0 层（最底层），节点 <code>9</code>的前驱是 <code>7</code>，后继是 <code>11</code>。我们需要将 <code>7</code> 的指针指向 <code>11</code>，即跳过 <code>9</code>。</p>
+</li>
+<li>
+<p>更新后的第 0 层指针：<code>1 -&gt; 3 -&gt; 5 -&gt; 7 -&gt; 11 -&gt; 13 -&gt; 15</code>。</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 <h3 id="跳表和b树的区别">跳表和B+树的区别
 </h3><p>Redis 是内存数据库，<strong>跳表在实现简单性、写入性能、内存访问模式等方面的综合优势</strong>，使其成为更合适的选择。</p>
@@ -610,7 +859,7 @@
 
 
         <span>
-            最后更新于 2025-04-01 14:06 UTC
+            最后更新于 2025-04-07 14:21 UTC
         </span>
     </section></footer>
 

@@ -983,17 +983,64 @@
 &lt;p&gt;跳表的查找复杂度就是 $O(logN)$。&lt;/p&gt;
 &lt;p&gt;跳表是一个带有层级关系的链表，而且每一层级可以包含多个节点，每一个节点通过指针连接起来，实现这一特性就是靠跳表节点结构体中的 &lt;strong&gt;zskiplistLevel 结构体类型的 level 数组&lt;/strong&gt; 。&lt;/p&gt;
 &lt;h4 id=&#34;数据结构&#34;&gt;数据结构
-&lt;/h4&gt;&lt;ul&gt;
-&lt;li&gt;层：跳跃表节点的 level 数组可以包含多个元素，每个元素都包含一个指向其它节点的指针，程序可以通过这些层来加快访问其它节点的速度，一般来说，层的数量月多，访问其它节点的速度就越快。每次创建一个新的跳跃表节点的时候，程序都根据幂次定律，随机生成一个介于 1 和 32 之间的值作为 level 数组的大小，这个大小就是层的“高度”&lt;/li&gt;
-&lt;li&gt;前进指针：每个层都有一个指向表尾的前进指针（&lt;code&gt;level[i].forward&lt;/code&gt; 属性），用于从表头向表尾方向访问节点。&lt;/li&gt;
+&lt;/h4&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-c&#34; data-lang=&#34;c&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;typedef&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;struct&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;zskiplistNode&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;c1&#34;&gt;//Zset 对象的元素值
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;    &lt;span class=&#34;n&#34;&gt;sds&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;ele&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;c1&#34;&gt;//元素权重值
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;    &lt;span class=&#34;kt&#34;&gt;double&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;score&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;c1&#34;&gt;//后向指针
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;    &lt;span class=&#34;k&#34;&gt;struct&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;zskiplistNode&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;backward&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;c1&#34;&gt;//节点的level数组，保存每层上的前向指针和跨度
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;    &lt;span class=&#34;k&#34;&gt;struct&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;zskiplistLevel&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;struct&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;zskiplistNode&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;forward&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt; &lt;span class=&#34;c1&#34;&gt;//每一层的前进指针
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;        &lt;span class=&#34;kt&#34;&gt;unsigned&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;span&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;zskiplistNode&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;对象的元素值ele&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;元素的权重值score&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;后向指针&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;层：跳跃表节点的 level 数组可以包含多个元素，每个元素都包含一个指向其它节点的指针，程序可以通过这些层来加快访问其它节点的速度，一般来说，层的数量越多，访问其它节点的速度就越快。每次创建一个新的跳跃表节点的时候，程序都根据幂次定律，随机生成一个介于 1 和 32 之间的值作为 level 数组的大小，这个大小就是层的“高度”&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;前进指针：每个层都有一个指向表尾的前进指针（ &lt;strong&gt;&lt;code&gt;level[i].forward&lt;/code&gt;&lt;/strong&gt; 属性），用于从表头向表尾方向访问节点。&lt;/li&gt;
 &lt;li&gt;跨度：用于记录两个节点之间的距离。跨度是用来计算排位（rank）的：在查找某个节点的过程中，将沿途访问过的所有层的跨度累计起来，得到的结果就是目标节点在跳跃表中的排位。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h4 id=&#34;查找操作&#34;&gt;查找操作
 &lt;/h4&gt;&lt;p&gt;从最高层开始，逐层向下，直到找到目标元素或确定元素不存在。查找效率高，时间复杂度为$ O(logn)$&lt;/p&gt;
 &lt;p&gt;跳表会从头节点的最高层开始，逐一遍历每一层。在遍历某一层的跳表节点时，会用跳表节点中的 SDS 类型的元素和元素的权重来进行判断，共有两个判断条件：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;如果当前节点的权重小于要查找的权重时，跳表就会访问该层上的下一个节点。&lt;/li&gt;
-&lt;li&gt;如果当前节点的权重等于要查找的权重时，并且当前节点的 SDS 类型数据「小于」要查找的数据时，跳表就会访问该层上的下一个节点。&lt;/li&gt;
+&lt;li&gt;如果当前节点的权重等于要查找的权重时，并且当前节点的 SDS 类型数据小于要查找的数据时，跳表就会访问该层上的下一个节点。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;如果上面两个条件都不满足，或者下一个节点为空时，跳表就会使用目前遍历到的节点的 level 数组里的下一层指针，然后沿着下一层指针继续查找，这就相当于跳到了下一层接着查找。&lt;/p&gt;
 &lt;h4 id=&#34;插入操作&#34;&gt;插入操作
@@ -1005,6 +1052,207 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;li&gt;在相应的层中插入节点并更新指针。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;示例&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;Level&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;4&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;3&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;5&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;9&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Level&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;3&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;3&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;5&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;9&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Level&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;3&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;5&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;7&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;9&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Level&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;3&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;5&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;7&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;9&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;11&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;13&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Level&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;3&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;5&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;7&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;9&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;11&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;13&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;  &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;定位插入位置：需要定位新节点 &lt;code&gt;8&lt;/code&gt; 应该插入的位置。我们从跳表的最高层开始，逐层向下查找。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;第 4 层&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;从 &lt;code&gt;1 -&amp;gt; 3 -&amp;gt; 5 -&amp;gt; 9 -&amp;gt; 15&lt;/code&gt; 开始。&lt;/li&gt;
+&lt;li&gt;由于 &lt;code&gt;8&lt;/code&gt; 小于 &lt;code&gt;15&lt;/code&gt; 且大于 &lt;code&gt;9&lt;/code&gt;，我们向下跳到第 3 层。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;第 3 层&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;从 &lt;code&gt;1 -&amp;gt; 3 -&amp;gt; 5 -&amp;gt; 9&lt;/code&gt; 开始。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;由于 &lt;code&gt;8&lt;/code&gt; 小于 &lt;code&gt;9&lt;/code&gt; 且大于 &lt;code&gt;5&lt;/code&gt;，我们向下跳到第 2 层。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;第 2 层&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;从 &lt;code&gt;1 -&amp;gt; 3 -&amp;gt; 5 -&amp;gt; 7 -&amp;gt; 9&lt;/code&gt; 开始。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;由于 &lt;code&gt;8&lt;/code&gt; 小于 &lt;code&gt;9&lt;/code&gt; 且大于 &lt;code&gt;7&lt;/code&gt;，我们向下跳到第 1 层。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;第 1 层&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;从 &lt;code&gt;1 -&amp;gt; 3 -&amp;gt; 5 -&amp;gt; 7 -&amp;gt; 9 -&amp;gt; 11 -&amp;gt; 13&lt;/code&gt; 开始。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;由于 &lt;code&gt;8&lt;/code&gt; 小于 &lt;code&gt;9&lt;/code&gt; 且大于 &lt;code&gt;7&lt;/code&gt;，我们找到应该插入的位置，向下跳到第 0 层。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;确定新节点的层数：随机确定新节点的层数。假设我们通过概率方法，决定新节点 &lt;code&gt;8&lt;/code&gt; 将有 3 层（在最高的层数为 3 层）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;插入新节点&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;第 0 层（最底层）&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;在第 0 层，我们插入节点 &lt;code&gt;8&lt;/code&gt;，保持有序性。&lt;code&gt;8&lt;/code&gt; 位于 &lt;code&gt;7&lt;/code&gt; 和 &lt;code&gt;9&lt;/code&gt; 之间，因此我们将 &lt;code&gt;7&lt;/code&gt; 的指针指向 &lt;code&gt;8&lt;/code&gt;，&lt;code&gt;8&lt;/code&gt; 的指针指向 &lt;code&gt;9&lt;/code&gt;，然后更新链表。更新后的第 0 层指针：&lt;code&gt;1 -&amp;gt; 3 -&amp;gt; 5 -&amp;gt; 7 -&amp;gt; 8 -&amp;gt; 9 -&amp;gt; 11 -&amp;gt; 13 -&amp;gt; 15&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;第 1 层&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;在第 1 层，我们插入节点 &lt;code&gt;8&lt;/code&gt;，&lt;code&gt;8&lt;/code&gt; 位于 &lt;code&gt;7&lt;/code&gt; 和 &lt;code&gt;9&lt;/code&gt; 之间。我们将 &lt;code&gt;7&lt;/code&gt; 的指针指向 &lt;code&gt;8&lt;/code&gt;，&lt;code&gt;8&lt;/code&gt; 的指针指向 &lt;code&gt;9&lt;/code&gt;，更新链表。更新后的第 1 层指针&lt;code&gt;1 -&amp;gt; 3 -&amp;gt; 5 -&amp;gt; 7 -&amp;gt; 8 -&amp;gt; 9 -&amp;gt; 11 -&amp;gt; 13&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;第 2 层&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;在第 2 层，我们插入节点 &lt;code&gt;8&lt;/code&gt;，&lt;code&gt;8&lt;/code&gt; 位于 &lt;code&gt;7&lt;/code&gt; 和 &lt;code&gt;9&lt;/code&gt; 之间。我们将 &lt;code&gt;7&lt;/code&gt; 的指针指向 &lt;code&gt;8&lt;/code&gt;，&lt;code&gt;8&lt;/code&gt; 的指针指向 &lt;code&gt;9&lt;/code&gt;，更新链表。更新后的第 2 层指针：&lt;code&gt;1 -&amp;gt; 3 -&amp;gt; 5 -&amp;gt; 7 -&amp;gt; 8 -&amp;gt; 9&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;第 3 层&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;在第 3 层，我们插入节点 &lt;code&gt;8&lt;/code&gt;，&lt;code&gt;8&lt;/code&gt; 位于 &lt;code&gt;7&lt;/code&gt; 和 &lt;code&gt;9&lt;/code&gt; 之间。我们将 &lt;code&gt;7&lt;/code&gt; 的指针指向 &lt;code&gt;8&lt;/code&gt;，&lt;code&gt;8&lt;/code&gt; 的指针指向 &lt;code&gt;9&lt;/code&gt;，更新链表。更新后的第 3 层指针：&lt;code&gt;1 -&amp;gt; 3 -&amp;gt; 5 -&amp;gt; 7 -&amp;gt; 8 -&amp;gt; 9&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;最终跳表结构&lt;/p&gt;
+&lt;p&gt;插入节点 &lt;code&gt;8&lt;/code&gt; 后，跳表的结构应该如下所示：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Level 4: 1  3  5  7  8  9  15
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Level 3: 1  3  5  7  8  9
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Level 2: 1  3  5  7  8  9
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Level 1: 1  3  5  7  8  9  11  13
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Level 0: 1  3  5  7  8  9  11  13  15
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;删除操作&#34;&gt;删除操作
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;查找删除操作&lt;/li&gt;
+&lt;li&gt;对于每一层，检查该层是否存在待删除的节点。如果该节点存在，则需要更新该层中前后节点的指针，将它们连接起来。&lt;/li&gt;
+&lt;li&gt;继续往下处理，直到删除节点的层次遍历完毕。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;示例&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Level 4: 1  3  5  9  15
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Level 3: 1  3  5  9
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Level 2: 1  3  5  7  9
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Level 1: 1  3  5  7  9  11  13
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Level 0: 1  3  5  7  9  11  13  15
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;定位节点：需要找到节点 &lt;code&gt;9&lt;/code&gt; 在各层的位置。假设我们从最高层开始：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在第 4 层（最上层），节点 &lt;code&gt;9&lt;/code&gt; 存在。&lt;/li&gt;
+&lt;li&gt;在第 3 层，节点 &lt;code&gt;9&lt;/code&gt; 存在。&lt;/li&gt;
+&lt;li&gt;在第 2 层，节点 &lt;code&gt;9&lt;/code&gt; 存在。&lt;/li&gt;
+&lt;li&gt;在第 1 层，节点 &lt;code&gt;9&lt;/code&gt; 存在。&lt;/li&gt;
+&lt;li&gt;在第 0 层（底层），节点 &lt;code&gt;9&lt;/code&gt; 存在。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;删除节点并更新指针：从最高层开始删除节点 &lt;code&gt;9&lt;/code&gt;，并逐层更新指针。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;删除第 4 层的节点 &lt;code&gt;9&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在第 4 层，节点 &lt;code&gt;9&lt;/code&gt;的前驱是 &lt;code&gt;5&lt;/code&gt;，后继是 &lt;code&gt;15&lt;/code&gt;。我们需要将 &lt;code&gt;5&lt;/code&gt; 的指针指向 &lt;code&gt;15&lt;/code&gt;，即跳过 &lt;code&gt;9&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;更新后的第 4 层指针：&lt;code&gt;1 -&amp;gt; 3 -&amp;gt; 5 -&amp;gt; 15&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;删除第 3 层的节点 &lt;code&gt;9&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;在第 3 层，节点 &lt;code&gt;9&lt;/code&gt;的前驱是 &lt;code&gt;5&lt;/code&gt;，后继是 &lt;code&gt;None&lt;/code&gt;。我们需要将 &lt;code&gt;5&lt;/code&gt; 的指针指向 &lt;code&gt;None&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;更新后的第 3 层指针：&lt;code&gt;1 -&amp;gt; 3 -&amp;gt; 5&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;删除第 2 层的节点 &lt;code&gt;9&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;在第 2 层，节点 &lt;code&gt;9&lt;/code&gt;的前驱是 &lt;code&gt;7&lt;/code&gt;，后继是 &lt;code&gt;None&lt;/code&gt;。我们需要将 &lt;code&gt;7&lt;/code&gt; 的指针指向 &lt;code&gt;None&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;更新后的第 2 层指针：&lt;code&gt;1 -&amp;gt; 3 -&amp;gt; 5 -&amp;gt; 7&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;删除第 1 层的节点 &lt;code&gt;9&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;在第 1 层，节点 &lt;code&gt;9&lt;/code&gt;的前驱是 &lt;code&gt;7&lt;/code&gt;，后继是 &lt;code&gt;11&lt;/code&gt;。我们需要将 &lt;code&gt;7&lt;/code&gt; 的指针指向 &lt;code&gt;11&lt;/code&gt;，即跳过 &lt;code&gt;9&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;更新后的第 1 层指针：&lt;code&gt;1 -&amp;gt; 3 -&amp;gt; 5 -&amp;gt; 7 -&amp;gt; 11 -&amp;gt; 13&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;删除第 0 层的节点 &lt;code&gt;9&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;在第 0 层（最底层），节点 &lt;code&gt;9&lt;/code&gt;的前驱是 &lt;code&gt;7&lt;/code&gt;，后继是 &lt;code&gt;11&lt;/code&gt;。我们需要将 &lt;code&gt;7&lt;/code&gt; 的指针指向 &lt;code&gt;11&lt;/code&gt;，即跳过 &lt;code&gt;9&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;更新后的第 0 层指针：&lt;code&gt;1 -&amp;gt; 3 -&amp;gt; 5 -&amp;gt; 7 -&amp;gt; 11 -&amp;gt; 13 -&amp;gt; 15&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3 id=&#34;跳表和b树的区别&#34;&gt;跳表和B+树的区别
 &lt;/h3&gt;&lt;p&gt;Redis 是内存数据库，&lt;strong&gt;跳表在实现简单性、写入性能、内存访问模式等方面的综合优势&lt;/strong&gt;，使其成为更合适的选择。&lt;/p&gt;
@@ -1176,7 +1424,7 @@
 &lt;h2 id=&#34;底层实现&#34;&gt;底层实现
 &lt;/h2&gt;&lt;p&gt;Set 类型的底层数据结构是由&lt;strong&gt;哈希表或整数集合&lt;/strong&gt;实现的：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;如果集合中的元素都是整数且元素个数小于 &lt;code&gt;512&lt;/code&gt; （默认值，&lt;code&gt;set-maxintset-entries&lt;/code&gt;配置）个，Redis 会使用&lt;strong&gt;整数集合&lt;/strong&gt;作为 Set 类型的底层数据结构；&lt;/li&gt;
+&lt;li&gt;如果集合中的元素都是整数且元素个数小于 &lt;strong&gt;512&lt;/strong&gt; （默认值，&lt;strong&gt;&lt;code&gt;set-maxintset-entries&lt;/code&gt;&lt;/strong&gt; 配置）个，Redis 会使用&lt;strong&gt;整数集合&lt;/strong&gt;作为 Set 类型的底层数据结构；&lt;/li&gt;
 &lt;li&gt;如果集合中的元素不满足上面条件，则 Redis 使用&lt;strong&gt;哈希表&lt;/strong&gt;作为 Set 类型的底层数据结构。&lt;/li&gt;
 &lt;/ul&gt;
 </description>
@@ -1188,7 +1436,7 @@
         
         <guid>https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84hash/</guid>
         <description>&lt;h2 id=&#34;hash的定义&#34;&gt;Hash的定义
-&lt;/h2&gt;&lt;p&gt;Hash 是一个键值对（key - value）集合，其中 value 的形式如： &lt;code&gt;value=[{field1，value1}，...{fieldN，valueN}]&lt;/code&gt;。Hash 适合用于存储对象。&lt;img src=&#34;https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84hash/hash.png&#34;
+&lt;/h2&gt;&lt;p&gt;Hash 是一个键值对（key - value）集合，其中 value 的形式如： &lt;strong&gt;&lt;code&gt;value=[{field1，value1}，...{fieldN，valueN}]&lt;/code&gt;&lt;/strong&gt; 。Hash 适合用于存储对象。&lt;img src=&#34;https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84hash/hash.png&#34;
 	width=&#34;1240&#34;
 	height=&#34;888&#34;
 	
@@ -1243,7 +1491,7 @@
 &lt;h2 id=&#34;底层实现&#34;&gt;底层实现
 &lt;/h2&gt;&lt;p&gt;Hash 类型的底层数据结构是由 &lt;strong&gt;压缩列表或哈希表&lt;/strong&gt; 实现的：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;如果哈希类型元素个数小于 &lt;code&gt;512&lt;/code&gt; 个（默认值，可由 &lt;code&gt;hash-max-ziplist-entries&lt;/code&gt; 配置），所有值小于 &lt;code&gt;64&lt;/code&gt; 字节（默认值，可由 &lt;code&gt;hash-max-ziplist-value&lt;/code&gt; 配置）的话，Redis 会使用 &lt;strong&gt;压缩列表&lt;/strong&gt; 作为 Hash 类型的底层数据结构；&lt;/li&gt;
+&lt;li&gt;如果哈希类型元素个数小于 &lt;strong&gt;512&lt;/strong&gt; 个（默认值，可由 &lt;strong&gt;&lt;code&gt;hash-max-ziplist-entries&lt;/code&gt;&lt;/strong&gt; 配置），所有值小于 &lt;strong&gt;64&lt;/strong&gt; 字节（默认值，可由 &lt;strong&gt;&lt;code&gt;hash-max-ziplist-value&lt;/code&gt;&lt;/strong&gt; 配置）的话，Redis 会使用 &lt;strong&gt;压缩列表&lt;/strong&gt; 作为 Hash 类型的底层数据结构；&lt;/li&gt;
 &lt;li&gt;如果哈希类型元素不满足上面条件，Redis 会使用 &lt;strong&gt;哈希表&lt;/strong&gt; 作为 Hash 类型的 底层数据结构。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;后面版本使用 &lt;strong&gt;ListPack&lt;/strong&gt; 实现&lt;/p&gt;
@@ -1373,9 +1621,8 @@
   &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
 &lt;/svg&gt;
 
-    &lt;/span&gt;提示&lt;/p&gt;
-  &lt;p&gt;ListPack 是 Redis 内部的一种数据结构，用于高效存储短小的字符串或整数集合。它是一种 &lt;strong&gt;紧凑型的序列化数据结构&lt;/strong&gt; ，旨在减少内存占用和提升性能。直接以字节序列的形式存储数据。&lt;/p&gt;
-  &lt;/div&gt;
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;ListPack 是 Redis 内部的一种数据结构，用于高效存储短小的字符串或整数集合。它是一种 &lt;strong&gt;紧凑型的序列化数据结构&lt;/strong&gt; ，旨在减少内存占用和提升性能。直接以字节序列的形式存储数据。&lt;/p&gt;
+&lt;p&gt;相较于Ziplist，Listpack 没有压缩列表中记录前一个节点长度的字段了，Listpack 只记录当前节点的长度，当我们向 Listpack 加入一个新元素的时候，不会影响其他节点的长度字段的变化，从而避免了压缩列表的连锁更新问题。&lt;/p&gt;&lt;/div&gt;
 
 &lt;h2 id=&#34;扩容机制&#34;&gt;扩容机制
 &lt;/h2&gt;&lt;p&gt;Redis的哈希扩容是渐进式的&lt;/p&gt;
@@ -1416,7 +1663,7 @@
         <guid>https://Tyritic.github.io/p/redis%E4%B8%AD%E7%9A%84list/</guid>
         <description>&lt;h2 id=&#34;list类型定义&#34;&gt;List类型定义
 &lt;/h2&gt;&lt;p&gt;List 列表是简单的字符串列表，&lt;strong&gt;按照插入顺序排序&lt;/strong&gt;，可以从头部或尾部向 List 列表添加元素。&lt;/p&gt;
-&lt;p&gt;列表的最大长度为 &lt;code&gt;2^32 - 1&lt;/code&gt;，也即每个列表支持超过 &lt;code&gt;40 亿&lt;/code&gt;个元素。&lt;/p&gt;
+&lt;p&gt;列表的最大长度为 $2^{32} - 1$，也即每个列表支持超过 40 亿个元素。&lt;/p&gt;
 &lt;p&gt;特点与LinkedList一致&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;有序&lt;/li&gt;
@@ -1461,9 +1708,10 @@
 &lt;h2 id=&#34;底层实现原理&#34;&gt;底层实现原理
 &lt;/h2&gt;&lt;p&gt;List 类型的底层数据结构是由 &lt;strong&gt;双向链表或压缩列表&lt;/strong&gt; 实现的：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;如果列表的元素个数小于 &lt;code&gt;512&lt;/code&gt; 个（默认值，可由 &lt;code&gt;list-max-ziplist-entries&lt;/code&gt; 配置），列表每个元素的值都小于 &lt;code&gt;64&lt;/code&gt; 字节（默认值，可由 &lt;code&gt;list-max-ziplist-value&lt;/code&gt; 配置），Redis 会使用 &lt;strong&gt;压缩列表（ziplist）&lt;/strong&gt; 作为 List 类型的底层数据结构；&lt;/li&gt;
+&lt;li&gt;如果列表的元素个数小于 &lt;strong&gt;512&lt;/strong&gt; 个（默认值，可由 &lt;strong&gt;&lt;code&gt;list-max-ziplist-entries&lt;/code&gt;&lt;/strong&gt; 配置），列表每个元素的值都小于 &lt;strong&gt;64&lt;/strong&gt; 字节（默认值，可由 &lt;strong&gt;&lt;code&gt;list-max-ziplist-value&lt;/code&gt;&lt;/strong&gt; 配置），Redis 会使用 &lt;strong&gt;压缩列表（ziplist）&lt;/strong&gt; 作为 List 类型的底层数据结构；&lt;/li&gt;
 &lt;li&gt;如果列表的元素不满足上面的条件，Redis 会使用&lt;strong&gt;双向链表&lt;/strong&gt;作为 List 类型的底层数据结构&lt;/li&gt;
 &lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;在 Redis 3.2 版本之后，List 数据类型底层数据结构就只由 quicklist 实现了，替代了双向链表和压缩列表&lt;/strong&gt;。&lt;/p&gt;
 &lt;style type=&#34;text/css&#34;&gt;
    
   .notice {
@@ -1593,7 +1841,7 @@
     &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Ziplist&lt;/strong&gt;：压缩列表是 &lt;strong&gt;由连续内存块组成的顺序型数据结构&lt;/strong&gt; ，有点类似于数组&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;优点：简单、紧凑、连续存储，适用于小数据量场景&lt;/li&gt;
-&lt;li&gt;缺点：连锁更新的，因此 &lt;strong&gt;连锁更新一旦发生，就会导致压缩列表占用的内存空间要多次重新分配，这就会直接影响到压缩列表的访问性能&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;缺点：压缩列表新增某个元素或修改某个元素时，如果空间不不够，压缩列表占用的内存空间就需要重新分配。而当新插入的元素较大时，可能会导致后续元素的占用空间都发生变化，从而引起&lt;strong&gt;连锁更新&lt;/strong&gt;问题，导致每个元素的空间都要重新分配，造成访问压缩列表性能的下降。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;Quicklist&lt;/strong&gt;：&lt;/p&gt;
 &lt;ul&gt;
@@ -1620,8 +1868,8 @@
 	
 &gt;
 &lt;ul&gt;
-&lt;li&gt;生产者使用 &lt;code&gt;LPUSH key value[value...]&lt;/code&gt; 将消息插入到队列的头部，如果 key 不存在则会创建一个空的队列再插入消息。&lt;/li&gt;
-&lt;li&gt;消费者使用 &lt;code&gt;RPOP key&lt;/code&gt; 依次读取队列的消息，先进先出。&lt;/li&gt;
+&lt;li&gt;生产者使用 &lt;strong&gt;&lt;code&gt;LPUSH key value[value...]&lt;/code&gt;&lt;/strong&gt; 将消息插入到队列的头部，如果 key 不存在则会创建一个空的队列再插入消息。&lt;/li&gt;
+&lt;li&gt;消费者使用 &lt;strong&gt;&lt;code&gt;RPOP key&lt;/code&gt;&lt;/strong&gt; 依次读取队列的消息，先进先出。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;li&gt;消息重复性：&lt;strong&gt;自行为每个消息生成一个全局唯一ID&lt;/strong&gt;&lt;/li&gt;
@@ -1689,25 +1937,31 @@
 	
 &gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;en，记录了字符串长度&lt;/strong&gt;。这样获取字符串长度的时候，只需要返回这个成员变量值就行，时间复杂度只需要 O（1）。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;alloc，分配给字符数组的空间长度&lt;/strong&gt;。这样在修改字符串的时候，可以通过 &lt;code&gt;alloc - len&lt;/code&gt; 计算出剩余的空间大小，可以用来判断空间是否满足修改需求，如果不满足的话，就会自动将 SDS 的空间扩展至执行修改所需的大小，然后才执行实际的修改操作，所以使用 SDS 既不需要手动修改 SDS 的空间大小，也不会出现前面所说的缓冲区溢出的问题。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;len，记录了字符串长度&lt;/strong&gt;。这样获取字符串长度的时候，只需要返回这个成员变量值就行，时间复杂度只需要$O(1)$。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;alloc，分配给字符数组的空间长度&lt;/strong&gt;。这样在修改字符串的时候，可以通过 &lt;strong&gt;&lt;code&gt;alloc - len&lt;/code&gt;&lt;/strong&gt; 计算出剩余的空间大小，可以用来判断空间是否满足修改需求，如果不满足的话，就会自动将 SDS 的空间扩展至执行修改所需的大小，然后才执行实际的修改操作，所以使用 SDS 既不需要手动修改 SDS 的空间大小，也不会出现前面所说的缓冲区溢出的问题。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;flags，用来表示不同类型的 SDS&lt;/strong&gt;。一共设计了 5 种类型，分别是 sdshdr5、sdshdr8、sdshdr16、sdshdr32 和 sdshdr64，后面在说明区别之处。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;buf[]，字符数组，用来保存实际数据&lt;/strong&gt;。不仅可以保存字符串，也可以保存二进制数据。&lt;/li&gt;
 &lt;/ul&gt;
+&lt;h3 id=&#34;相比于c语言的字符串表示的优势&#34;&gt;相比于C语言的字符串表示的优势
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;SDS 不仅可以保存文本数据，还可以保存二进制数据&lt;/strong&gt;。因为 &lt;strong&gt;&lt;code&gt;SDS&lt;/code&gt;&lt;/strong&gt; 使用 &lt;strong&gt;&lt;code&gt;len&lt;/code&gt;&lt;/strong&gt; 属性的值而不是空字符来判断字符串是否结束，并且 SDS 的所有 API 都会以处理二进制的方式来处理 SDS 存放在 &lt;strong&gt;&lt;code&gt;buf[]&lt;/code&gt;&lt;/strong&gt; 数组里的数据。所以 SDS 不光能存放文本数据，而且能保存图片、音频、视频、压缩文件这样的二进制数据。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;SDS 获取字符串长度的时间复杂度是$O(1)$&lt;/strong&gt;。因为 C 语言的字符串并不记录自身长度，所以获取长度的复杂度为$O(n)$；而 SDS 结构里用 &lt;code&gt;len&lt;/code&gt; 属性记录了字符串长度，所以复杂度为$O(1)$。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Redis 的 SDS API 是安全的，拼接字符串不会造成缓冲区溢出&lt;/strong&gt;。因为 SDS 在拼接字符串之前会检查 SDS 空间是否满足要求，如果空间不够会自动扩容，所以不会导致缓冲区溢出的问题。&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h3 id=&#34;编码方式&#34;&gt;编码方式
 &lt;/h3&gt;&lt;ul&gt;
-&lt;li&gt;如果一个字符串对象保存的是整数值，并且这个整数值可以用&lt;code&gt;long&lt;/code&gt;类型来表示，那么字符串对象会将整数值保存在字符串对象结构的&lt;code&gt;ptr&lt;/code&gt;属性里面（将&lt;code&gt;void*&lt;/code&gt;转换成 long），并将字符串对象的编码设置为&lt;code&gt;int&lt;/code&gt;。&lt;/li&gt;
-&lt;li&gt;如果字符串对象保存的是一个短字符串，那么字符串对象将使用一个简单动态字符串（SDS）来保存这个字符串，并将对象的编码设置为&lt;code&gt;embstr&lt;/code&gt;， &lt;code&gt;embstr&lt;/code&gt;编码是专门用于保存短字符串的一种优化编码方式&lt;/li&gt;
-&lt;li&gt;如果字符串对象保存的是一个长字符串，那么字符串对象将使用一个简单动态字符串（SDS）来保存这个字符串，并将对象的编码设置为&lt;code&gt;raw&lt;/code&gt;：&lt;/li&gt;
+&lt;li&gt;如果一个字符串对象保存的是整数值，并且这个整数值可以用 &lt;strong&gt;&lt;code&gt;long&lt;/code&gt;&lt;/strong&gt; 类型来表示，那么字符串对象会将整数值保存在字符串对象结构的 &lt;strong&gt;&lt;code&gt;ptr&lt;/code&gt;&lt;/strong&gt; 属性里面（将void转换成 long），并将字符串对象的编码设置为 &lt;strong&gt;&lt;code&gt;int&lt;/code&gt;&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;如果字符串对象保存的是一个短字符串，那么字符串对象将使用一个简单动态字符串（SDS）来保存这个字符串，并将对象的编码设置为 &lt;strong&gt;&lt;code&gt;embstr&lt;/code&gt;&lt;/strong&gt; ， &lt;strong&gt;&lt;code&gt;embstr&lt;/code&gt;&lt;/strong&gt; 编码是专门用于保存短字符串的一种优化编码方式&lt;/li&gt;
+&lt;li&gt;如果字符串对象保存的是一个长字符串，那么字符串对象将使用一个简单动态字符串（SDS）来保存这个字符串，并将对象的编码设置为 &lt;strong&gt;&lt;code&gt;raw&lt;/code&gt;&lt;/strong&gt;&lt;/li&gt;
 &lt;/ul&gt;
 </description>
         </item>
         <item>
-        <title>Redis的读写效率</title>
-        <link>https://Tyritic.github.io/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87/</link>
+        <title>Redis的读写效率分析</title>
+        <link>https://Tyritic.github.io/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87%E5%88%86%E6%9E%90/</link>
         <pubDate>Mon, 24 Feb 2025 17:30:12 +0800</pubDate>
         
-        <guid>https://Tyritic.github.io/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87/</guid>
+        <guid>https://Tyritic.github.io/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87%E5%88%86%E6%9E%90/</guid>
         <description>&lt;h2 id=&#34;redis性能强大的原因&#34;&gt;Redis性能强大的原因
 &lt;/h2&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;基于内存的数据存储&lt;/strong&gt; ：Redis 将数据存储在内存中，提供快速的读写速度，使得数据的读写操作避开了磁盘 I/O。而内存的访问速度远超硬盘。相比于传统的磁盘数据库，内存访问速度快得多。&lt;/li&gt;
@@ -1718,12 +1972,13 @@
 &lt;h2 id=&#34;单线程模型&#34;&gt;单线程模型
 &lt;/h2&gt;&lt;h3 id=&#34;使用原因&#34;&gt;使用原因
 &lt;/h3&gt;&lt;ul&gt;
-&lt;li&gt;Redis 的大部分操作&lt;strong&gt;都在内存中完成&lt;/strong&gt;，并且采用了高效的数据结构，因此 Redis 瓶颈可能是机器的内存或者网络带宽，而并非 CPU，既然 CPU 不是瓶颈，那么自然就采用单线程的解决方案了。&lt;/li&gt;
+&lt;li&gt;Redis 的大部分操作&lt;strong&gt;都在内存中完成&lt;/strong&gt;，并且采用了高效的数据结构，因此 Redis 瓶颈是机器的内存或者网络带宽，而并非 CPU，既然 CPU 不是瓶颈，那么自然就采用单线程的解决方案了。&lt;/li&gt;
 &lt;li&gt;Redis 采用单线程模型可以&lt;strong&gt;避免了多线程之间的竞争&lt;/strong&gt;，省去了多线程切换带来的时间和性能上的开销，而且也不会导致死锁问题。&lt;/li&gt;
+&lt;li&gt;Redis 采用了 &lt;strong&gt;I/O 多路复用机制&lt;/strong&gt;处理大量的客户端 Socket 请求，IO 多路复用机制是指一个线程处理多个 IO 流，就是我们经常听到的 select/epoll 机制。简单来说，在 Redis 只运行单线程的情况下，该机制允许内核中，同时存在多个监听 Socket 和已连接 Socket。内核会一直监听这些 Socket 上的连接请求或数据请求。一旦有请求到达，就会交给 Redis 线程处理，这就实现了一个 Redis 线程处理多个 IO 流的效果。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3 id=&#34;io多路复用机制&#34;&gt;IO多路复用机制
 &lt;/h3&gt;&lt;p&gt;IO 多路复用机制是指一个线程处理多个 IO 流，就是 select/epoll 机制。简单来说，在 Redis 只运行单线程的情况下，该机制允许内核中，同时存在多个监听 Socket 和已连接 Socket。内核会一直监听这些 Socket 上的连接请求或数据请求。一旦有请求到达，就会交给 Redis 线程处理，这就实现了一个 Redis 线程处理多个 IO 流的效果。&lt;/p&gt;
-&lt;p&gt;这里“多路”指的是多个网络连接客户端，“复用”指的是复用同一个线程(单进程)。&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87/1720433058791-94f03cb5-e89c-45ed-ba34-88a0dac99d98.png&#34;
+&lt;p&gt;这里“多路”指的是多个网络连接客户端，“复用”指的是复用同一个线程(单进程)。&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87%E5%88%86%E6%9E%90/1720433058791-94f03cb5-e89c-45ed-ba34-88a0dac99d98.png&#34;
 	width=&#34;1137&#34;
 	height=&#34;500&#34;
 	

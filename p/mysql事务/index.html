@@ -10,7 +10,7 @@
 <meta property='og:description' content="MySQL事务的使用">
 <meta property='og:url' content='https://Tyritic.github.io/p/mysql%E4%BA%8B%E5%8A%A1/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='数据库' /><meta property='article:published_time' content='2024-11-04T19:06:51&#43;08:00'/><meta property='article:modified_time' content='2025-04-01T14:06:53&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='数据库' /><meta property='article:published_time' content='2024-11-04T19:06:51&#43;08:00'/><meta property='article:modified_time' content='2025-04-07T14:21:25&#43;00:00'/>
 <meta name="twitter:title" content="MySQL事务">
 <meta name="twitter:description" content="MySQL事务的使用">
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -329,9 +329,28 @@
     </li>
     <li><a href="#mysql的日志级别">MySQL的日志级别</a>
       <ol>
+        <li><a href="#undo-log">undo log</a>
+          <ol>
+            <li><a href="#原理">原理</a></li>
+            <li><a href="#作用">作用</a></li>
+          </ol>
+        </li>
+        <li><a href="#redo-log">redo log</a>
+          <ol>
+            <li><a href="#原理-1">原理</a></li>
+            <li><a href="#写入方式">写入方式</a></li>
+            <li><a href="#作用-1">作用</a></li>
+          </ol>
+        </li>
+        <li><a href="#binlog">binlog</a>
+          <ol>
+            <li><a href="#作用-2">作用</a></li>
+          </ol>
+        </li>
+        <li><a href="#主从复制">主从复制</a></li>
         <li><a href="#二阶段提交">二阶段提交</a>
           <ol>
-            <li><a href="#过程">过程</a></li>
+            <li><a href="#二阶段提交的过程">二阶段提交的过程</a></li>
             <li><a href="#异常宕机过程">异常宕机过程</a></li>
           </ol>
         </li>
@@ -405,7 +424,7 @@
 
 
                 <time class="article-time--reading">
-                    阅读时长: 10 分钟
+                    阅读时长: 14 分钟
                 </time>
             </div>
 
@@ -413,7 +432,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：4811 字
+                     字数统计：6770 字
                 </time>
             </div>
 
@@ -598,23 +617,30 @@
 <li>隔离性（lsolation）：数据库系统提供的隔离机制，保证事务在不受外部并发操作影响的独立环境下运行</li>
 <li>持久性（Durability）：事务一旦提交或回滚，它对数据库中的数据的改变就是永久的</li>
 </ul>
+<p>实现原理</p>
+<ul>
+<li>持久性是通过 redo log （重做日志）来保证的</li>
+<li>原子性是通过  <strong>undo log</strong> （回滚日志） 来保证的</li>
+<li>隔离性是通过 MVCC（多版本并发控制） 或锁机制来保证的</li>
+<li>一致性则是通过持久性+原子性+隔离性来保证</li>
+</ul>
 <h2 id="mvcc">MVCC
 </h2><p>MVCC（Multi-Version Concurrency Control，多版本并发控制）是一种并发控制机制，允许多个事务同时读取和写入数据库，而无需互相等待，从而提高数据库的并发性能。</p>
 <p>在 MVCC 中，数据库为每个事务创建一个数据快照。每当数据被修改时，MySQL 不会立即覆盖原有数据，而是生成新版本的记录。每个记录都保留了对应的版本号或时间戳。</p>
 <h3 id="版本链">版本链
-</h3><p>在 InnoDB 中，每一行数据都有两个隐藏的列：一个是 DB_TRX_ID，另一个是 DB_ROLL_PTR。</p>
+</h3><p>在 InnoDB 中，每一行数据都有两个隐藏的列：一个是 <strong><code>DB_TRX_ID</code></strong> ，另一个是 <strong><code>DB_ROLL_PTR</code></strong> 。</p>
 <ul>
-<li><code>DB_TRX_ID</code>，保存创建这个版本的事务 ID。</li>
-<li><code>DB_ROLL_PTR</code>，指向 undo 日志记录的指针，这个记录包含了该行的前一个版本的信息。通过这个指针，可以访问到该行数据的历史版本。</li>
+<li><strong><code>DB_TRX_ID</code></strong> ：保存创建这个版本的事务 ID。</li>
+<li><strong><code>DB_ROLL_PTR</code></strong> ：指向 undo 日志记录的指针，这个记录包含了该行的前一个版本的信息。通过这个指针，可以访问到该行数据的历史版本。</li>
 </ul>
-<p>当事务更新一行数据时，InnoDB 不会直接覆盖原有数据，而是创建一个新的数据版本，并更新 DB_TRX_ID 和 DB_ROLL_PTR，使得它们指向前一个版本和相关的 undo 日志。这样，老版本的数据不会丢失，可以通过版本链找到。</p>
+<p>当事务更新一行数据时，InnoDB 不会直接覆盖原有数据，而是创建一个新的数据版本，并更新 <strong><code>DB_TRX_ID</code></strong> 和 <strong><code>DB_ROLL_PTR</code></strong>，使得它们指向前一个版本和相关的 undo 日志。这样，老版本的数据不会丢失，可以通过版本链找到。</p>
 <h3 id="readview">ReadView
 </h3><p>ReadView（读视图）是 InnoDB 为了实现一致性读而创建的数据结构，它用于确定在特定事务中哪些版本的行记录是可见的。可以理解为数据快照</p>
 <p>Read View 有四个重要的字段：</p>
 <ul>
-<li><strong><code>m_ids</code></strong> ：指的是在创建 Read View 时，当前数据库中「活跃事务」的 <strong>事务 id 列表</strong>，注意是一个列表，<strong>“活跃事务”指的就是，启动了但还没提交的事务</strong>。</li>
-<li><strong><code>min_trx_id</code></strong> ：指的是在创建 Read View 时，当前数据库中「活跃事务」中事务 <strong>id 最小的事务</strong> ，也就是 m_ids 的最小值。</li>
-<li><strong><code>max_trx_id</code></strong> ：这个并不是 m_ids 的最大值，而是 <strong>创建 Read View 时当前数据库中应该给下一个事务的 id 值</strong> ，也就是全局事务中最大的事务 id 值 + 1；</li>
+<li><strong><code>m_ids</code></strong> ：指的是在创建 Read View 时，当前数据库中 <strong>活跃事务</strong> 的 <strong>事务 id 列表</strong>，注意是一个列表，<strong>“活跃事务”指的就是，启动了但还没提交的事务</strong>。</li>
+<li><strong><code>min_trx_id</code></strong> ：指的是在创建 Read View 时，当前数据库中 <strong>活跃事务</strong> 中事务 <strong>id 最小的事务</strong> ，也就是 <strong><code>m_ids</code></strong> 的最小值。</li>
+<li><strong><code>max_trx_id</code></strong> ：这个并不是 <strong><code>m_ids</code></strong> 的最大值，而是 <strong>创建 Read View 时当前数据库中应该给下一个事务的 id 值</strong> ，也就是全局事务中最大的事务 id 值（<strong><code>m_ids</code></strong> 的最大值） + 1；</li>
 <li><strong><code>creator_trx_id</code></strong> ：指的是 <strong>创建该 Read View 的事务的事务 id</strong> 。</li>
 </ul>
 <p><img src="/p/mysql%E4%BA%8B%E5%8A%A1/ReadView.drawio.png"
@@ -633,12 +659,12 @@
 ></p>
 <h3 id="可见性实现">可见性实现
 </h3><ul>
-<li>如果记录的 <code>trx_id</code> 值小于 Read View 中的 <code>min_trx_id</code> 值，表示这个版本的记录是在创建 Read View <strong>前</strong> 已经提交的事务生成的，所以该版本的记录对当前事务 <strong>可见</strong> 。</li>
-<li>如果记录的 <code>trx_id</code> 值大于等于 Read View 中的 <code>max_trx_id</code> 值，表示这个版本的记录是在创建 Read View <strong>后</strong>才启动的事务生成的，所以该版本的记录对当前事务 <strong>不可见</strong> 。</li>
-<li>如果记录的 <code>trx_id</code> 值在 Read View 的 <code>min_trx_id</code> 和 <code>max_trx_id</code>之间，需要判断 <code>trx_id</code> 是否在 m_ids 列表中：
+<li>如果记录的 <strong><code>trx_id</code></strong> 值小于 Read View 中的 <strong><code>min_trx_id</code></strong> 值，表示这个版本的记录是在创建 Read View <strong>前</strong> 已经提交的事务生成的，所以该版本的记录对当前事务 <strong>可见</strong> 。</li>
+<li>如果记录的 <strong><code>trx_id</code></strong> 值大于等于 Read View 中的 <strong><code>max_trx_id</code></strong> 值，表示这个版本的记录是在创建 Read View <strong>后</strong>才启动的事务生成的，所以该版本的记录对当前事务 <strong>不可见</strong> 。</li>
+<li>如果记录的 <strong><code>trx_id</code></strong> 值在 Read View 的 <strong><code>min_trx_id</code></strong> 和 <strong><code>max_trx_id</code></strong> 之间，需要判断 <strong><code>trx_id</code></strong> 是否在 <strong><code>m_ids</code></strong> 列表中：
 <ul>
-<li>如果记录的 trx_id  <strong>在</strong>  <code>m_ids</code> 列表中，表示生成该版本记录的活跃事务依然活跃着（还没提交事务），所以该版本的记录对当前事务<strong>不可见</strong>。</li>
-<li>如果记录的 trx_id  <strong>不在</strong>  <code>m_ids</code>列表中，表示生成该版本记录的活跃事务已经被提交，所以该版本的记录对当前事务 <strong>可见</strong> 。</li>
+<li>如果记录的 <strong><code>trx_id</code></strong>  <strong>在</strong>  <strong><code>m_ids</code></strong> 列表中，表示生成该版本记录的活跃事务依然活跃着（还没提交事务），所以该版本的记录对当前事务<strong>不可见</strong>。</li>
+<li>如果记录的 <strong><code>trx_id</code></strong>  <strong>不在</strong>  <strong><code>m_ids</code></strong> 列表中，表示生成该版本记录的活跃事务已经被提交，所以该版本的记录对当前事务 <strong>可见</strong> 。</li>
 </ul>
 </li>
 </ul>
@@ -684,7 +710,7 @@
 	
 ></p>
 <h3 id="幻读">幻读
-</h3><p>定义：<strong>在一个事务内多次查询某个符合查询条件的「记录数量」，如果出现前后两次查询到的记录数量不一样的情况，就意味着发生了「幻读」现象。</strong></p>
+</h3><p>定义：<strong>在一个事务内多次查询某个符合查询条件的记录数量，如果出现前后两次查询到的记录数量不一样的情况，就意味着发生了幻读现象。</strong></p>
 <p><img src="/p/mysql%E4%BA%8B%E5%8A%A1/d19a1019dc35dfe8cfe7fbff8cd97e31.png"
 	width="1080"
 	height="312"
@@ -728,25 +754,25 @@
   </thead>
   <tbody>
       <tr>
-          <td style="text-align: center"><strong>Read uncommitted</strong> （读取未提交）</td>
+          <td style="text-align: center"><strong>Read uncommitted （读取未提交）</strong></td>
           <td style="text-align: center">√</td>
           <td style="text-align: center">√</td>
           <td style="text-align: center">√</td>
       </tr>
       <tr>
-          <td style="text-align: center"><strong>Read committed</strong> （读取已提交）</td>
+          <td style="text-align: center"><strong>Read committed （读取已提交）</strong></td>
           <td style="text-align: center">×</td>
           <td style="text-align: center">√</td>
           <td style="text-align: center">√</td>
       </tr>
       <tr>
-          <td style="text-align: center"><strong>Repeatable Read(默认)</strong> （可重复读）</td>
+          <td style="text-align: center"><strong>Repeatable Read(默认) （可重复读）</strong></td>
           <td style="text-align: center">×</td>
           <td style="text-align: center">×</td>
           <td style="text-align: center">√</td>
       </tr>
       <tr>
-          <td style="text-align: center">**Serializable **  （串行化）</td>
+          <td style="text-align: center"><strong>Serializable   （串行化）</strong></td>
           <td style="text-align: center">×</td>
           <td style="text-align: center">×</td>
           <td style="text-align: center">×</td>
@@ -779,10 +805,15 @@
 </ul>
 <h3 id="隔离级别的实现">隔离级别的实现
 </h3><h4 id="读已提交">读已提交
-</h4><p>每<strong>次读取数据前都生成一个 ReadView，保证每次读操作都是最新的数据。</strong> 正是因为在读提交隔离级别下，事务每次读数据时都重新创建 Read View，那么在事务期间的多次读取同一条数据，前后两次读的数据可能会出现不一致，因为可能这期间另外一个事务修改了该记录，并提交了事务。</p>
+</h4><p>每次<strong>读取数据前都生成一个 Read_View，保证每次读操作都是最新的数据。</strong> 正是因为在读提交隔离级别下，事务每次读数据时都重新创建 Read View，那么在事务期间的多次读取同一条数据，前后两次读的数据可能会出现不一致，因为可能这期间另外一个事务修改了该记录，并提交了事务。</p>
 <h4 id="可重复读">可重复读
 </h4><p><strong>可重复读隔离级别是启动事务时生成一个 Read View，然后整个事务期间都在用这个 Read View</strong>。</p>
-<p>可重复读隔离级别下在事务期间读到的记录都是事务启动前的记录</p>
+<p>可重复读隔离级别下在事务期间读到的记录都是事务启动前的记录。具体过程如下</p>
+<ul>
+<li>记录被另一个事务修改时会修改记录中的 <strong><code>trx_id</code></strong> ，同时记录的 <strong><code>roll_pointer</code></strong> 指向该记录的上一个版本的版本</li>
+<li>当事务发现记录的 <strong><code>trx_id</code></strong> 被修改后根据Read_View的可见机制判断该记录是否可读</li>
+<li>事务从头到尾都是使用事务启动时创建的Read_View</li>
+</ul>
 <h3 id="相关sql语句">相关SQL语句
 </h3><h4 id="查看事务隔离级别">查看事务隔离级别
 </h4><div class="highlight"><div class="chroma">
@@ -805,19 +836,46 @@
 </div><h2 id="mysql的日志级别">MySQL的日志级别
 </h2><ul>
 <li>
-<p>binlog ：是 MySQL 中的二进制日志文件，用于记录 MySQL 服务器上的所有更新和修改操作。它可以记录所有的 DDL和 DML操作，包括对表结构的更改、数据的插入、修改、删除等等。binlog是在事务提交后生成的，因此可以用于恢复数据库。是位于 <strong>Server</strong> 层的日志</p>
+<p><strong>binlog</strong> ：是 MySQL 中的二进制日志文件，用于记录 MySQL 服务器上的所有更新和修改操作。它可以记录所有的 DDL和 DML操作，包括对表结构的更改、数据的插入、修改、删除等等。 <strong>binlog</strong> 是在事务提交后生成的，因此可以用于恢复数据库。是位于 <strong>Server</strong> 层的日志</p>
 <ul>
-<li>STATEMENT：每一条修改数据的 SQL 都会被记录到 binlog 中（相当于记录了逻辑操作，所以针对这种格式， binlog 可以称为逻辑日志），主从复制中 slave 端再根据 SQL 语句重现。但 STATEMENT 有动态函数的问题，比如你用了 uuid 或者 now 这些函数，你在主库上执行的结果并不是你在从库执行的结果，这种随时在变的函数会导致复制的数据不一致；</li>
-<li>ROW：记录行数据最终被修改成什么样了（这种格式的日志，就不能称为逻辑日志了），不会出现 STATEMENT 下动态函数的问题。但 ROW 的缺点是每行数据的变化结果都会被记录，比如执行批量 update 语句，更新多少行数据就会产生多少条记录，使 binlog 文件过大，而在 STATEMENT 格式下只会记录一个 update 语句而已；</li>
+<li>STATEMENT：每一条修改数据的 SQL 都会被记录到  <strong>binlog</strong>  中（相当于记录了逻辑操作，所以针对这种格式，  <strong>binlog</strong>  可以称为逻辑日志），主从复制中 slave 端再根据 SQL 语句重现。但 STATEMENT 有动态函数的问题，比如你用了 uuid 或者 now 这些函数，你在主库上执行的结果并不是你在从库执行的结果，这种随时在变的函数会导致复制的数据不一致；</li>
+<li>ROW：记录行数据最终被修改成什么样了（这种格式的日志，就不能称为逻辑日志了），不会出现 STATEMENT 下动态函数的问题。但 ROW 的缺点是每行数据的变化结果都会被记录，比如执行批量 update 语句，更新多少行数据就会产生多少条记录，使  <strong>binlog</strong>  文件过大，而在 STATEMENT 格式下只会记录一个 update 语句而已；</li>
 <li>MIXED：包含了 STATEMENT 和 ROW 模式，它会根据不同的情况自动使用 ROW 模式和 STATEMENT 模式；</li>
 </ul>
 </li>
 <li>
-<p>redolog ：用于恢复数据，保证数据的一致性和持久性。当 MySQL 发生修改时，redolog 会将这些操作记录下来，并写入磁盘。这样，当 MySQL 发生宕机或崩溃时，通过重放 redolog 就可以恢复数据。实现了事务中的 <strong>持久性</strong> ，主要<strong>用于故障恢复</strong>；</p>
+<p><strong>redo log</strong>  ：用于恢复数据，保证数据的一致性和持久性。当 MySQL 发生修改时，redolog 会将这些操作记录下来，并写入磁盘。这样，当 MySQL 发生宕机或崩溃时，通过重放 redolog 就可以恢复数据。实现了事务中的 <strong>持久性</strong> ，主要<strong>用于故障恢复</strong>；</p>
 </li>
 <li>
-<p>undolog：用于回滚操作。当 MySQL 发生事务回滚时，undolog 会记录这些操作并将其写入磁盘。这样，当 MySQL 需要回滚时，通过重放 undolog 就可以回滚事务。实现了事务中的 <strong>原子性</strong> ，主要 <strong>用于事务回滚和 MVCC</strong> 。</p>
+<p><strong>undo log</strong> ：用于回滚操作。当 MySQL 发生事务回滚时，<strong>undo log</strong> 会记录这些操作并将其写入磁盘。这样，当 MySQL 需要回滚时，通过重放  <strong>undo log</strong>  就可以回滚事务。实现了事务中的 <strong>原子性</strong> ，主要 <strong>用于事务回滚和 MVCC</strong> 。</p>
 </li>
+</ul>
+<h3 id="undo-log">undo log
+</h3><p><strong>undo log</strong> （回滚日志），它保证了事务的 ACID 特性 (opens new window)事务中的原子性（Atomicity）</p>
+<h4 id="原理">原理
+</h4><p><strong>undo log</strong>  是一种用于撤销回退的日志。在事务没提交之前，MySQL 会先记录更新前的数据到  <strong>undo log</strong>  日志文件里面，当事务回滚时，可以利用  <strong>undo log</strong>  来进行回滚。</p>
+<p>在发生回滚时，就读取  <strong>undo log</strong>  里的数据，然后做原先相反操作。比如当 delete 一条记录时， <strong>undo log</strong>  中会把记录中的内容都记下来，然后执行回滚操作的时候，就读取  <strong>undo log</strong>  里的数据，然后进行 insert 操作。</p>
+<h4 id="作用">作用
+</h4><ul>
+<li><strong>实现事务回滚，保障事务的原子性</strong> ：事务处理过程中，如果出现了错误或者用户执行了 ROLLBACK 语句，MySQL 可以利用  <strong>undo log</strong>  中的历史数据将数据恢复到事务开始之前的状态。</li>
+<li><strong>实现 MVCC（多版本并发控制）关键因素之一</strong> ：MVCC 是通过 ReadView +  <strong>undo log</strong>  实现的。 <strong>undo log</strong>  为每条记录保存多份历史数据，MySQL 在执行快照读（普通 select 语句）的时候，会根据事务的 Read View 里的信息，顺着  <strong>undo log</strong>  的版本链找到满足其可见性的记录。</li>
+</ul>
+<h3 id="redo-log">redo log
+</h3><p><strong>redo log</strong>  是<strong>物理日志</strong>，记录了某个数据页做了什么修改，比如<strong>对 XXX 表空间中的 YYY 数据页 ZZZ 偏移量的地方做了AAA 更新</strong>，每当执行一个事务就会产生这样的一条或者多条物理日志。通常用于保存事务已经提交但未写入磁盘的数据。</p>
+<h4 id="原理-1">原理
+</h4><p>在事务提交时，先将  <strong>redo log</strong>  持久化到磁盘即可。</p>
+<p>当系统崩溃时，接着 MySQL 重启后，可以根据  <strong>redo log</strong>  的内容，将所有数据恢复到最新的状态。</p>
+<h4 id="写入方式">写入方式
+</h4><p>写入  <strong>redo log</strong>  的方式使用了追加操作， 磁盘操作是<strong>顺序写</strong>，</p>
+<p>写入数据需要先找到写入位置，然后才写到磁盘，所以磁盘操作是<strong>随机写</strong>。MySQL 的写操作并不是立刻更新到磁盘上，而是先记录在日志上，然后在合适的时间再更新到磁盘上 。</p>
+<p>因此MySQL 的写操作从磁盘的<strong>随机写</strong>变成了<strong>顺序写</strong>，提升语句的执行性能。</p>
+<p>默认情况下， InnoDB 存储引擎有 1 个重做日志文件组( redo log Group），重做日志文件组由有 2 个  <strong>redo log</strong>  文件组成，这两个 redo 日志的文件名叫 ：<strong><code>ib_logfile0</code></strong>  和  <strong><code>ib_logfile1</code></strong>  。</p>
+<p>重做日志文件组是以<strong>循环写</strong>的方式工作的，从头开始写，写到末尾就又回到开头，相当于一个环形。</p>
+<p>所以 InnoDB 存储引擎会先写 <strong><code>ib_logfile0</code></strong> 文件，当 ib_logfile0 文件被写满的时候，会切换至 <strong><code>ib_logfile1</code></strong> 文件，当 <strong><code>ib_logfile1</code></strong> 文件也被写满时，会切换回 <strong><code>ib_logfile0</code></strong> 文件。</p>
+<h4 id="作用-1">作用
+</h4><ul>
+<li><strong>实现事务的持久性</strong>：能够保证 MySQL 在任何时间段突然崩溃，重启后之前已提交的记录都不会丢失；</li>
+<li><strong>将写操作从随机写变成了顺序写</strong> ：提升 MySQL 写入磁盘的性能。</li>
 </ul>
 <div
   class="notice tip"
@@ -847,25 +905,12 @@
 </li>
 </ul></div>
 
-<div
-  class="notice tip"
-  
->
-  <p class="notice-title">
-    <span class="icon-notice baseline">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
-  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
-</svg>
-
-    </span>提示</p><p>不能只用binlog不用redolog</p>
-<p>binlog是 server 层的日志，没办法记录哪些脏页还没有刷盘，redolog 是存储引擎层的日志，可以记录哪些脏页还没有刷盘，这样崩溃恢复的时候，就能恢复那些还没有被刷盘的脏页数据。</p></div>
-
-<h3 id="二阶段提交">二阶段提交
-</h3><p>事务提交后，redo log 和 binlog 都要持久化到磁盘，但是这两个是独立的逻辑，可能出现半成功的状态，这样就造成两份日志之间的逻辑不一致。</p>
-<h4 id="过程">过程
+<h3 id="binlog">binlog
+</h3><p><strong>binlog</strong> 日志是一种<strong>逻辑日志</strong>，用于记录所有事务执行的数据库的修改操作（如插入、更新、删除等），以便在需要时进行数据恢复、数据复制和数据同步等操作。</p>
+<h4 id="作用-2">作用
 </h4><ul>
-<li><strong>准备阶段（Prepare Phase）</strong>：在事务提交时，MySQL 的 InnoDB 引擎会先写入 <strong>redo log</strong>，并将其状态标记为<strong>prepare</strong>，表示事务已经准备提交但还未真正完成。此时的 redo log 是预提交状态，还未标记为完成提交。</li>
-<li><strong>提交阶段（Commit Phase）</strong>：当 redo log 的状态变为 prepare 后，MySQL Server 会写入 <strong>binlog</strong>（记录用户的 DML 操作）。binlog 写入成功后，MySQL 会通知 InnoDB，将 redo log 状态改为<strong>commit</strong>，完成整个事务的提交过程。</li>
+<li>数据恢复： <strong>binlog</strong> 日志可以用于回滚到之前的某个时间点，从而恢复数据。</li>
+<li>数据复制： <strong>binlog</strong> 日志可以用于在主从数据库之间复制数据，从而实现数据的高可用和负载均衡等功能</li>
 </ul>
 <div
   class="notice tip"
@@ -877,24 +922,102 @@
   <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
 </svg>
 
-    </span>提示</p><p>二阶段提交的必要性</p>
+    </span>提示</p><p>如果不小心整个数据库的数据被删除了，能使用 redo log 文件恢复数据吗？</p>
+<ul>
+<li>因为  <strong>redo log</strong>  文件是循环写，是会边写边擦除日志的，只记录未被刷入磁盘的数据的物理日志，已经刷入磁盘的数据都会从  <strong>redo log</strong>  文件里擦除。</li>
+<li><strong>binlog</strong>  文件保存的是全量的日志，也就是保存了所有数据变更的情况，理论上只要记录在  <strong>binlog</strong>  上的数据，都可以恢复，所以如果不小心整个数据库的数据被删除了，得用  <strong>binlog</strong>  文件恢复数据。</li>
+</ul></div>
+
+<p>redo log和binlog的区别</p>
+<ul>
+<li>写入方式
+<ul>
+<li><strong>binlog</strong>  是追加写，写满一个文件，就创建一个新的文件继续写，不会覆盖以前的日志，保存的是全量的日志。</li>
+<li><strong>redo log</strong>  是循环写，日志空间大小是固定，全部写满就从头开始，保存未被刷入磁盘的脏页日志。</li>
+</ul>
+</li>
+<li>引擎类型
+<ul>
+<li><strong>binlog</strong>  是 MySQL 的 Server 层实现的日志，所有存储引擎都可以使用；</li>
+<li><strong>redo log</strong>  是 Innodb 存储引擎实现的日志；</li>
+</ul>
+</li>
+<li>日志内容
+<ul>
+<li><strong>binlog</strong> 是逻辑日志，记录数据库的修改操作（如插入、更新、删除等）</li>
+<li><strong>redo log</strong> 是物理日志，记录的是在某个数据页做了什么修改</li>
+</ul>
+</li>
+</ul>
+<h3 id="主从复制">主从复制
+</h3><p>MySQL 的主从同步机制是一种数据复制技术，用于将主数据库（Master）上的数据同步到一个或多个从数据库（Slave）中。</p>
+<p>主要是通过二进制日志（Binary Log，简称 binlog）实现数据的复制。主数据库在执行写操作时，会将这些操作记录到 binlog 中，然后推送给从数据库，从数据库重放对应的日志即可完成复制。</p>
+<p><img src="/p/mysql%E4%BA%8B%E5%8A%A1/%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E8%BF%87%E7%A8%8B.drawio.png"
+	width="991"
+	height="401"
+	
+	loading="lazy"
+	
+		alt="MySQL 主从复制过程"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="247"
+		data-flex-basis="593px"
+	
+></p>
+<ul>
+<li><strong>写入 Binlog</strong>：主库写 <strong>binlog</strong> 日志，提交事务，并更新本地存储数据。
+<ul>
+<li>MySQL 主库在收到客户端提交事务的请求之后，会先写入 <strong>binlog</strong> ，再提交事务，更新存储引擎中的数据，事务提交完成后，返回给客户端“操作成功”的响应。</li>
+</ul>
+</li>
+<li><strong>同步 Binlog</strong>：把 <strong>binlog</strong> 复制到所有从库上，每个从库把 <strong>binlog</strong> 写到暂存日志中。
+<ul>
+<li>从库会创建一个专门的 I/O 线程，连接主库的 log dump 线程，来接收主库的 <strong>binlog</strong> 日志，再把 <strong>binlog</strong> 信息写入 relay log 的中继日志里，再返回给主库“复制成功”的响应。</li>
+</ul>
+</li>
+<li><strong>回放 Binlog</strong>：回放 binlog，并更新存储引擎中的数据。
+<ul>
+<li>从库会创建一个用于回放 <strong>binlog</strong> 的线程，去读 relay log 中继日志，然后回放 <strong>binlog</strong> 更新存储引擎中的数据，最终实现主从的数据一致性。</li>
+</ul>
+</li>
+</ul>
+<h3 id="二阶段提交">二阶段提交
+</h3><p>事务提交后， <strong>redo log</strong>  和  <strong>binlog</strong>  都要持久化到磁盘，但是这两个是独立的逻辑，可能出现半成功的状态，这样就造成主库和从库数据不一致。这是因为  <strong>redo log</strong>  影响主库的数据， <strong>binlog</strong>  影响从库的数据，所以  <strong>redo log</strong>  和  <strong>binlog</strong>  必须保持一致才能保证主从数据一致</p>
+<h4 id="二阶段提交的过程">二阶段提交的过程
+</h4><ul>
+<li><strong>准备阶段（Prepare Phase）</strong>：在事务提交时，MySQL 的 InnoDB 引擎会先写入 <strong>redo log</strong>，并将其状态标记为<strong>prepare</strong>，表示事务已经准备提交但还未真正完成。此时的  <strong>redo log</strong>  是预提交状态，还未标记为完成提交。</li>
+<li><strong>提交阶段（Commit Phase）</strong>：当  <strong>redo log</strong>  的状态变为 <strong>prepare</strong> 后，MySQL Server 会写入 <strong>binlog</strong>（记录用户的 DML 操作）。<strong>binlog</strong> 写入成功后，MySQL 会通知 InnoDB，将 <strong>redo log</strong> 状态改为<strong>commit</strong>，完成整个事务的提交过程。</li>
+</ul>
+<div
+  class="notice tip"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
+  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+    </span>提示</p><p>半成功状态的情况</p>
 <ul>
 <li><strong>先写完 redo log，再写 binlog</strong>
 <ul>
-<li>写完 redo log 后，MySQL 异常宕机，binlog 还未写入数据。重启后 redo log 记录了，因此可以从 redo log 恢复事务的修改，但是 binlog 并没有本次事务提交的数据。后续通过 binlog 恢复的时候，本次事务的修改就丢了。</li>
+<li>写完  <strong>redo log</strong>  后，MySQL 异常宕机，binlog 还未写入数据。重启后  <strong>redo log</strong>  记录了，因此可以从  <strong>redo log</strong>  恢复事务的修改，但是 binlog 并没有本次事务提交的数据。后续从库通过 binlog 恢复的时候，本次事务的修改就丢了。</li>
 </ul>
 </li>
 <li><strong>先写完 binlog，再写 redo log</strong>
 <ul>
-<li>写完 binlog 后，MySQL 异常宕机，redo log 还未写入数据。重启后因为 redo log 中没有记录，所以无法恢复本次事务的修改，但是 binlog 记录了本次事务提交的数据。后续通过 binlog 恢复的时候，本次事务的修改可以复原，但是这和原库的数据又不一致了。</li>
+<li>写完  <strong>binlog</strong>  后，MySQL 异常宕机， <strong>redo log</strong>  还未写入数据。重启后因为  <strong>redo log</strong>  中没有记录，所以无法恢复本次事务的修改，但是  <strong>binlog</strong>  记录了本次事务提交的数据。后续从库通过  <strong>binlog</strong>  恢复的时候，本次事务的修改可以复原，但是这和原库的数据又不一致了。</li>
 </ul>
 </li>
 </ul></div>
 
 <h4 id="异常宕机过程">异常宕机过程
 </h4><ul>
-<li><strong>redo log 处于 prepare 阶段，binlog 还未写入</strong> ，此时 MySQL 异常宕机：由于 redo log 还未 commit ，所以异常恢复后，redo log 中记录的数据也不作数，binlog 内也没有记录数据，此时数据是一致的。</li>
-<li><strong>redo log 处于 prepare 阶段，binlog 已写入，但 redo log 还未 commit</strong> ，此时 MySQL 异常宕机：此时对比 redo log 中 prepare 的数据和 binlog 中的数据是都一致即可。如果一致，则提交事务。不一致，则回滚事务。</li>
+<li><strong>redo log 处于 prepare 阶段，binlog 还未写入</strong> ，此时 MySQL 异常宕机：由于  <strong>redo log</strong>  还未 commit ，所以异常恢复后， <strong>redo log</strong>  中记录的数据也不作数， <strong>binlog</strong>  内也没有记录数据，此时数据是一致的。</li>
+<li><strong>redo log 处于 prepare 阶段，binlog 已写入，但 redo log 还未 commit</strong> ，此时 MySQL 异常宕机：此时对比  <strong>redo log</strong>  中 prepare 的数据和  <strong>binlog</strong>  中的数据是都一致即可。如果一致，则提交事务。不一致，则回滚事务。</li>
 </ul>
 
 </section>
@@ -919,7 +1042,7 @@
 
 
         <span>
-            最后更新于 2025-04-01 14:06 UTC
+            最后更新于 2025-04-07 14:21 UTC
         </span>
     </section></footer>
 
