@@ -35,10 +35,17 @@
 &lt;blockquote&gt;
 &lt;p&gt;MCP is an open protocol that standardizes how applications provide context to LLMs. Think of MCP like a USB-C port for AI applications. Just as USB-C provides a standardized way to connect your devices to various peripherals and accessories, MCP provides a standardized way to connect AI models to different data sources and tools.&lt;/p&gt;&lt;/blockquote&gt;
 &lt;p&gt;MCP（模型上下文协议）是一种开放协议，它对应用程序向大语言模型（LLM）提供上下文的方式进行了标准化。可以把 MCP 想象成人工智能应用程序的 USB-C 接口。就像 USB-C 接口为将设备连接到各种外围设备和配件提供了一种标准化的方式一样，MCP 也为将人工智能模型连接到不同的数据源和工具提供了一种标准化的方式。&lt;/p&gt;
+&lt;p&gt;MCP旨在为大型语言模型（LLMs）和 AI 助手提供一个统一、标准化的接口，使其能够无缝连接并交互各种外部数据源、工具等，让模型不依赖于预训练数据，还能在需要时动态获取最新的上下文信息、调用外部工具、执行特定任务。&lt;/p&gt;
 &lt;p&gt;可以从以下角度理解MCP协议&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;MCP协议类似于一个人工智能应用程序的拓展坞，通过拓展坞可以以标准化的形式将LLM连接到各种外部工具和数据源&lt;/li&gt;
 &lt;li&gt;同时也可以将MCP协议理解为Function-Call的标准化和优化，MCP协议依然是建立在Function-Call的基础上的&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;MCP的作用&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;标准化数据接入&lt;/strong&gt;：通过 MCP，我们无需为每个模型编写单独的代码，而是通过统一的协议接口，实现一次集成，随处连接。这大大简化了模型与外部系统的集成过程。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;增强模型能力&lt;/strong&gt;：MCP 使得模型能够实时访问最新的数据和工具，例如直接从 GitHub 获取代码库信息，或从本地访问文件。这不仅提升了模型的实用性，也拓展了其应用场景。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;提升系统可维护性&lt;/strong&gt;：通过标准化的协议，系统的各个组件可以更加模块化地协作，降低了维护成本和出错概率。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2 id=&#34;mcp协议相较于function-call的改进&#34;&gt;MCP协议相较于Function-Call的改进
 &lt;/h2&gt;&lt;ul&gt;
@@ -92,9 +99,14 @@
 &lt;li&gt;&lt;strong&gt;资源&lt;/strong&gt; ：服务器可以访问到的资源
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;本地资源&lt;/strong&gt; : MCP 服务器可以安全访问的计算机资源（数据库、文件、服务）&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;远程职业&lt;/strong&gt; : MCP 服务器可以连接到的互联网上可用的资源（API）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;远程资源&lt;/strong&gt; : MCP 服务器可以连接到的互联网上可用的资源（API）&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;MCP支持两者模式&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;标准输入输出（Stdio）模式：基于 &lt;code&gt;stdio&lt;/code&gt; 的实现是最常见的 MCP 客户端方案，它通过标准输入输出流与 MCP 服务器进行通信。这种方式简单直观，能够直接通过进程间通信实现数据交互，避免了额外的网络通信开销。特别适用于本地部署的 MCP 服务器，可以在同一台机器上启动 MCP 服务器进程，与客户端无缝对接。&lt;/li&gt;
+&lt;li&gt;服务器发送事件（SSE）模式：这个方案相较于 &lt;code&gt;stdio&lt;/code&gt; 方式，&lt;code&gt;SSE&lt;/code&gt; 更适用于远程部署的 MCP 服务器，比如分布式系统或需要网络实时推送的场景。客户端可以通过标准 HTTP 协议与服务器建立连接，实现单向的实时数据推送。基于 SSE 的 MCP 服务器支持被多个客户端的远程调用。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3 id=&#34;工作流程&#34;&gt;工作流程
 &lt;/h3&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%A8%A1%E5%9E%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%8F%E8%AE%AEmcp/image-20250327140914648.png&#34;
@@ -112,16 +124,24 @@
 	
 &gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;初始化：主机应用程序启动并初始化客户端，每个客户端与一个服务器建立连接。&lt;/li&gt;
-&lt;li&gt;功能协商：客户端和服务器之间进行功能协商，确定它们可以相互提供哪些功能和服务。&lt;/li&gt;
-&lt;li&gt;请求处理：客户端根据用户请求或AI模型的需要，向服务器发送请求。服务器处理这些请求，并可能与本地或远程资源进行交互。
+&lt;li&gt;&lt;strong&gt;初始化&lt;/strong&gt;：主机应用程序启动并初始化MCP Client，每个MCP Client与一个服务器建立连接。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;功能协商&lt;/strong&gt;：MCP Client和MCP Server之间进行功能协商，确定它们可以相互提供哪些功能和服务。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;请求处理&lt;/strong&gt;：MCP Client根据用户请求或AI模型的需要，向服务器发送请求。服务器处理这些请求，并可能与本地或远程资源进行交互。
 &lt;ul&gt;
-&lt;li&gt;将用户的查询连同工具描述通过 function calling一起发送给 LLM。&lt;/li&gt;
-&lt;li&gt;LLM 决定是否需要使用工具以及使用哪些工具。&lt;/li&gt;
-&lt;li&gt;如果需要使用工具，MCP client 会通过 MCP server 执行相应的工具调用。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;构造Function-calling请求&lt;/strong&gt;：将用户的查询连同工具描述通过 Function calling发送给 LLM。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;LLM智能判断是否调用工具&lt;/strong&gt;：LLM 决定是否需要使用工具以及使用哪些工具。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;工具调用执行&lt;/strong&gt;：如果需要使用工具，MCP Client会通过MCP Server执行相应的工具调用。MCP Server 去实际跑工具的逻辑，并把结果返回给MCP Client。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;模型整合&lt;/strong&gt;：工具执行结果被传回 LLM，由模型将这个结果与原始用户问题、已有上下文等信息整合，生成最终的自然语言回应。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
-&lt;li&gt;响应返回：服务器将处理结果返回给客户端，客户端再将信息传递回主机应用程序。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;响应返回&lt;/strong&gt;：MCP Client再将信息传递回主机应用程序。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;安全性设计&#34;&gt;安全性设计
+&lt;/h3&gt;&lt;p&gt;MCP的安全性设计体现在以下方面&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;用户同意和控制&lt;/strong&gt;：所有模型对工具、资源和提示的访问请求都必须经过用户的授权。主机负责管理权限、提示用户批准，并在必要时阻止未经授权的访问。用户必须知道哪些数据是需要提供给大模型的，用户在授权使用之前应该了解每个工具的功能。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;隔离与沙箱机制&lt;/strong&gt;：MCP 的设计将实际工具调用封装在 MCP Server 内部，模型本身无法直接访问敏感数据，这种 “中间层”设计有效地降低了直接暴露内部业务系统的风险。同时，沙箱机制可以限制工具调用的执行环境，防止任意代码执行或恶意操作对系统造成破坏。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;加密传输与来源验证&lt;/strong&gt;：MCP 内置了安全机制，确保只有经过验证的请求才能访问特定资源，相当于在数据安全又加上了一道防线。同时，MCP协议还支持多种加密算法，以确保数据在传输过程中的安全性。&lt;/li&gt;
 &lt;/ul&gt;
 </description>
         </item>

@@ -7,7 +7,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>zh-cn</language>
         <copyright>Tyritic</copyright>
-        <lastBuildDate>Wed, 16 Apr 2025 14:45:54 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Sun, 11 May 2025 08:22:10 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/index.xml" rel="self" type="application/rss+xml" /><item>
         <title>MySQL的慢查询和性能调优</title>
         <link>https://Tyritic.github.io/p/mysql%E7%9A%84%E6%85%A2%E6%9F%A5%E8%AF%A2%E5%92%8C%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/</link>
         <pubDate>Sun, 09 Mar 2025 18:35:25 +0800</pubDate>
@@ -231,16 +231,25 @@
 &lt;li&gt;由于对唯一索引加了记录锁，&lt;strong&gt;其他事务无法删除该记录&lt;/strong&gt; ，这样事务 A 在多次查询 记录的时候，不会出现前后两次查询的结果集不同，也就避免了幻读的问题&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
-&lt;li&gt;当查询的记录是不存在的，在索引树找到第一条大于该查询记录的记录后，将该记录的索引中的 next-key lock 会 &lt;strong&gt;退化成间隙锁&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;当查询的记录是不存在的，在索引树找到第一条大于该查询记录的记录后，将该记录的索引中的 next-key lock 会 &lt;strong&gt;退化成间隙锁&lt;/strong&gt;。
+&lt;ul&gt;
+&lt;li&gt;间隙锁的范围：上一条小于索引值的记录到第一条大于索引值的记录&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h4 id=&#34;唯一索引范围查询&#34;&gt;唯一索引范围查询
 &lt;/h4&gt;&lt;p&gt;当唯一索引进行范围查询时，&lt;strong&gt;会对每一个扫描到的索引加 next-key 锁，然后如果遇到下面这些情况，会退化成记录锁或者间隙锁&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;情况一：针对「大于等于」的范围查询，因为存在等值查询的条件，那么如果等值查询的记录是存在于表中，那么该记录的索引中的 next-key 锁会&lt;strong&gt;退化成记录锁&lt;/strong&gt;。&lt;/li&gt;
-&lt;li&gt;情况二：针对「小于或者小于等于」的范围查询，要看条件值的记录是否存在于表中：
+&lt;li&gt;情况一：针对大于等于的范围查询，因为存在等值查询的条件，那么如果等值查询的记录是存在于表中，那么该记录的索引中的 next-key 锁会&lt;strong&gt;退化成记录锁&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;情况二：针对小于或者小于等于的范围查询，要看条件值的记录是否存在于表中：
 &lt;ul&gt;
-&lt;li&gt;当条件值的记录不在表中，那么不管是「小于」还是「小于等于」条件的范围查询，&lt;strong&gt;扫描到终止范围查询的记录时，该记录的索引的 next-key 锁会退化成间隙锁&lt;/strong&gt;，其他扫描到的记录，都是在这些记录的索引上加 next-key 锁。&lt;/li&gt;
-&lt;li&gt;当条件值的记录在表中，如果是「小于」条件的范围查询，&lt;strong&gt;扫描到终止范围查询的记录时，该记录的索引的 next-key 锁会退化成间隙锁&lt;/strong&gt;，其他扫描到的记录，都是在这些记录的索引上加 next-key 锁；如果「小于等于」条件的范围查询，扫描到终止范围查询的记录时，该记录的索引 next-key 锁不会退化成间隙锁。其他扫描到的记录，都是在这些记录的索引上加 next-key 锁。&lt;/li&gt;
+&lt;li&gt;当条件值的记录不在表中，那么不管是小于还是小于等于条件的范围查询，&lt;strong&gt;扫描到终止范围查询的记录时，该记录的索引的 next-key 锁会退化成间隙锁&lt;/strong&gt;，其他扫描到的记录，都是在这些记录的索引上加 next-key 锁。&lt;/li&gt;
+&lt;li&gt;当条件值的记录在表中
+&lt;ul&gt;
+&lt;li&gt;如果是小于条件的范围查询，&lt;strong&gt;扫描到终止范围查询的记录时，该记录的索引的 next-key 锁会退化成间隙锁&lt;/strong&gt;，其他扫描到的记录，都是在这些记录的索引上加 next-key 锁&lt;/li&gt;
+&lt;li&gt;如果小于等于条件的范围查询，扫描到终止范围查询的记录时，该记录的索引 next-key 锁不会退化成间隙锁。其他扫描到的记录，都是在这些记录的索引上加 next-key 锁。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
