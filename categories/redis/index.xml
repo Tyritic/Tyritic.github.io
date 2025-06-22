@@ -12,32 +12,129 @@
         <pubDate>Sun, 02 Mar 2025 16:48:15 +0800</pubDate>
         
         <guid>https://Tyritic.github.io/p/redis%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7/</guid>
-        <description>&lt;h2 id=&#34;redis的集群部署&#34;&gt;Redis的集群部署
-&lt;/h2&gt;&lt;p&gt;由于数据都是存储在一台服务器上，存在单点故障问题&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;如果服务器发生了宕机，由于数据恢复是需要点时间，那么这个期间是无法服务新的请求的；&lt;/li&gt;
-&lt;li&gt;如果这台服务器的硬盘出现了故障，可能数据就都丢失了。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;要避免这种单点故障，最好的办法是将数据备份到其他服务器上，让这些服务器也可以对外提供服务，这样即使有一台服务器出现了故障，其他服务器依然可以继续提供服务。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7/22c7fe97ce5d3c382b08d83a4d8a5b96.png&#34;
-	width=&#34;1080&#34;
-	height=&#34;661&#34;
+        <description>&lt;h2 id=&#34;redis的集群模型&#34;&gt;Redis的集群模型
+&lt;/h2&gt;&lt;h3 id=&#34;主从模式&#34;&gt;主从模式
+&lt;/h3&gt;&lt;p&gt;Redis 的主从复制是指一个 Redis 实例（主节点）可以将数据复制到一个或多个从节点（从节点），从节点从主节点获取数据并保持同步。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7/2b7231b6aabb9a9a2e2390ab3a280b2d-20230309232920063.png&#34;
+	width=&#34;902&#34;
+	height=&#34;422&#34;
 	
 	loading=&#34;lazy&#34;
 	
-		alt=&#34;集群模式&#34;
+		alt=&#34;主从模式&#34;
 	
 	
 		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;163&#34;
-		data-flex-basis=&#34;392px&#34;
+		data-flex-grow=&#34;213&#34;
+		data-flex-basis=&#34;512px&#34;
 	
 &gt;&lt;/p&gt;
-&lt;p&gt;Redis 集群（Redis cluster）是通过多个 Redis 实例组成的，&lt;strong&gt;每个实例存储部分的数据（即每个实例之间的数据是不重复的）&lt;/strong&gt;。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;一个主节点负责读写操作&lt;/li&gt;
+&lt;li&gt;多个从节点负责读操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;主服务器可以进行读写操作，当发生写操作时自动将写操作同步给从服务器，而从服务器一般是只读，并接受主服务器同步过来写操作命令，然后执行这条命令。所有的数据修改只在主服务器上进行，然后将最新的数据同步给从服务器，这样就使得主从服务器的数据是一致的。&lt;/p&gt;
+&lt;h4 id=&#34;第一次同步&#34;&gt;第一次同步
+&lt;/h4&gt;&lt;p&gt;主从服务器间的第一次同步的过程可分为三个阶段&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;建立链接、协商同步
+&lt;ul&gt;
+&lt;li&gt;从服务器就会给主服务器发送 &lt;strong&gt;&lt;code&gt;psync&lt;/code&gt;&lt;/strong&gt; 命令，表示要进行数据同步&lt;/li&gt;
+&lt;li&gt;主服务器收到 &lt;strong&gt;&lt;code&gt;psync&lt;/code&gt;&lt;/strong&gt; 命令后，会用 &lt;strong&gt;&lt;code&gt;FULLRESYNC&lt;/code&gt;&lt;/strong&gt; 作为响应命令返回给对方，表示为使用全量复制&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;主服务器同步数据给从服务器
+&lt;ul&gt;
+&lt;li&gt;主服务器会执行 &lt;strong&gt;&lt;code&gt;bgsave&lt;/code&gt;&lt;/strong&gt; 命令来生成 RDB 文件，然后把文件发送给从服务器。&lt;/li&gt;
+&lt;li&gt;从服务器收到 RDB 文件后，会先清空当前的数据，然后载入 RDB 文件。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;主服务器发送新写操作命令给从服务器
+&lt;ul&gt;
+&lt;li&gt;主服务器将缓冲区里所记录的写操作命令发送给从服务器，从服务器执行来自主服务器 replication buffer 缓冲区里发来的命令，这时主从服务器的数据就一致了。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7/ea4f7e86baf2435af3999e5cd38b6a26.png&#34;
+	width=&#34;1080&#34;
+	height=&#34;555&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;第一次同步&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;194&#34;
+		data-flex-basis=&#34;467px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;h4 id=&#34;命令传播&#34;&gt;命令传播
+&lt;/h4&gt;&lt;p&gt;主从服务器在完成第一次同步后，双方之间就会维护一个 TCP 连接。后续主服务器可以通过这个连接继续将写操作命令传播给从服务器，然后从服务器执行该命令，使得与主服务器的数据库状态相同。&lt;/p&gt;
+&lt;p&gt;而且这个连接是长连接的，目的是避免频繁的 TCP 连接和断开带来的性能开销。&lt;/p&gt;
+&lt;h4 id=&#34;增量复制&#34;&gt;增量复制
+&lt;/h4&gt;&lt;p&gt;如果主从服务器间的网络连接断开了，那么就无法进行命令传播了，这时从服务器的数据就没办法和主服务器保持一致了，客户端就可能从服务器读到旧的数据。&lt;/p&gt;
+&lt;p&gt;主从服务器会采用&lt;strong&gt;增量复制&lt;/strong&gt;的方式继续同步，也就是只会把网络断开期间主服务器接收到的写操作命令，同步给从服务器。&lt;/p&gt;
+&lt;h3 id=&#34;哨兵模式&#34;&gt;哨兵模式
+&lt;/h3&gt;&lt;p&gt;哨兵模式基于主从模式，用于监控 Redis 主从集群，自动完成主从切换，以实现故障自动恢复和通知。&lt;/p&gt;
+&lt;p&gt;主要功能包括：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;监控&lt;/strong&gt;：哨兵不断监控 Redis 主节点和从节点的运行状态，定期发送 PING 请求检查节点是否正常。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;自动故障转移&lt;/strong&gt;：当主节点发生故障时，哨兵会选举一个从节点提升为新的主节点，并通知客户端更新主节点的地址，从而实现高可用。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;通知&lt;/strong&gt;：哨兵可以向系统管理员或其他服务发送通知，以便快速处理 Redis 实例的状态变化。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;判断节点是否故障&#34;&gt;判断节点是否故障
+&lt;/h4&gt;&lt;p&gt;哨兵会每隔 1 秒给所有主从节点发送 PING 命令，当主从节点收到 PING 命令后，会发送一个响应命令给哨兵，这样就可以判断它们是否在正常运行。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7/26f88373d8454682b9e0c1d4fd1611b4.png&#34;
+	width=&#34;982&#34;
+	height=&#34;560&#34;
+	
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;哨兵监控主从节点&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;175&#34;
+		data-flex-basis=&#34;420px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;主观下线：哨兵每隔 1s 会发送 ping 命令给所有的节点。如果哨兵超过一段时间还未收到对应节点的 pong 回复，就会认为这个节点主观下线。&lt;/li&gt;
+&lt;li&gt;客观下线：当一个哨兵判断主节点为主观下线后，就会向其他哨兵发起命令，其他哨兵收到这个命令后，就会根据自身和主节点的网络状况，做出赞成投票或者拒绝投票的响应。（只有主节点才有客观下线）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;主从故障转移&#34;&gt;主从故障转移
+&lt;/h4&gt;&lt;p&gt;为了更加“客观”的判断主节点故障了，一般不会只由单个哨兵的检测结果来判断，而是多个哨兵一起判断，这样可以减少误判概率，所以&lt;strong&gt;哨兵是以哨兵集群的方式存在的&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;哨兵leader的选举机制&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;判断主节点主观下线的哨兵就是候选者，此时它想成为 leader。如果同时有两个哨兵判断主观下线，那么它们都是候选人，一起竞争成为 leader。&lt;/li&gt;
+&lt;li&gt;候选者们会先投自己一票，然后向其他哨兵发送命令让它们给自己投票。&lt;strong&gt;每个哨兵手里只有一票，投了一个之后就不能投别人了&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;最后，如果某个候选者拿到哨兵集群半数及以上的赞成票，就会成为 leader。这里有一个注意的点，为了保证哨兵选举的时候尽量避免出现平票的情况，哨兵的节点个数一般都会是奇数，比如 3,5,7 这样。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;主节点的选举过程&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;把一些已经下线的节点全部剔除，从正常的从节点中选择主节点&lt;/li&gt;
+&lt;li&gt;根据从节点的优先级进行选择，优先选择优先级的值比较小的节点&lt;/li&gt;
+&lt;li&gt;如果节点的优先级相同，则查看进行主从复制的 offset 的值，即复制的偏移量，偏移量越大则表示其同步的数据越多，优先级越高。&lt;/li&gt;
+&lt;li&gt;如果 offset 也相同了，那只能比较 ID 号，选择 ID 号比较小的那个作为主节点（每个实例 ID 不同）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;主从故障转移的流程&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;选举出新的主节点&lt;/li&gt;
+&lt;li&gt;将从节点指向新的主节点
+&lt;ul&gt;
+&lt;li&gt;哨兵 leader 向所有从节点发送命令，让它们成为新主节点的从节点。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;通知客户端主节点已经更换：通过 Redis 的发布者/订阅者机制来实现&lt;/li&gt;
+&lt;li&gt;将旧主节点转换为从节点：继续监视旧主节点，当旧主节点重新上线时，哨兵集群就会向它发送命令，让它成为新主节点的从节点&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;cluster模式&#34;&gt;cluster模式
+&lt;/h3&gt;&lt;p&gt;Redis 集群（Redis cluster）是通过多个 Redis 实例组成的，&lt;strong&gt;每个实例存储部分的数据（即每个实例之间的数据是不重复的）&lt;/strong&gt;。&lt;/p&gt;
 &lt;p&gt;具体是采用哈希槽（Hash Slot）机制来分配数据，将整个键空间划分为 16384 个槽（slots）。每个 Redis 实例负责一定范围的哈希槽，数据的 key 经过哈希函数计算后对 16384 取余即可定位到对应的节点。&lt;/p&gt;
 &lt;p&gt;客户端在发送请求时，会通过集群的任意节点进行连接，如果该节点存储了对应的数据则直接返回，反之该节点会根据请求的键值计算哈希槽并路由到正确的节点。&lt;/p&gt;
-&lt;h3 id=&#34;节点信息同步&#34;&gt;节点信息同步
-&lt;/h3&gt;&lt;p&gt;Redis 集群内每个节点都会保存集群的完整拓扑信息，包括每个节点的 ID、IP 地址、端口、负责的哈希槽范围等。&lt;/p&gt;
+&lt;h4 id=&#34;节点信息同步&#34;&gt;节点信息同步
+&lt;/h4&gt;&lt;p&gt;Redis 集群内每个节点都会保存集群的完整拓扑信息，包括每个节点的 ID、IP 地址、端口、负责的哈希槽范围等。&lt;/p&gt;
 &lt;p&gt;节点之间使用 &lt;strong&gt;Gossip 协议&lt;/strong&gt; 进行状态交换，以保持集群的一致性和故障检测。每个节点会周期性地发送 PING 和 PONG 消息，交换集群信息，使得集群信息得以同步。&lt;/p&gt;
 &lt;style type=&#34;text/css&#34;&gt;
    
@@ -173,8 +270,8 @@
 &lt;li&gt;&lt;strong&gt;容错处理&lt;/strong&gt;：在检测到节点故障后，集群中的其他节点可以采取措施（如重新分配槽位）以保持系统的高可用性。&lt;/li&gt;
 &lt;/ul&gt;&lt;/div&gt;
 
-&lt;h3 id=&#34;请求节点流程&#34;&gt;请求节点流程
-&lt;/h3&gt;&lt;ul&gt;
+&lt;h4 id=&#34;请求节点流程&#34;&gt;请求节点流程
+&lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;计算哈希槽&lt;/strong&gt;
 &lt;ul&gt;
 &lt;li&gt;使用 CRC16 哈希算法计算键的 CRC16 值&lt;/li&gt;
@@ -207,126 +304,21 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;脑裂问题&#34;&gt;脑裂问题
-&lt;/h3&gt;&lt;p&gt;脑裂是指在分布式系统中，由于网络分区或其他问题导致系统中的多个节点（特别是主节点）误以为自己是唯一的主节点。这种情况会导致多个主节点同时提供写入服务，从而引起数据不一致。&lt;/p&gt;
+&lt;h4 id=&#34;故障转移&#34;&gt;故障转移
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;主观下线&lt;/strong&gt;：某个节点认为另一个节点不可用，即下线状态，这个状态并不是最终的故障判定，只能代表一个节点的意见，可能存在误判情况。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;客观下线&lt;/strong&gt;：指标记一个节点真正的下线，集群内多个节点都认为该节点不可用，从而达成共识的结果。如果是持有槽的主节点故障，需要为该节点进行故障转移。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;当客观下线的是主节点时触发选举机制&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;资格检查：检查从节点是否具备替换故障主节点的条件。&lt;/li&gt;
+&lt;li&gt;准备选举时间：资格检查通过后，更新触发故障选举时间。&lt;/li&gt;
+&lt;li&gt;发起选举：到了故障选举时间，进行选举。&lt;/li&gt;
+&lt;li&gt;选举投票：只有持有槽的主节点才有票，从节点收集到足够的选票（大于一半），触发替换主节点操&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;脑裂问题&#34;&gt;脑裂问题
+&lt;/h4&gt;&lt;p&gt;脑裂是指在分布式系统中，由于网络分区或其他问题导致系统中的多个节点（特别是主节点）误以为自己是唯一的主节点。这种情况会导致多个主节点同时提供写入服务，从而引起数据不一致。&lt;/p&gt;
 &lt;p&gt;例如发生了网络分区，主节点与哨兵、从节点分区了。此时哨兵发现联系不上主节点，于是发起选举，选了新的主节点，此时 Redis 就出现了两个主节点&lt;/p&gt;
-&lt;h2 id=&#34;redis的集群模型&#34;&gt;Redis的集群模型
-&lt;/h2&gt;&lt;h3 id=&#34;主从模式&#34;&gt;主从模式
-&lt;/h3&gt;&lt;p&gt;Redis 的主从复制是指一个 Redis 实例（主节点）可以将数据复制到一个或多个从节点（从节点），从节点从主节点获取数据并保持同步。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7/2b7231b6aabb9a9a2e2390ab3a280b2d-20230309232920063.png&#34;
-	width=&#34;902&#34;
-	height=&#34;422&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;主从模式&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;213&#34;
-		data-flex-basis=&#34;512px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;一个主节点负责读写操作&lt;/li&gt;
-&lt;li&gt;多个从节点负责读操作。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;主服务器可以进行读写操作，当发生写操作时自动将写操作同步给从服务器，而从服务器一般是只读，并接受主服务器同步过来写操作命令，然后执行这条命令。所有的数据修改只在主服务器上进行，然后将最新的数据同步给从服务器，这样就使得主从服务器的数据是一致的。&lt;/p&gt;
-&lt;h4 id=&#34;第一次同步&#34;&gt;第一次同步
-&lt;/h4&gt;&lt;p&gt;主从服务器间的第一次同步的过程可分为三个阶段&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;建立链接、协商同步
-&lt;ul&gt;
-&lt;li&gt;从服务器就会给主服务器发送 &lt;strong&gt;&lt;code&gt;psync&lt;/code&gt;&lt;/strong&gt; 命令，表示要进行数据同步&lt;/li&gt;
-&lt;li&gt;主服务器收到 &lt;strong&gt;&lt;code&gt;psync&lt;/code&gt;&lt;/strong&gt; 命令后，会用 &lt;strong&gt;&lt;code&gt;FULLRESYNC&lt;/code&gt;&lt;/strong&gt; 作为响应命令返回给对方，表示为使用全量复制&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;主服务器同步数据给从服务器
-&lt;ul&gt;
-&lt;li&gt;主服务器会执行 &lt;strong&gt;&lt;code&gt;bgsave&lt;/code&gt;&lt;/strong&gt; 命令来生成 RDB 文件，然后把文件发送给从服务器。&lt;/li&gt;
-&lt;li&gt;从服务器收到 RDB 文件后，会先清空当前的数据，然后载入 RDB 文件。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;主服务器发送新写操作命令给从服务器
-&lt;ul&gt;
-&lt;li&gt;主服务器将缓冲区里所记录的写操作命令发送给从服务器，从服务器执行来自主服务器 replication buffer 缓冲区里发来的命令，这时主从服务器的数据就一致了。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7/ea4f7e86baf2435af3999e5cd38b6a26.png&#34;
-	width=&#34;1080&#34;
-	height=&#34;555&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;第一次同步&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;194&#34;
-		data-flex-basis=&#34;467px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;h4 id=&#34;命令传播&#34;&gt;命令传播
-&lt;/h4&gt;&lt;p&gt;主从服务器在完成第一次同步后，双方之间就会维护一个 TCP 连接。后续主服务器可以通过这个连接继续将写操作命令传播给从服务器，然后从服务器执行该命令，使得与主服务器的数据库状态相同。&lt;/p&gt;
-&lt;p&gt;而且这个连接是长连接的，目的是避免频繁的 TCP 连接和断开带来的性能开销。&lt;/p&gt;
-&lt;h4 id=&#34;增量复制&#34;&gt;增量复制
-&lt;/h4&gt;&lt;p&gt;如果主从服务器间的网络连接断开了，那么就无法进行命令传播了，这时从服务器的数据就没办法和主服务器保持一致了，客户端就可能从服务器读到旧的数据。&lt;/p&gt;
-&lt;p&gt;主从服务器会采用&lt;strong&gt;增量复制&lt;/strong&gt;的方式继续同步，也就是只会把网络断开期间主服务器接收到的写操作命令，同步给从服务器。&lt;/p&gt;
-&lt;h3 id=&#34;哨兵机制&#34;&gt;哨兵机制
-&lt;/h3&gt;&lt;p&gt;哨兵模式用于监控 Redis 主从集群，自动完成主从切换，以实现故障自动恢复和通知。&lt;/p&gt;
-&lt;p&gt;主要功能包括：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;监控&lt;/strong&gt;：哨兵不断监控 Redis 主节点和从节点的运行状态，定期发送 PING 请求检查节点是否正常。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;自动故障转移&lt;/strong&gt;：当主节点发生故障时，哨兵会选举一个从节点提升为新的主节点，并通知客户端更新主节点的地址，从而实现高可用。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;通知&lt;/strong&gt;：哨兵可以向系统管理员或其他服务发送通知，以便快速处理 Redis 实例的状态变化。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h4 id=&#34;判断节点是否故障&#34;&gt;判断节点是否故障
-&lt;/h4&gt;&lt;p&gt;哨兵会每隔 1 秒给所有主从节点发送 PING 命令，当主从节点收到 PING 命令后，会发送一个响应命令给哨兵，这样就可以判断它们是否在正常运行。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7/26f88373d8454682b9e0c1d4fd1611b4.png&#34;
-	width=&#34;982&#34;
-	height=&#34;560&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;哨兵监控主从节点&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;175&#34;
-		data-flex-basis=&#34;420px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;主观下线：哨兵每隔 1s 会发送 ping 命令给所有的节点。如果哨兵超过一段时间还未收到对应节点的 pong 回复，就会认为这个节点主观下线。&lt;/li&gt;
-&lt;li&gt;客观下线：当一个哨兵判断主节点为主观下线后，就会向其他哨兵发起命令，其他哨兵收到这个命令后，就会根据自身和主节点的网络状况，做出赞成投票或者拒绝投票的响应。（只有主节点才有客观下线）&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h4 id=&#34;主从故障转移&#34;&gt;主从故障转移
-&lt;/h4&gt;&lt;p&gt;为了更加“客观”的判断主节点故障了，一般不会只由单个哨兵的检测结果来判断，而是多个哨兵一起判断，这样可以减少误判概率，所以&lt;strong&gt;哨兵是以哨兵集群的方式存在的&lt;/strong&gt;。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;哨兵leader的选举机制&lt;/strong&gt;&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;判断主节点主观下线的哨兵就是候选者，此时它想成为 leader。如果同时有两个哨兵判断主观下线，那么它们都是候选人，一起竞争成为 leader。&lt;/li&gt;
-&lt;li&gt;候选者们会先投自己一票，然后向其他哨兵发送命令让它们给自己投票。&lt;strong&gt;每个哨兵手里只有一票，投了一个之后就不能投别人了&lt;/strong&gt;。&lt;/li&gt;
-&lt;li&gt;最后，如果某个候选者拿到哨兵集群半数及以上的赞成票，就会成为 leader。这里有一个注意的点，为了保证哨兵选举的时候尽量避免出现平票的情况，哨兵的节点个数一般都会是奇数，比如 3,5,7 这样。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;strong&gt;主节点的选举过程&lt;/strong&gt;&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;把一些已经下线的节点全部剔除，从正常的从节点中选择主节点&lt;/li&gt;
-&lt;li&gt;根据从节点的优先级进行选择，优先选择优先级的值比较小的节点&lt;/li&gt;
-&lt;li&gt;如果节点的优先级相同，则查看进行主从复制的 offset 的值，即复制的偏移量，偏移量越大则表示其同步的数据越多，优先级越高。&lt;/li&gt;
-&lt;li&gt;如果 offset 也相同了，那只能比较 ID 号，选择 ID 号比较小的那个作为主节点（每个实例 ID 不同）。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;strong&gt;主从故障转移的流程&lt;/strong&gt;&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;选举出新的主节点&lt;/li&gt;
-&lt;li&gt;将从节点指向新的主节点
-&lt;ul&gt;
-&lt;li&gt;哨兵 leader 向所有从节点发送命令，让它们成为新主节点的从节点。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;通知客户端主节点已经更换：通过 Redis 的发布者/订阅者机制来实现&lt;/li&gt;
-&lt;li&gt;将旧主节点转换为从节点：继续监视旧主节点，当旧主节点重新上线时，哨兵集群就会向它发送命令，让它成为新主节点的从节点&lt;/li&gt;
-&lt;/ul&gt;
 </description>
         </item>
         <item>
