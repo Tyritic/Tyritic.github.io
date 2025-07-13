@@ -10,7 +10,7 @@
 <meta property='og:description' content="Go的映射map">
 <meta property='og:url' content='https://Tyritic.github.io/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='' /><meta property='article:published_time' content='2025-06-29T21:53:58&#43;08:00'/><meta property='article:modified_time' content='2025-06-29T15:24:23&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='' /><meta property='article:published_time' content='2025-06-29T21:53:58&#43;08:00'/><meta property='article:modified_time' content='2025-07-13T14:00:41&#43;00:00'/>
 <meta name="twitter:title" content="Go的映射map">
 <meta name="twitter:description" content="Go的映射map">
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -301,6 +301,27 @@
         <li><a href="#底层数据结构">底层数据结构</a></li>
         <li><a href="#哈希定位原理">哈希定位原理</a></li>
         <li><a href="#哈希冲突">哈希冲突</a></li>
+        <li><a href="#扩容机制">扩容机制</a>
+          <ol>
+            <li><a href="#渐进式迁移">渐进式迁移</a></li>
+            <li><a href="#翻倍扩容">翻倍扩容</a></li>
+            <li><a href="#等量扩容">等量扩容</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#syncmap">Sync.Map</a>
+      <ol>
+        <li><a href="#特点">特点</a></li>
+        <li><a href="#基本操作-1">基本操作</a></li>
+        <li><a href="#底层原理-1">底层原理</a>
+          <ol>
+            <li><a href="#dirty提升">dirty提升</a></li>
+            <li><a href="#读取">读取</a></li>
+            <li><a href="#存储">存储</a></li>
+            <li><a href="#删除">删除</a></li>
+          </ol>
+        </li>
       </ol>
     </li>
   </ol>
@@ -371,7 +392,7 @@
 
 
                 <time class="article-time--reading">
-                    阅读时长: 3 分钟
+                    阅读时长: 9 分钟
                 </time>
             </div>
 
@@ -379,7 +400,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：1294 字
+                     字数统计：4447 字
                 </time>
             </div>
 
@@ -475,18 +496,27 @@
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><h3 id="删除元素">删除元素
+</div><ul>
+<li>Go 中遍历 map 的顺序是不确定的，每次运行可能会不同。</li>
+</ul>
+<h3 id="删除元素">删除元素
 </h3><ul>
 <li><strong><code>func delete(m map[Type]Type, key Type)</code></strong> ：从 <strong>map 中删除键值对</strong>
 <ul>
 <li>删除不存在的键：不会报错</li>
 <li>nil map 上使用 <strong><code>delete</code></strong> ：不会 <strong><code>panic</code></strong> 只是无效操作</li>
+<li>删除 key 操作只是将对应的 key-value 对标记为空，但不会释放桶（不会释放内存），也不会触发缩容</li>
 </ul>
 </li>
 </ul>
 <h2 id="底层原理">底层原理
 </h2><h3 id="底层数据结构">底层数据结构
-</h3><p>在 Go 语言中，map 类型的底层实现就是哈希表，map 类型的变量 本质上是一个指针 <strong><code>*hmap</code></strong> ，指向 hmap 结构体。</p>
+</h3><p>在 Go 语言中，map 类型的底层实现就是哈希表，map 类型的变量 本质上是一个指针 <strong><code>*hmap</code></strong> ，指向 <strong><code>hmap</code></strong> 结构体。</p>
+<ul>
+<li>Go map 的底层是一个 <strong><code>buckets</code></strong> 数组</li>
+<li>数组的每个元素都是一个桶（bucket）</li>
+<li>每个桶可以存储 8 个 kv，当桶满时，会创建溢出桶</li>
+</ul>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -511,7 +541,7 @@
 </span></span><span class="line"><span class="cl">    <span class="nx">flags</span>     <span class="kt">uint8</span>  <span class="c1">// 状态标志</span>
 </span></span><span class="line"><span class="cl">    <span class="nx">B</span>         <span class="kt">uint8</span>  <span class="c1">// 桶的数量的对数 (即桶数量为 2^B)</span>
 </span></span><span class="line"><span class="cl">    <span class="nx">noverflow</span> <span class="kt">uint16</span> <span class="c1">// 溢出桶的数量</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">hash0</span>     <span class="kt">uint32</span> <span class="c1">// hash seed</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">hash0</span>     <span class="kt">uint32</span> <span class="c1">// hash 种子，为hash函数引入随机性</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="nx">buckets</span>    <span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span> <span class="c1">// 指向桶数组的指针</span>
 </span></span><span class="line"><span class="cl">    <span class="nx">oldbuckets</span> <span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span> <span class="c1">// 扩容时指向旧桶的指针</span>
@@ -521,7 +551,21 @@
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>Go 使用桶（bucket）存储 kv 信息，对应的数据结构是 bmap</p>
+</div><p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/c4fcde87-e22e-4991-8e88-0c054dbafd76.png"
+	width="632"
+	height="1620"
+	
+	loading="lazy"
+	
+		alt="hmap示意图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="39"
+		data-flex-basis="93px"
+	
+></p>
+<p>Go 使用桶（bucket）存储 kv 信息，对应的数据结构是 bmap</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -540,25 +584,20 @@
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/c4fcde87-e22e-4991-8e88-0c054dbafd76.png"
-	width="632"
-	height="1620"
+</div><p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-20250705152036529.png"
+	width="586"
+	height="470"
 	
 	loading="lazy"
 	
-		alt="示意图"
+		alt="bmap示意图"
 	
 	
 		class="gallery-image" 
-		data-flex-grow="39"
-		data-flex-basis="93px"
+		data-flex-grow="124"
+		data-flex-basis="299px"
 	
 ></p>
-<ul>
-<li>Go map 的底层是一个 buckets 数组</li>
-<li>数组的每个元素都是一个桶（bucket）</li>
-<li>每个桶可以存储 8 个 kv，当桶满时，会创建溢出桶</li>
-</ul>
 <style type="text/css">
    
   .notice {
@@ -688,6 +727,22 @@
     </span>提示</p><p>为什么设置为8个k-v键值对</p>
 <p>8 个键值对的大小正好接近 CPU 的缓存行大小（通常是 64 字节），可以一次将整个桶加载到 CPU 缓存中，减少了 CPU 缓存未命中的概率，提升了访问性能</p></div>
 
+<p>最后是一个 bmap 型指针，指向一个溢出桶，溢出桶的内存布局与常规桶相同，是为了减少扩容次数而引入的。当一个桶存满了，还有可用的溢出桶时，就会在桶后面链一个溢出桶，继续往溢出桶里面存。</p>
+<p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-20250705152403075.png"
+	width="787"
+	height="511"
+	
+	loading="lazy"
+	
+		alt="溢出桶"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="154"
+		data-flex-basis="369px"
+	
+></p>
+<p>实际上如果哈希表要分配的桶的数目大于 $2^4$，就认为使用到溢出桶的几率较大，就会预分配 $2^{B-4}$ 个溢出桶备用，这些溢出桶与常规桶在内存中是连续的，只是前 $2^B$ 个用作常规桶，后面的用作溢出桶。</p>
 <h3 id="哈希定位原理">哈希定位原理
 </h3><p>类似于Java的HashMap，参考<a class="link" href="https://tyritic.github.io/p/java%E4%B8%AD%E7%9A%84hashmap%E7%B1%BB%E5%8F%8A%E5%85%B6%E8%A1%8D%E7%94%9F%E7%B1%BB/#hash%E6%96%B9%E6%B3%95%E7%9A%84%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0:~:text=Copy-,%E6%95%B0%E7%BB%84%E7%B4%A2%E5%BC%95%E8%AE%A1%E7%AE%97%E5%8E%9F%E7%90%86,-%E9%80%9A%E5%B8%B8%E5%9F%BA%E4%BA%8E%E5%93%88"  target="_blank" rel="noopener"
     >往期博客</a> map的哈希方法采用 <strong>与运算：</strong> <strong><code>hash &amp; (m-1)</code></strong> 来定位哈希桶</p>
@@ -748,6 +803,469 @@
 <li>查找时会依次遍历链表上的所有桶</li>
 <li>为了避免链表过长导致性能下降，当链表太长时会触发扩容</li>
 </ul>
+<h3 id="扩容机制">扩容机制
+</h3><p>扩容的触发条件</p>
+<ul>
+<li>负载因子超过 6.5 时，触发 <strong>翻倍扩容</strong>（kv 数量 / 桶的数量 &gt; 6.5 时，桶的数量翻倍）</li>
+<li>溢出桶过多时，触发 <strong>等量扩容</strong>（溢出桶过多，分布不均浪费内存，重建 map）</li>
+</ul>
+<p>扩容期间的操作处理</p>
+<ul>
+<li>读操作：检查新旧桶，不触发迁移</li>
+<li>新增操作：触发迁移，在新桶中写入</li>
+<li>更新操作：触发迁移，确保目标桶已迁移后，在新桶更新数据</li>
+<li>删除操作：检查新旧桶，不触发迁移</li>
+</ul>
+<h4 id="渐进式迁移">渐进式迁移
+</h4><p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-20250705103250080.png"
+	width="1062"
+	height="639"
+	
+	loading="lazy"
+	
+		alt="示意图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="166"
+		data-flex-basis="398px"
+	
+></p>
+<p><strong><code>hmap</code></strong> 的源码如下</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 其定义在 src/runtime/map.go 中</span>
+</span></span><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">hmap</span> <span class="kd">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">count</span>     <span class="kt">int</span>    <span class="c1">// 元素个数</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">flags</span>     <span class="kt">uint8</span>  <span class="c1">// 状态标志</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">B</span>         <span class="kt">uint8</span>  <span class="c1">// 桶的数量的对数 (即桶数量为 2^B)</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">noverflow</span> <span class="kt">uint16</span> <span class="c1">// 溢出桶的数量</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">hash0</span>     <span class="kt">uint32</span> <span class="c1">// hash 种子，为hash函数引入随机性</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nx">buckets</span>    <span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span> <span class="c1">// 指向桶数组的指针</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">oldbuckets</span> <span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span> <span class="c1">// 扩容时指向旧桶的指针</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">nevacuate</span>  <span class="kt">uintptr</span>       <span class="c1">// 扩容时的进度计数器</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nx">extra</span> <span class="o">*</span><span class="nx">mapextra</span> <span class="c1">// 额外信息</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在哈希表扩容时，先分配足够多的新桶，然后用一个字段记录 “旧桶” 的位置 <strong><code>oldbuckets</code></strong> ，再增加一个字段记录 “旧桶” 的迁移进度，例如记录下一个要迁移的 “旧桶” 编号 <strong><code>nevacuate</code></strong> 。</p>
+<p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-20250705150446177.png"
+	width="679"
+	height="570"
+	
+	loading="lazy"
+	
+		alt="示意图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="119"
+		data-flex-basis="285px"
+	
+></p>
+<p>在哈希表每次读写操作时，如果检测到当前处于扩容阶段，就完成一部分键值对的迁移任务，直到所有的 “旧桶” 迁移完成，“旧桶” 不再使用才算真正完成了一次哈希表的扩容。把键值对迁移的时间分摊到多次哈希表操作中的方式，就是 “渐进式扩容” 了，可以避免一次性扩容带来的性能瞬时抖动。</p>
+<h4 id="翻倍扩容">翻倍扩容
+</h4><p>当负载因子大于 6.5，即 map 元素个数 / 桶个数 &gt; 6.5 时，就会触发翻倍扩容</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">overLoadFactor</span><span class="p">(</span><span class="nx">count</span> <span class="kt">int</span><span class="p">,</span> <span class="nx">B</span> <span class="kt">uint8</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">   <span class="k">return</span> <span class="nx">count</span> <span class="p">&gt;</span> <span class="nx">bucketCnt</span> <span class="o">&amp;&amp;</span> <span class="nb">uintptr</span><span class="p">(</span><span class="nx">count</span><span class="p">)</span> <span class="p">&gt;</span> <span class="nx">loadFactor</span> <span class="o">*</span> <span class="nf">bucketShift</span><span class="p">(</span><span class="nx">B</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><strong><code>bucketCnt</code></strong> = 8，一个桶可以装的最大元素个数</li>
+<li><strong><code>loadFactor</code></strong> = 6.5，负载因子，平均每个桶的元素个数</li>
+<li><strong><code>bucketShift(B)</code></strong> ：桶的个数</li>
+</ul>
+<p>此时，<strong><code>buckets</code></strong> 就会指向刚分配出来的新桶，而 <strong><code>oldbuckets</code></strong> 则会指向旧桶，并且 <strong><code>nevacuate</code></strong> 为 0，标识接下来要迁移编号为 0 的旧桶，每个旧桶的键值对都会分流到新桶中。</p>
+<p>同时这里体现出桶的个数设置为2的n次方的优点，当 <strong><code>Map</code></strong> 扩容时，通过容量为 2 的 n 次方，扩容时只需通过简单的位运算判断是否需要迁移，这减少了重新计算哈希值的开销，提升了重新哈希的效率。</p>
+<p>例如，旧桶的数量为 4，那么翻倍扩容后新桶的数量就为 8。</p>
+<p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-20250705151205084.png"
+	width="586"
+	height="535"
+	
+	loading="lazy"
+	
+		alt="扩容示意图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="109"
+		data-flex-basis="262px"
+	
+></p>
+<p>不需要每个 <strong><code>bucket</code></strong> 重新 hash 算下标。因为元素的新位置只与高位有关</p>
+<p>此时迁移桶只要判断原来的 hash 拓展后新增的位是 0 还是 1</p>
+<p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-20250705151610188.png"
+	width="714"
+	height="352"
+	
+	loading="lazy"
+	
+		alt="再哈希"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="202"
+		data-flex-basis="486px"
+	
+></p>
+<p>若为 0 则保持在原来的位置（hash 1 保持为 0）</p>
+<p>若为 1 则被移动到原来的位置加上旧数组长度的地方（hash 2 被移动到 0+4=4 处）</p>
+<h4 id="等量扩容">等量扩容
+</h4><p>如果负载因子没有超标，但是使用的溢出桶较多，也会触发扩容：</p>
+<ul>
+<li>当常规桶数量不大于 $2^{15}$ 时（B &lt;= 15），此时如果溢出桶总数 &gt;= 常规桶总数（<strong><code>noverflow</code></strong> &gt;= $2^B$），则认为溢出桶过多，就会触发等量扩容。</li>
+<li>当常规桶数量大于 $2^{15}$ 时（B &gt; 15），此时直接与 $2^{15}$ 比较，当溢出桶总数 &gt;= $2^{15}$ 时（<strong><code>noverflow</code></strong> &gt;= $2^{15}$），即认为溢出桶太多了，也会触发等量扩容。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">tooManyOverflowBuckets</span><span class="p">(</span><span class="nx">noverflow</span> <span class="kt">uint16</span><span class="p">,</span> <span class="nx">B</span> <span class="kt">uint8</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// If the threshold is too low, we do extraneous work.</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// If the threshold is too high, maps that grow and shrink can hold on to lots of unused memory.</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// &#34;too many&#34; means (approximately) as many overflow buckets as regular buckets.</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// See incrnoverflow for more details.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="nx">B</span> <span class="p">&gt;</span> <span class="mi">15</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">B</span> <span class="p">=</span> <span class="mi">15</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// The compiler does not see here that B &lt; 16; mask B to generate shorter shift code.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">noverflow</span> <span class="o">&gt;=</span> <span class="nb">uint16</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">&lt;&lt;</span><span class="p">(</span><span class="nx">B</span><span class="o">&amp;</span><span class="mi">15</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>所谓等量扩容，就是创建和旧桶数量一样多的新桶，然后把原来的键值对迁移到新桶中。当有很多键值对被删除的时候，就有可能出现已经使用了很多溢出桶，但是负载因子仍没有超过上限值的情况。此时如果触发了等量扩容，则会分配等量的新桶。而旧桶的每一个桶则会迁移到对应的新桶中，迁移完后可以使每个键值对排列的更加紧凑，从而减少溢出桶的使用。</p>
+<p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-20250705155038432.png"
+	width="1125"
+	height="540"
+	
+	loading="lazy"
+	
+		alt="等量扩容"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="208"
+		data-flex-basis="500px"
+	
+></p>
+<h2 id="syncmap">Sync.Map
+</h2><p><strong><code>Map</code></strong> 不是并发安全的，Go在1.09版本引入了线程安全的 <strong><code>Sync.Map</code></strong> 。但是遇到写多读少的情况需要频繁加锁，可能比Map加锁使用时效果更差</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">Map</span> <span class="kd">struct</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">mu</span> <span class="nx">Mutex</span>                   <span class="c1">// 保护 dirty 的互斥锁</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">read</span> <span class="nx">atomic</span><span class="p">.</span><span class="nx">Value</span>          <span class="c1">// 无锁读的 readOnly 结构</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">dirty</span> <span class="kd">map</span><span class="p">[</span><span class="kd">interface</span><span class="p">{}]</span><span class="o">*</span><span class="nx">entry</span> <span class="c1">// 包含最新数据的 map</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">misses</span> <span class="kt">int</span>                 <span class="c1">// 记录从 read 读取失败的次数</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">readOnly</span> <span class="kd">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">m</span>       <span class="kd">map</span><span class="p">[</span><span class="kd">interface</span><span class="p">{}]</span><span class="o">*</span><span class="nx">entry</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">amended</span> <span class="kt">bool</span> <span class="c1">// 标记 dirty 中是否存在 read 中没有的键</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">entry</span> <span class="kd">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">p</span> <span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span> <span class="c1">// 指向 interface{} 类型的值</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><strong><code>read</code></strong> ：使用 <strong><code>atomic.Value</code></strong> 存储 <strong><code>readOnly</code></strong> 结构，支持无锁读操作。</li>
+<li><strong><code>dirty</code></strong>：包含最新数据的普通哈希表，写操作优先更新此表，但需加锁。</li>
+<li><strong><code>entry.p</code></strong> ：三种状态：
+<ol>
+<li>指向实际值：正常状态</li>
+<li><strong><code>nil</code></strong> ：键被删除，但 <strong><code>dirty</code></strong> 中可能存在</li>
+<li><strong><code>expunged</code></strong> ：键被彻底删除，仅存在于 <strong><code>read</code></strong> 中</li>
+</ol>
+</li>
+</ul>
+<h3 id="特点">特点
+</h3><ul>
+<li><strong>无锁读</strong> ：大部分读操作无需加锁，通过原子操作直接访问 <strong><code>read</code></strong>，性能极高。</li>
+<li><strong>延迟删除</strong> ：删除操作仅标记 <strong><code>entry</code></strong> 为 <strong><code>nil</code></strong> ，在 <strong><code>dirty</code></strong> 提升时才真正删除，减少锁竞争。</li>
+<li><strong>读写分离</strong>：<strong><code>read</code></strong> 存储热点数据，<strong><code>dirty</code></strong> 存储最新数据，通过 <strong><code>amended</code></strong> 标记协调两者。</li>
+<li><strong>自动迁移</strong>：当 <strong><code>misses</code></strong> 达到阈值时，<strong><code>dirty</code></strong> 自动提升为 <strong><code>read</code></strong>，后续写操作重建 <strong><code>dirty</code></strong>，避免 <strong><code>dirty</code></strong> 长期积累大量数据。</li>
+</ul>
+<h3 id="基本操作-1">基本操作
+</h3><ul>
+<li>读取：<strong><code>func Load(key interface{}) (value interface{}, ok bool)</code></strong>
+<ul>
+<li><strong><code>value</code></strong>：键对应的值（类型需自行转换）。</li>
+<li><strong><code>ok</code></strong> ：键是否存在的标志。</li>
+</ul>
+</li>
+<li>存储/更新：<strong><code>func Store(key, value interface{})</code></strong>
+<ul>
+<li>若键已存在，新值会覆盖旧值；不支持存储 <strong><code>nil</code></strong>（会触发 panic）</li>
+</ul>
+</li>
+<li>删除键：<strong><code>func Delete(key interface{})</code></strong>
+<ul>
+<li>实际为逻辑删除（标记 <strong><code>entry</code></strong> 为 <strong><code>nil</code></strong> ），在 <code>dirty</code> 提升时才物理删除。</li>
+<li>若键不存在，不会报错。</li>
+</ul>
+</li>
+<li>若存在则加载否则存储：<strong><code>func LoadOrStore(key, value interface{}) (actual interface{}, loaded bool)</code></strong>
+<ul>
+<li><strong><code>actual</code></strong> ：键的当前值（无论是否新存入）。</li>
+<li><strong><code>loaded</code></strong> ：键是否已存在的标志（<code>true</code> 表示已存在，直接加载；<code>false</code> 表示新存入）。</li>
+</ul>
+</li>
+</ul>
+<h3 id="底层原理-1">底层原理
+</h3><h4 id="dirty提升">dirty提升
+</h4><p>用于将 <strong><code>dirty</code></strong> 哈希表中的数据同步到 <strong><code>read</code></strong> 视图，从而减少后续读操作的锁竞争。</p>
+<p>当满足以下条件时，<strong><code>dirty</code></strong> 会被提升为新的 <strong><code>read</code></strong> ：</p>
+<ul>
+<li><strong><code>read</code> 中找不到键</strong>：读操作（如 <strong><code>Load</code></strong> ）在 <strong><code>read</code></strong> 中未找到目标键，且 <strong><code>amended=true</code></strong>（表示 <strong><code>dirty</code></strong> 包含新数据）。</li>
+<li><strong>misses 计数器达到阈值</strong>：连续多次（次数等于 <strong><code>len(dirty)</code></strong> ）从 <code>dirty</code> 读取数据后，触发提升。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">Map</span><span class="p">)</span> <span class="nf">missLocked</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">m</span><span class="p">.</span><span class="nx">misses</span><span class="o">++</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="nx">m</span><span class="p">.</span><span class="nx">misses</span> <span class="p">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">dirty</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// 将 dirty 提升为 read</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">m</span><span class="p">.</span><span class="nx">read</span><span class="p">.</span><span class="nf">Store</span><span class="p">(</span><span class="nx">readOnly</span><span class="p">{</span><span class="nx">m</span><span class="p">:</span> <span class="nx">m</span><span class="p">.</span><span class="nx">dirty</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">m</span><span class="p">.</span><span class="nx">dirty</span> <span class="p">=</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">m</span><span class="p">.</span><span class="nx">misses</span> <span class="p">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><strong>复制 <code>dirty</code> 到 <code>read</code></strong>：将 <strong><code>dirty</code></strong> 的引用直接赋值给 <strong><code>read</code></strong>，并重置 <strong><code>amended</code></strong> 为 <strong><code>false</code></strong> 。</li>
+<li><strong>清空 <code>dirty</code></strong>：将 <strong><code>dirty</code></strong> 置为 <strong><code>nil</code></strong>，等待下次写操作时重建。</li>
+<li><strong>重置 <code>misses</code></strong>：计数器归零，准备下一轮统计。</li>
+</ul>
+<h4 id="读取">读取
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">Map</span><span class="p">)</span> <span class="nf">Load</span><span class="p">(</span><span class="nx">key</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">(</span><span class="nx">value</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">ok</span> <span class="kt">bool</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">read</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">read</span><span class="p">.</span><span class="nf">Load</span><span class="p">().(</span><span class="nx">readOnly</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">e</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">read</span><span class="p">.</span><span class="nx">m</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="o">&amp;&amp;</span> <span class="nx">read</span><span class="p">.</span><span class="nx">amended</span> <span class="p">{</span> <span class="c1">// read 中不存在且 dirty 有新数据</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">m</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// 双重检查，避免加锁前 dirty 已提升为 read</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">read</span><span class="p">,</span> <span class="nx">_</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">read</span><span class="p">.</span><span class="nf">Load</span><span class="p">().(</span><span class="nx">readOnly</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">e</span><span class="p">,</span> <span class="nx">ok</span> <span class="p">=</span> <span class="nx">read</span><span class="p">.</span><span class="nx">m</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="o">&amp;&amp;</span> <span class="nx">read</span><span class="p">.</span><span class="nx">amended</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">e</span><span class="p">,</span> <span class="nx">ok</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">dirty</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">m</span><span class="p">.</span><span class="nf">missLocked</span><span class="p">()</span> <span class="c1">// 记录一次 miss</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">m</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="kc">false</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nx">e</span><span class="p">.</span><span class="nf">load</span><span class="p">()</span> <span class="c1">// 从 entry 中加载值</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>优先从 <strong><code>read</code></strong> 无锁读取，若存在直接返回。</li>
+<li>若 <strong><code>read</code></strong> 中不存在且 <strong><code>amended=true</code></strong>（表示 <strong><code>dirty</code></strong> 有新数据），加锁从 <strong><code>dirty</code></strong> 读取，并记录一次 <strong><code>miss</code></strong> 。</li>
+<li>当 <strong><code>misses</code></strong> 累计达到 <strong><code>len(dirty)</code></strong> 时，触发 <strong><code>dirty</code></strong> 提升为 <strong><code>read</code></strong>，避免频繁加锁。</li>
+</ul>
+<h4 id="存储">存储
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">Map</span><span class="p">)</span> <span class="nf">Store</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="nx">value</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">read</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">read</span><span class="p">.</span><span class="nf">Load</span><span class="p">().(</span><span class="nx">readOnly</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="nx">e</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">read</span><span class="p">.</span><span class="nx">m</span><span class="p">[</span><span class="nx">key</span><span class="p">];</span> <span class="nx">ok</span> <span class="o">&amp;&amp;</span> <span class="nx">e</span><span class="p">.</span><span class="nf">tryStore</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">value</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="c1">// 若 read 中存在且未被标记为 expunged，直接更新</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nx">m</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">read</span><span class="p">,</span> <span class="nx">_</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">read</span><span class="p">.</span><span class="nf">Load</span><span class="p">().(</span><span class="nx">readOnly</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="nx">e</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">read</span><span class="p">.</span><span class="nx">m</span><span class="p">[</span><span class="nx">key</span><span class="p">];</span> <span class="nx">ok</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nx">e</span><span class="p">.</span><span class="nf">unexpungeLocked</span><span class="p">()</span> <span class="p">{</span> <span class="c1">// 若 entry 被标记为 expunged，需恢复并加入 dirty</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">m</span><span class="p">.</span><span class="nx">dirty</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="p">=</span> <span class="nx">e</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">e</span><span class="p">.</span><span class="nf">storeLocked</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">value</span><span class="p">)</span> <span class="c1">// 更新 entry</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="nx">e</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">dirty</span><span class="p">[</span><span class="nx">key</span><span class="p">];</span> <span class="nx">ok</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">e</span><span class="p">.</span><span class="nf">storeLocked</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">value</span><span class="p">)</span> <span class="c1">// dirty 中存在，直接更新</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">!</span><span class="nx">read</span><span class="p">.</span><span class="nx">amended</span> <span class="p">{</span> <span class="c1">// 首次写入 dirty，需复制 read 中的所有未删除 entry</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">m</span><span class="p">.</span><span class="nf">dirtyLocked</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="nx">m</span><span class="p">.</span><span class="nx">read</span><span class="p">.</span><span class="nf">Store</span><span class="p">(</span><span class="nx">readOnly</span><span class="p">{</span><span class="nx">m</span><span class="p">:</span> <span class="nx">read</span><span class="p">.</span><span class="nx">m</span><span class="p">,</span> <span class="nx">amended</span><span class="p">:</span> <span class="kc">true</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">m</span><span class="p">.</span><span class="nx">dirty</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="p">=</span> <span class="nf">newEntry</span><span class="p">(</span><span class="nx">value</span><span class="p">)</span> <span class="c1">// 将新 entry 加入 dirty</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">m</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>尝试无锁更新 <strong><code>read</code></strong> 中的 <strong><code>entry</code></strong>（若存在且未被删除）。</li>
+<li>若 <strong><code>read</code></strong> 中不存在或已被标记为 <strong><code>expunged</code></strong> ，加锁操作：
+<ul>
+<li>若 <strong><code>dirty</code></strong> 中存在该键，直接更新。</li>
+<li>若 <strong><code>dirty</code></strong> 中不存在：
+<ul>
+<li>首次写入 <strong><code>dirty</code></strong> 时，将 <strong><code>read</code></strong> 中所有未删除的 <strong><code>entry</code></strong> 复制到 <strong><code>dirty</code></strong> 。</li>
+<li>将新 <strong><code>entry</code></strong> 加入 <strong><code>dirty</code></strong>，并标记 <strong><code>amended=true</code></strong> 。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h4 id="删除">删除
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">Map</span><span class="p">)</span> <span class="nf">Delete</span><span class="p">(</span><span class="nx">key</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">read</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">read</span><span class="p">.</span><span class="nf">Load</span><span class="p">().(</span><span class="nx">readOnly</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">e</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">read</span><span class="p">.</span><span class="nx">m</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="o">&amp;&amp;</span> <span class="nx">read</span><span class="p">.</span><span class="nx">amended</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">m</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">read</span><span class="p">,</span> <span class="nx">_</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">read</span><span class="p">.</span><span class="nf">Load</span><span class="p">().(</span><span class="nx">readOnly</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">e</span><span class="p">,</span> <span class="nx">ok</span> <span class="p">=</span> <span class="nx">read</span><span class="p">.</span><span class="nx">m</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="o">&amp;&amp;</span> <span class="nx">read</span><span class="p">.</span><span class="nx">amended</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nb">delete</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">dirty</span><span class="p">,</span> <span class="nx">key</span><span class="p">)</span> <span class="c1">// 直接从 dirty 中删除</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">m</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="nx">ok</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">e</span><span class="p">.</span><span class="nb">delete</span><span class="p">()</span> <span class="c1">// 标记 entry 为 nil（逻辑删除）</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>若 <strong><code>read</code></strong> 中存在该键，标记 <strong><code>entry.p=nil</code></strong>（逻辑删除）。</li>
+<li>若 <strong><code>read</code></strong> 中不存在且 <strong><code>amended=true</code></strong>，加锁从 <strong><code>dirty</code></strong> 中物理删除该键。</li>
+</ul>
 
 </section>
 
@@ -769,7 +1287,7 @@
 
 
         <span>
-            最后更新于 2025-06-29 15:24 UTC
+            最后更新于 2025-07-13 14:00 UTC
         </span>
     </section></footer>
 
