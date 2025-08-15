@@ -10,7 +10,7 @@
 <meta property='og:description' content="Go的映射map">
 <meta property='og:url' content='https://Tyritic.github.io/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='' /><meta property='article:published_time' content='2025-06-29T21:53:58&#43;08:00'/><meta property='article:modified_time' content='2025-07-13T16:08:24&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='' /><meta property='article:published_time' content='2025-06-29T21:53:58&#43;08:00'/><meta property='article:modified_time' content='2025-08-15T13:57:44&#43;00:00'/>
 <meta name="twitter:title" content="Go的映射map">
 <meta name="twitter:description" content="Go的映射map">
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -296,6 +296,11 @@
         <li><a href="#删除元素">删除元素</a></li>
       </ol>
     </li>
+    <li><a href="#踩坑实录">踩坑实录</a>
+      <ol>
+        <li><a href="#直接操作nil-map发生panic">直接操作nil map，发生panic</a></li>
+      </ol>
+    </li>
     <li><a href="#底层原理">底层原理</a>
       <ol>
         <li><a href="#底层数据结构">底层数据结构</a></li>
@@ -392,7 +397,7 @@
 
 
                 <time class="article-time--reading">
-                    阅读时长: 9 分钟
+                    阅读时长: 10 分钟
                 </time>
             </div>
 
@@ -400,7 +405,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：4447 字
+                     字数统计：4692 字
                 </time>
             </div>
 
@@ -509,7 +514,69 @@
 </ul>
 </li>
 </ul>
-<h2 id="底层原理">底层原理
+<h2 id="踩坑实录">踩坑实录
+</h2><h3 id="直接操作nil-map发生panic">直接操作nil map，发生panic
+</h3><p>问题：直接操作未初始化的map，会触发panic</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-Go" data-lang="Go"><span class="line"><span class="cl"><span class="kn">package</span> <span class="nx">main</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">var</span> <span class="nx">m</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">m</span><span class="p">[</span><span class="s">&#34;key&#34;</span><span class="p">]</span> <span class="p">=</span> <span class="s">&#34;value&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 运行结果</span>
+</span></span><span class="line"><span class="cl"><span class="nx">panic</span><span class="p">:</span> <span class="nx">assignment</span> <span class="nx">to</span> <span class="nx">entry</span> <span class="nx">in</span> <span class="kc">nil</span> <span class="kd">map</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">goroutine</span> <span class="mi">1</span> <span class="p">[</span><span class="nx">running</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl"><span class="nx">main</span><span class="p">.</span><span class="nf">main</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="o">.../</span><span class="nx">main</span><span class="p">.</span><span class="k">go</span><span class="p">:</span><span class="mi">5</span> <span class="o">+</span><span class="mh">0x38</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">Process</span> <span class="nx">finished</span> <span class="nx">with</span> <span class="nx">the</span> <span class="nx">exit</span> <span class="nx">code</span> <span class="mi">2</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>解决方法：使用map前，需对map进行初始化。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-Go" data-lang="Go"><span class="line"><span class="cl"><span class="kn">package</span> <span class="nx">main</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">m</span> <span class="o">:=</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">{}</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">m</span><span class="p">[</span><span class="s">&#34;key&#34;</span><span class="p">]</span> <span class="p">=</span> <span class="s">&#34;value&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nx">n</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">n</span><span class="p">[</span><span class="s">&#34;key&#34;</span><span class="p">]</span> <span class="p">=</span> <span class="s">&#34;value&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="底层原理">底层原理
 </h2><h3 id="底层数据结构">底层数据结构
 </h3><p>在 Go 语言中，map 类型的底层实现就是哈希表，map 类型的变量 本质上是一个指针 <strong><code>*hmap</code></strong> ，指向 <strong><code>hmap</code></strong> 结构体。</p>
 <ul>
@@ -1043,29 +1110,54 @@
 </ul>
 <h3 id="基本操作-1">基本操作
 </h3><ul>
-<li>读取：<strong><code>func Load(key interface{}) (value interface{}, ok bool)</code></strong>
+<li>
+<p>读取：<strong><code>func Load(key interface{}) (value interface{}, ok bool)</code></strong></p>
 <ul>
 <li><strong><code>value</code></strong>：键对应的值（类型需自行转换）。</li>
 <li><strong><code>ok</code></strong> ：键是否存在的标志。</li>
 </ul>
 </li>
-<li>存储/更新：<strong><code>func Store(key, value interface{})</code></strong>
+<li>
+<p>存储/更新：<strong><code>func Store(key, value interface{})</code></strong></p>
 <ul>
 <li>若键已存在，新值会覆盖旧值；不支持存储 <strong><code>nil</code></strong>（会触发 panic）</li>
 </ul>
 </li>
-<li>删除键：<strong><code>func Delete(key interface{})</code></strong>
+<li>
+<p>删除键：<strong><code>func Delete(key interface{})</code></strong></p>
 <ul>
 <li>实际为逻辑删除（标记 <strong><code>entry</code></strong> 为 <strong><code>nil</code></strong> ），在 <code>dirty</code> 提升时才物理删除。</li>
 <li>若键不存在，不会报错。</li>
 </ul>
 </li>
-<li>若存在则加载否则存储：<strong><code>func LoadOrStore(key, value interface{}) (actual interface{}, loaded bool)</code></strong>
+<li>
+<p>若存在则加载否则存储：<strong><code>func LoadOrStore(key, value interface{}) (actual interface{}, loaded bool)</code></strong></p>
 <ul>
 <li><strong><code>actual</code></strong> ：键的当前值（无论是否新存入）。</li>
-<li><strong><code>loaded</code></strong> ：键是否已存在的标志（<code>true</code> 表示已存在，直接加载；<code>false</code> 表示新存入）。</li>
+<li><strong><code>loaded</code></strong> ：键是否已存在的标志（ <strong><code>true</code></strong> 表示已存在，直接加载；<strong><code>false</code></strong> 表示新存入）。</li>
 </ul>
 </li>
+<li>
+<p>遍历：<strong><code>Sync.Map</code></strong> 有自带的**<code>Range</code>** ，<strong><code>Range(func(key, value any) bool</code></strong> ，<strong><code>any</code></strong>（即 <strong><code>interface{}</code></strong>），要用类型断言才能使用具体类型</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">m</span><span class="p">.</span><span class="nf">Range</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="nx">value</span> <span class="kt">any</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">k</span> <span class="o">:=</span> <span class="nx">key</span><span class="p">.(</span><span class="kt">string</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">v</span> <span class="o">:=</span> <span class="nx">value</span><span class="p">.(</span><span class="kt">int</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;%s =&gt; %d\n&#34;</span><span class="p">,</span> <span class="nx">k</span><span class="p">,</span> <span class="nx">v</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="kc">true</span>
+</span></span><span class="line"><span class="cl"><span class="p">})</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
 </ul>
 <h3 id="底层原理-1">底层原理
 </h3><h4 id="dirty提升">dirty提升
@@ -1287,7 +1379,7 @@
 
 
         <span>
-            最后更新于 2025-07-13 16:08 UTC
+            最后更新于 2025-08-15 13:57 UTC
         </span>
     </section></footer>
 
@@ -1343,6 +1435,19 @@
             
                 
 <article class="">
+    <a href="/p/go%E7%9A%84%E5%B9%B6%E5%8F%91%E6%93%8D%E4%BD%9C/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Go的并发操作</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
     <a href="/p/go%E7%9A%84%E6%8E%92%E5%BA%8F/">
         
         
@@ -1375,19 +1480,6 @@
 
         <div class="article-details">
             <h2 class="article-title">Go的编译运行和依赖管理</h2>
-        </div>
-    </a>
-</article>
-
-            
-                
-<article class="">
-    <a href="/p/go%E7%9A%84%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">Go的异常处理</h2>
         </div>
     </a>
 </article>
