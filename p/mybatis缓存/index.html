@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="zh-cn" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="MyBatis框架的缓存机制">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="MyBatis的缓存相关知识">
 <title>MyBatis缓存</title>
 
 <link rel='canonical' href='https://Tyritic.github.io/p/mybatis%E7%BC%93%E5%AD%98/'>
 
-<link rel="stylesheet" href="/scss/style.min.fe4a1ccbb4ce812e80275b0be97529fa79d306cfb907ee1bf8f14ef7793b1713.css"><meta property='og:title' content="MyBatis缓存">
-<meta property='og:description' content="MyBatis框架的缓存机制">
+<link rel="stylesheet" href="/scss/style.min.fed441c3bdbb1e36491367ea8e34309f2b4ffe2facce6caabc13b682007a31e4.css"><meta property='og:title' content="MyBatis缓存">
+<meta property='og:description' content="MyBatis的缓存相关知识">
 <meta property='og:url' content='https://Tyritic.github.io/p/mybatis%E7%BC%93%E5%AD%98/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开发' /><meta property='article:tag' content='数据库' /><meta property='article:published_time' content='2024-11-15T20:31:12&#43;08:00'/><meta property='article:modified_time' content='2026-03-01T14:06:11&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='数据库' /><meta property='article:tag' content='后端开发' /><meta property='article:published_time' content='2024-11-07T16:31:55&#43;08:00'/><meta property='article:modified_time' content='2026-03-02T07:57:45&#43;00:00'/>
 <meta name="twitter:title" content="MyBatis缓存">
-<meta name="twitter:description" content="MyBatis框架的缓存机制">
+<meta name="twitter:description" content="MyBatis的缓存相关知识">
     <link rel="shortcut icon" href="/favicon.ico" />
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -287,19 +287,28 @@
         <div class="widget--toc">
             <nav id="TableOfContents">
   <ol>
-    <li><a href="#一级缓存">一级缓存</a>
+    <li><a href="#-什么是缓存">🧠 什么是缓存</a></li>
+    <li><a href="#1-一级缓存">1️⃣ 一级缓存</a>
       <ol>
-        <li><a href="#使一级缓存失效的四种情况">使一级缓存失效的四种情况:</a></li>
+        <li><a href="#-一级缓存的工作流程">🔍 一级缓存的工作流程</a></li>
+        <li><a href="#-一级缓存失效的四种情况">⚡ 一级缓存失效的四种情况</a></li>
       </ol>
     </li>
-    <li><a href="#二级缓存">二级缓存</a>
+    <li><a href="#2-二级缓存">2️⃣ 二级缓存</a>
       <ol>
-        <li><a href="#二级缓存开启的条件">二级缓存开启的条件:</a></li>
-        <li><a href="#失效的情况">失效的情况</a></li>
-        <li><a href="#相关配置">相关配置</a></li>
+        <li><a href="#-配置方式">🔧 配置方式</a></li>
+        <li><a href="#-二级缓存工作流程">🔍 二级缓存工作流程</a></li>
+        <li><a href="#-缓存查询的顺序">🔄 缓存查询的顺序</a></li>
       </ol>
     </li>
-    <li><a href="#缓存查询顺序">缓存查询顺序</a></li>
+    <li><a href="#-自定义缓存ehcache">🎯 自定义缓存Ehcache</a>
+      <ol>
+        <li><a href="#-ehcache简介">📌 Ehcache简介</a></li>
+        <li><a href="#-使用ehcache">🔧 使用Ehcache</a></li>
+        <li><a href="#-配置文件说明">📝 配置文件说明</a></li>
+        <li><a href="#-常用配置属性">🔧 常用配置属性</a></li>
+      </ol>
+    </li>
   </ol>
 </nav>
         </div>
@@ -332,7 +341,7 @@
     
         
         <h3 class="article-subtitle">
-            MyBatis框架的缓存机制
+            MyBatis的缓存相关知识
         </h3>
         
     </div>
@@ -353,7 +362,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                <time class="article-time--published">2024-11-15</time>
+                <time class="article-time--published">2024-11-07</time>
             </div>
         
 
@@ -368,7 +377,7 @@
 
 
                 <time class="article-time--reading">
-                    阅读时长: 2 分钟
+                    阅读时长: 6 分钟
                 </time>
             </div>
 
@@ -376,7 +385,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：642 字
+                     字数统计：2673 字
                 </time>
             </div>
 
@@ -394,36 +403,231 @@
     <section class="article-content">
     
     
-    <h2 id="一级缓存">一级缓存
-</h2><p>一级缓存是SqlSession级别的，通过同一个SqlSession查询的数据会被缓存，下次查询相同的数据，就会从缓存中直接获取，不会从数据库重新访问</p>
-<h3 id="使一级缓存失效的四种情况">使一级缓存失效的四种情况:
-</h3><ul>
-<li>不同的SqlSession对应不同的一级缓存</li>
-<li>同一个SqlSession但是查询条件不同</li>
-<li>同一个SqlSession两次查询期间执行了任何一次增删改操作</li>
-<li>同一个SqlSession两次查询期间手动清空了缓存</li>
+    <h2 id="-什么是缓存">🧠 什么是缓存
+</h2><p>缓存是内存中的临时数据</p>
+<p>使用缓存后可以减少和数据库的交互次数，提高执行效率</p>
+<p>适合放入缓存的数据:</p>
+<ul>
+<li>经常查询并且不经常改变的。</li>
+<li>数据的正确与否对最终结果影响不大的。</li>
 </ul>
-<h2 id="二级缓存">二级缓存
-</h2><p>二级缓存是SqlSessionFactory级别，通过同一个SqlSessionFactory创建的SqlSession查询的结果会被缓存;此后若再次执行相同的查询语句，结果就会从缓存中获取。</p>
-<h3 id="二级缓存开启的条件">二级缓存开启的条件:
-</h3><ol>
-<li>在核心配置文件中，设置全局配置属性cacheEnabled=&ldquo;true&rdquo;，默认为true，不需要设置</li>
-<li>在mapper.xml映射文件中设置标签&lt;cache &gt;</li>
-<li>二级缓存必须在SqlSession关闭或提交之后有效</li>
-<li>查询的数据所转换的实体类类型必须实现序列化的接口</li>
+<p>不适用于缓存的数据:</p>
+<ul>
+<li>经常改变的。</li>
+<li>数据的正确与否对最终结果影响很大的。例如:商品的库存，银行的汇率，股市的牌价。</li>
+</ul>
+<hr>
+<h2 id="1-一级缓存">1️⃣ 一级缓存
+</h2><p>一级缓存存在于SqlSession对象中。每次查询都先从SqlSession中找，如果没有则去数据库中查询，查询后将结果写入SqlSession提供的缓存中去，下次访问即可直接访问缓存。SqlSession对象是通过SqlSessionFactory对象获取的，每次重新获取SqlSession对象时，一级缓存就会失效</p>
+<hr>
+<h3 id="-一级缓存的工作流程">🔍 一级缓存的工作流程
+</h3><p>&lt;div align=&ldquo;center&rdquo;&gt;
+&lt;img src=&ldquo;微信截图_20241107163317.png&rdquo; alt=&ldquo;一级缓存工作流程&rdquo; width=&ldquo;60%&quot;&gt;
+&lt;/div&gt;</p>
+<ol>
+<li>第一次发起查询用户id为1的用户信息，先去找缓存中是否有id为1的用户信息，如果没有，从数据库查询用户信息。</li>
+<li>得到用户信息，将用户信息存储到一级缓存中。</li>
+<li>如果sqlSession去执行commit操作(执行插入、更新、删除)，清空SqlSession中的一级缓存，这样做的目的为了让缓存中存储的是最新的信息，避免脏读。</li>
+<li>第二次发起查询用户id为1的用户信息，先去找缓存中是否有id为1的用户信息，缓存中有，直接从缓存中获取用户信息。</li>
 </ol>
-<h3 id="失效的情况">失效的情况
-</h3><p>在两次查询之间进行任意的增删改，手动清空缓存只会清空一级缓存</p>
-<h3 id="相关配置">相关配置
-</h3><p>在mapper.xml映射文件中设置标签&lt;cache &gt;</p>
-<p>相关属性参见 <a class="link" href="https://mybatis.org/mybatis-3/sqlmap-xml.html#cache"  target="_blank" rel="noopener"
-    >MyBatis官方文档</a></p>
-<h2 id="缓存查询顺序">缓存查询顺序
-</h2><ul>
-<li>先查询二级缓存，因为二级缓存中可能会有其他程序已经查出来的数据，可以拿来直接使用</li>
-<li>如果二级缓存没有命中，再查询一级缓存</li>
-<li>如果一级缓存也没有命中，则查询数据库</li>
-<li>Sqisession关闭之后，一级缓存中的数据会写入二级缓存</li>
+<p>{{&lt;notice tip&gt;}}</p>
+<p>MyBatis的一级缓存默认开启</p>
+<p>{{&lt;/notice&gt;}}</p>
+<hr>
+<h3 id="-一级缓存失效的四种情况">⚡ 一级缓存失效的四种情况
+</h3><ul>
+<li>不是同一个SqlSession对象</li>
+<li>同一个SqlSession对象但查询条件不一样</li>
+<li>同一个SqlSession对象两次查询期间执行了任何一次增删改操作</li>
+<li>同一个SqlSession对象两次查询期间手动清空了缓存</li>
+</ul>
+<hr>
+<h2 id="2-二级缓存">2️⃣ 二级缓存
+</h2><p>二级缓存是SqlSessionFactory对象的缓存。由同一个SqlSessionFactory对象创建的SqlSession共享其缓存。因此二级缓存也称为全局缓存。二级缓存默认是不开启的，需要手动开启二级缓存，实现二级缓存的时候，MyBatis要求返回的POJO必须是可序列化的，也就是要求实现Serializable接口</p>
+<hr>
+<h3 id="-配置方式">🔧 配置方式
+</h3><ul>
+<li>
+<p>在核心配置文件中设置开启二级缓存：cacheEnabled=true</p>
+</li>
+<li>
+<p>在mapper.xml文件中添加开启二级缓存的标签：&lt;cache&gt;</p>
+<ul>
+<li>
+<p>可以设置属性readOnly</p>
+<ul>
+<li>true：只允许读取不允许修改</li>
+<li>false：有副本机制，允许修改</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>二级缓存必须在SqlSession关闭或提交之后有效</p>
+</li>
+<li>
+<p>查询的数据所转换的实体类类型必须实现序列化的接口</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>cache readOnly=&#34;true&#34;<span class="ni">&amp;gt;&amp;lt;</span>/cache<span class="ni">&amp;gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+</ul>
+<hr>
+<h3 id="-二级缓存工作流程">🔍 二级缓存工作流程
+</h3><p>&lt;div align=&ldquo;center&rdquo;&gt;
+&lt;img src=&ldquo;微信截图_20241107165832.png&rdquo; alt=&ldquo;二级缓存工作流程&rdquo; width=&ldquo;60%&quot;&gt;
+&lt;/div&gt;</p>
+<ol>
+<li>当用户第一次查询某条数据时，会将查出来的数据放到一级缓存中</li>
+<li>当sqlSession关闭时，会将一级缓存中的数据保存到二级缓存中</li>
+<li>当用户第二次查询时，不会查询一级缓存，而是查询二级缓存</li>
+<li>此时若其他的sqlSession查询，也会查询二级缓存</li>
+</ol>
+<p>{{&lt;notice tip&gt;}}</p>
+<p>二级缓存失效的原因：在两次查询之间执行了任意的增删改，会使一级和二级缓存同时失效</p>
+<p>{{&lt;/notice&gt;}}</p>
+<hr>
+<h3 id="-缓存查询的顺序">🔄 缓存查询的顺序
+</h3><ul>
+<li>先查询二级缓存，因为二级缓存中可能会有其他程序已经查出来的数据，可以拿来直接使用。</li>
+<li>如果二级缓存没有命中，再查询一级缓存。</li>
+<li>如果一级缓存也没有命中，则查询数据库。</li>
+<li>SqlSession关闭之后，一级缓存中的数据会写入二级缓存。</li>
+</ul>
+<hr>
+<h2 id="-自定义缓存ehcache">🎯 自定义缓存Ehcache
+</h2><h3 id="-ehcache简介">📌 Ehcache简介
+</h3><ul>
+<li>Ehcache是一个纯Java的进程内缓存框架，具有快速、精干等特点，是Hibernate中默认的CacheProvider。</li>
+<li>Ehcache是一种广泛使用的开源Java分布式缓存。主要面向通用缓存</li>
+<li>Java进程内的缓存，缓存数据在java进程内</li>
+<li>缺点：单服务器缓存</li>
+</ul>
+<hr>
+<h3 id="-使用ehcache">🔧 使用Ehcache
+</h3><ul>
+<li>
+<p>首先导入ehcache相关的依赖和mybatis整合ehcache的依赖</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>!--Mybatis提供的整合ehcache的包--<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>dependency<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="ni">&amp;lt;</span>groupId<span class="ni">&amp;gt;</span>org.mybatis.caches<span class="ni">&amp;lt;</span>/groupId<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="ni">&amp;lt;</span>artifactId<span class="ni">&amp;gt;</span>mybatis-ehcache<span class="ni">&amp;lt;</span>/artifactId<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="ni">&amp;lt;</span>version<span class="ni">&amp;gt;</span>1.2.1<span class="ni">&amp;lt;</span>/version<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>/dependency<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>!-- slf4j日志门面--<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>dependency<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="ni">&amp;lt;</span>groupId<span class="ni">&amp;gt;</span>org.slf4j<span class="ni">&amp;lt;</span>/groupId<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="ni">&amp;lt;</span>artifactId<span class="ni">&amp;gt;</span>slf4j-api<span class="ni">&amp;lt;</span>/artifactId<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="ni">&amp;lt;</span>version<span class="ni">&amp;gt;</span>1.7.32<span class="ni">&amp;lt;</span>/version<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>/dependency<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>!-- logback-classic--<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>dependency<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="ni">&amp;lt;</span>groupId<span class="ni">&amp;gt;</span>ch.qos.logback<span class="ni">&amp;lt;</span>/groupId<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="ni">&amp;lt;</span>artifactId<span class="ni">&amp;gt;</span>logback-classic<span class="ni">&amp;lt;</span>/artifactId<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="ni">&amp;lt;</span>version<span class="ni">&amp;gt;</span>1.2.3<span class="ni">&amp;lt;</span>/version<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>/dependency<span class="ni">&amp;gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p>配置ehcache.xml配置文件</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34; ?<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>ehcache xmlns:xsi=&#34;http://www.w3.org/2001/XMLSchema-instance&#34;
+</span></span><span class="line"><span class="cl">         xsi:noNamespaceSchemaLocation=&#34;http://ehcache.org/ehcache.xsd&#34;
+</span></span><span class="line"><span class="cl">         updateCheck=&#34;false&#34;<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>diskStore path=&#34;D:\rz\ehcache&#34; /<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="ni">&amp;lt;</span>defaultCache
+</span></span><span class="line"><span class="cl">            maxElementsInMemory=&#34;1000&#34;
+</span></span><span class="line"><span class="cl">            maxElementsOnDisk=&#34;10000000&#34;
+</span></span><span class="line"><span class="cl">            eternal=&#34;false&#34;
+</span></span><span class="line"><span class="cl">            overflowToDisk=&#34;true&#34;
+</span></span><span class="line"><span class="cl">            timeToIdleSeconds=&#34;120&#34;
+</span></span><span class="line"><span class="cl">            timeToLiveSeconds=&#34;120&#34;
+</span></span><span class="line"><span class="cl">            diskExpiryThreadIntervalSeconds=&#34;120&#34;
+</span></span><span class="line"><span class="cl">            memoryStoreEvictionPolicy=&#34;LRU&#34;<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="ni">&amp;lt;</span>/defaultCache<span class="ni">&amp;gt;</span>
+</span></span><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>/ehcache<span class="ni">&amp;gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li>
+<p>在mapper的xml文件中的cache标签中设置type属性</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="ni">&amp;lt;</span>cache type=&#34;org.mybatis.caches.ehcache.EhcacheCache&#34;<span class="ni">&amp;gt;&amp;lt;</span>/cache<span class="ni">&amp;gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+</ul>
+<hr>
+<h3 id="-配置文件说明">📝 配置文件说明
+</h3><ul>
+<li>diskStore：指定数据在磁盘中的存储位置。</li>
+<li>defaultCache：当借助CacheManager.add(&ldquo;demoCache&rdquo;)创建Cache时，EhCache便会采用<code>&amp;lt;defalutCache/&amp;gt;</code>指定的的管理策略</li>
+</ul>
+<hr>
+<h3 id="-常用配置属性">🔧 常用配置属性
+</h3><ul>
+<li>maxElementsInMemory：在内存中缓存的element的最大数目</li>
+<li>maxElementsOnDisk：在磁盘上缓存的element的最大数目，若是0表示无穷大</li>
+<li>eternal：设定缓存的elements是否永远不过期。如果为true，则缓存的数据始终有效，如果为false那么还要根据timeToIdleSeconds，timeToLiveSeconds判断</li>
+<li>overflowToDisk：设定当内存缓存溢出的时候是否将过期的element缓存到磁盘上</li>
+<li>timeToIdleSeconds：当缓存在EhCache中的数据前后两次访问的时间超过timeToIdleSeconds的属性取值时，这些数据便会删除，默认值是0,也就是可闲置时间无穷大</li>
+<li>timeToLiveSeconds：缓存element的有效生命期，默认是0也就是element存活时间无穷大</li>
+<li>diskSpoolBufferSizeMB：这个参数设置DiskStore(磁盘缓存)的缓存区大小。默认是30MB。每个Cache都应该有自己的一个缓冲区</li>
+<li>diskPersistent：在VM重启的时候是否启用磁盘保存EhCache中的数据，默认是false</li>
+<li>diskExpiryThreadIntervalSeconds：磁盘缓存的清理线程运行间隔，默认是120秒。每隔120s，相应的线程会进行一次EhCache中数据的清理工作</li>
+<li>memoryStoreEvictionPolicy：当内存缓存达到最大，有新的element加入的时候，移除缓存中element的策略。默认是LRU(最近最少使用)，可选的有LFU(最不常使用)和FIFO(先进先出)</li>
 </ul>
 
 </section>
@@ -433,9 +637,9 @@
     
     <section class="article-tags">
         
-            <a href="/tags/%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91/">后端开发</a>
-        
             <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a>
+        
+            <a href="/tags/%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91/">后端开发</a>
         
     </section>
 
@@ -450,7 +654,7 @@
 
 
         <span>
-            最后更新于 2026-03-01 14:06 UTC
+            最后更新于 2026-03-02 07:57 UTC
         </span>
     </section></footer>
 
@@ -466,6 +670,19 @@
     <h2 class="section-title">相关文章</h2>
     <div class="related-content">
         <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/mybatis-plus/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">MyBatis-Plus</h2>
+        </div>
+    </a>
+</article>
+
             
                 
 <article class="">
@@ -488,19 +705,6 @@
 
         <div class="article-details">
             <h2 class="article-title">MyBatis简介</h2>
-        </div>
-    </a>
-</article>
-
-            
-                
-<article class="">
-    <a href="/p/mybatis-plus/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">MyBatis Plus</h2>
         </div>
     </a>
 </article>

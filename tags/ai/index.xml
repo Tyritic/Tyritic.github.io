@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>AI on Tyritic</title>
+        <link>https://Tyritic.github.io/tags/ai/</link>
+        <description>Recent content in AI on Tyritic</description>
+        <generator>Hugo -- gohugo.io</generator>
+        <language>zh-cn</language>
+        <copyright>Tyritic</copyright>
+        <lastBuildDate>Mon, 02 Mar 2026 07:57:45 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/ai/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>langchain4j基础和架构设计</title>
+        <link>https://Tyritic.github.io/p/langchain4j%E5%9F%BA%E7%A1%80%E5%92%8C%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/</link>
+        <pubDate>Thu, 06 Mar 2025 14:33:36 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/langchain4j%E5%9F%BA%E7%A1%80%E5%92%8C%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/</guid>
+        <description>&lt;h2 id=&#34;-langchain4j-介绍&#34;&gt;🤖 langchain4j 介绍
+&lt;/h2&gt;&lt;p&gt;langchain4j 是一个旨在简化 Java 语言中 AI 应用开发的框架。它提供了一套统一的接口来与各种 LLM（大型语言模型）、embedding（嵌入）模型、向量数据库和其他工具交互，让开发者可以快速构建和集成 AI 功能，而不必担心底层实现细节。&lt;/p&gt;
+&lt;h3 id=&#34;-主要功能与特色&#34;&gt;🎯 主要功能与特色
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;模型集成&lt;/strong&gt;：支持 OpenAI、Azure OpenAI、Google Vertex AI、HuggingFace 等多种主流 LLM；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;链式调用与组合&lt;/strong&gt;：提供了类似 LangChain 的链式构造，方便构建复杂的提示、流程与记忆；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Embedding 与向量存储&lt;/strong&gt;：内置常见的 Embedding 模型 API，以及对接 Pinecone、Chroma、Redis 等向量数据库；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;工具与函数调用&lt;/strong&gt;：支持 LLM 调用本地工具或函数（Function Calling / Tool Use）；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;文档加载与解析&lt;/strong&gt;：支持 PDF、Word、TXT 等常见文档的加载、文本分割与向量化。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-整体架构与核心概念&#34;&gt;🏗️ 整体架构与核心概念
+&lt;/h2&gt;&lt;p&gt;langchain4j 的设计围绕“模型抽象”、“链式处理”、“记忆管理”、“RAG”等核心概念展开。以下是主要组成部分及架构：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;ChatLanguageModel / LanguageModel&lt;/strong&gt;&lt;br&gt;
+最核心的接口，用于和 LLM 交互，同步/流式发送消息并获取响应。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;ChatLanguageModel&lt;/code&gt;：用于多轮对话模型（Chat Completion）；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;LanguageModel&lt;/code&gt;：用于文本补全（Text Completion）等场景。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;EmbeddingModel&lt;/strong&gt;&lt;br&gt;
+嵌入模型抽象，可将文本转换为向量，用于相似度计算或存入向量数据库。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;ChatMemory / ChatMemoryProvider&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;用于维护多轮对话历史；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;MessageWindowChatMemory&lt;/code&gt;、&lt;code&gt;TokenWindowChatMemory&lt;/code&gt; 等实现可管理消息数量或 Token 窗口。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Chain（链）&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;用于组装各种处理步骤，如提示模板 + LLM + 输出解析等。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;ConversationalChain&lt;/code&gt;：带记忆的对话链；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;RetrievalChain&lt;/code&gt;：用于信息检索增强问答；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;TextSegmentRetriever&lt;/code&gt;：在向量存储中检索相关片段。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Document / Splitter / EmbeddingStore&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;文档加载、文本分割、向量存储相关组件。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Document&lt;/code&gt;：表示一个文档（文本 + 元数据）；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;DocumentSplitter&lt;/code&gt;：将文档切分成若干 &lt;code&gt;TextSegment&lt;/code&gt;；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;EmbeddingStore&lt;/code&gt;：向量存储抽象，可插入 &lt;code&gt;InMemoryEmbeddingStore&lt;/code&gt; 或对接第三方向量数据库。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Tool / Tools&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;让 LLM 可以调用你定义的函数（Function Calling / Tool Use）。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Tool&lt;/code&gt; 接口 + &lt;code&gt;@Tool&lt;/code&gt; 注解 + &lt;code&gt;Tools&lt;/code&gt; 工具类，可以快速暴露 Java 方法供模型调用。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&amp;lt;div align=&amp;ldquo;center&amp;rdquo;&amp;gt;
+&amp;lt;img src=&amp;ldquo;image.png&amp;rdquo; alt=&amp;ldquo;langchain4j架构图&amp;rdquo; width=&amp;ldquo;60%&amp;quot;&amp;gt;
+&amp;lt;/div&amp;gt;&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-分层设计与典型使用流程&#34;&gt;⚙️ 分层设计与典型使用流程
+&lt;/h2&gt;&lt;p&gt;langchain4j 从“模型层”、“链/工作流层”、“应用集成层”三个层面来组织功能：&lt;/p&gt;
+&lt;h3 id=&#34;1-模型层model-layer&#34;&gt;1️⃣ 模型层（Model Layer）
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;目标：统一各种模型的调用方式&lt;/li&gt;
+&lt;li&gt;主要接口：&lt;code&gt;ChatLanguageModel&lt;/code&gt;、&lt;code&gt;StreamingChatLanguageModel&lt;/code&gt;、&lt;code&gt;EmbeddingModel&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;使用示例：
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;ChatLanguageModel&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;model&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;OpenAiChatModel&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;builder&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;apiKey&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;System&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;getenv&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;OPENAI_API_KEY&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;))&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;modelName&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;gpt-3.5-turbo&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;    &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;build&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;response&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;model&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;generate&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;你好，请用 Java 示例解释什么是 Strategy 模式。&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;2-链工作流层chain--workflow-layer&#34;&gt;2️⃣ 链/工作流层（Chain / Workflow Layer）
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;目标：编排提示、记忆、输出解析、检索等组件&lt;/li&gt;
+&lt;li&gt;主要组件：
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;ConversationalChain&lt;/code&gt;：封装对话记忆和提示模板，方便多轮对话；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;RetrievalChain&lt;/code&gt; / &lt;code&gt;DefaultRetrievalChain&lt;/code&gt;：结合 Embedding + Vector Store，进行 RAG 问答；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;PromptTemplate&lt;/code&gt; / &lt;code&gt;SystemMessage&lt;/code&gt; / &lt;code&gt;UserMessage&lt;/code&gt;：构造更结构化的 Prompt。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;3-应用集成层integration-layer&#34;&gt;3️⃣ 应用集成层（Integration Layer）
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;目标：对接外部系统、文档源、向量数据库&lt;/li&gt;
+&lt;li&gt;主要组件：
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;DocumentLoader&lt;/code&gt;：加载 PDF、TXT、HTML 等文档；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;DocumentSplitter&lt;/code&gt; / &lt;code&gt;TextSegment&lt;/code&gt;：将文档切分为更适合 Embedding 的片段；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;EmbeddingStore&lt;/code&gt;：内存版或第三方向量存储（Pinecone、Chroma、Redis 等）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-主要模块与包结构&#34;&gt;📦 主要模块与包结构
+&lt;/h2&gt;&lt;p&gt;在 langchain4j 的源码和使用中，通常可以看到以下核心包/模块：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;核心&lt;/strong&gt; (&lt;code&gt;dev.langchain4j.model&lt;/code&gt;, &lt;code&gt;dev.langchain4j.model.chat&lt;/code&gt;, &lt;code&gt;dev.langchain4j.model.embedding&lt;/code&gt; 等)：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;各种模型接口与实现（OpenAI、Azure OpenAI、HuggingFace、LocalAI 等）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;记忆&lt;/strong&gt; (&lt;code&gt;dev.langchain4j.memory&lt;/code&gt; 包)：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;ChatMemory&lt;/code&gt;、&lt;code&gt;MessageWindowChatMemory&lt;/code&gt;、&lt;code&gt;TokenWindowChatMemory&lt;/code&gt; 等，用于维护对话历史。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;链&lt;/strong&gt; (&lt;code&gt;dev.langchain4j.chain&lt;/code&gt; 包)：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;ConversationalChain&lt;/code&gt;、&lt;code&gt;RetrievalChain&lt;/code&gt; 等开箱即用的链。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;数据与检索&lt;/strong&gt; (&lt;code&gt;dev.langchain4j.data&lt;/code&gt;, &lt;code&gt;dev.langchain4j.store.embedding&lt;/code&gt; 等)：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;Document&lt;/code&gt;、&lt;code&gt;TextSegment&lt;/code&gt;、&lt;code&gt;Embedding&lt;/code&gt; 以及 &lt;code&gt;EmbeddingStore&lt;/code&gt; 及其实现。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;工具&lt;/strong&gt; (&lt;code&gt;dev.langchain4j.service&lt;/code&gt; 以及 &lt;code&gt;dev.langchain4j.tool&lt;/code&gt; 包)：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;@Tool&lt;/code&gt; 注解、&lt;code&gt;Tools&lt;/code&gt; 工具类、&lt;code&gt;AiServices&lt;/code&gt; 代理工具，方便定义和绑定 LLM 可调用的工具。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-设计理念与扩展点&#34;&gt;📌 设计理念与扩展点
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;面向接口&lt;/strong&gt;：核心能力均通过接口抽象（如 &lt;code&gt;ChatLanguageModel&lt;/code&gt;、&lt;code&gt;EmbeddingModel&lt;/code&gt;、&lt;code&gt;EmbeddingStore&lt;/code&gt;），便于切换不同厂商实现；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Builder 模式&lt;/strong&gt;：多数组件（如模型客户端、Chain、Memory）都提供 &lt;code&gt;Builder&lt;/code&gt;，方便链式配置；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;可组合&lt;/strong&gt;：通过 &lt;code&gt;AiServices&lt;/code&gt;、自定义 &lt;code&gt;Chain&lt;/code&gt; 或自行组装 &lt;code&gt;ChatMemory&lt;/code&gt; + &lt;code&gt;ChatLanguageModel&lt;/code&gt;，可以灵活满足不同业务需求；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;轻量无依赖侵入&lt;/strong&gt;：langchain4j 不会强制引入大量第三方依赖，你可以按需选择所需的模块。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-总结&#34;&gt;🎯 总结
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;langchain4j 是什么&lt;/strong&gt;：Java 世界中用于构建 LLM 应用的一个框架，提供了与多种模型、向量数据库、文档源集成的统一抽象；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;为什么用它&lt;/strong&gt;：可以让你用 Java 语言也能方便地实现多轮对话、RAG、Function Calling、文档向量化等功能，而不必纠结于每家 API 的细节；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;如何入手&lt;/strong&gt;：从 &lt;code&gt;ChatLanguageModel&lt;/code&gt; 发起一次简单对话开始，再逐步加入 &lt;code&gt;ChatMemory&lt;/code&gt;、&lt;code&gt;PromptTemplate&lt;/code&gt;、&lt;code&gt;Document&lt;/code&gt; 与 &lt;code&gt;EmbeddingStore&lt;/code&gt;，最终搭建自己的 AI 应用。&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        
+    </channel>
+</rss>
