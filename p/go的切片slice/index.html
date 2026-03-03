@@ -10,7 +10,7 @@
 <meta property='og:description' content="Slice的底层原理">
 <meta property='og:url' content='https://Tyritic.github.io/p/go%E7%9A%84%E5%88%87%E7%89%87slice/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开发' /><meta property='article:published_time' content='2025-06-29T09:45:02&#43;08:00'/><meta property='article:modified_time' content='2026-03-03T06:54:41&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开发' /><meta property='article:published_time' content='2025-06-29T09:45:02&#43;08:00'/><meta property='article:modified_time' content='2026-03-03T15:19:26&#43;00:00'/>
 <meta name="twitter:title" content="Go的切片slice">
 <meta name="twitter:description" content="Slice的底层原理">
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -308,37 +308,38 @@
         <div class="widget--toc">
             <nav id="TableOfContents">
   <ol>
-    <li><a href="#切片的定义">切片的定义</a></li>
-    <li><a href="#切片的声明方法">切片的声明方法</a></li>
-    <li><a href="#基本操作">基本操作</a>
+    <li><a href="#-切片的定义">📝 切片的定义</a></li>
+    <li><a href="#-切片的声明方法">🛠️ 切片的声明方法</a></li>
+    <li><a href="#-基本操作">⚙️ 基本操作</a>
       <ol>
-        <li><a href="#追加元素">追加元素</a></li>
-        <li><a href="#遍历元素">遍历元素</a></li>
-        <li><a href="#删除元素">删除元素</a></li>
-        <li><a href="#获取长度和容量">获取长度和容量</a></li>
-        <li><a href="#复制切片">复制切片</a></li>
-        <li><a href="#切片展开">切片展开</a>
+        <li><a href="#-追加元素">🔄 追加元素</a></li>
+        <li><a href="#-遍历元素">🔍 遍历元素</a></li>
+        <li><a href="#-删除元素">🗑️ 删除元素</a></li>
+        <li><a href="#-获取长度和容量">📏 获取长度和容量</a></li>
+        <li><a href="#-复制切片">📋 复制切片</a></li>
+        <li><a href="#-切片展开">🔓 切片展开</a>
           <ol>
-            <li><a href="#可变参数">可变参数</a></li>
-            <li><a href="#切片展开-1">切片展开</a></li>
+            <li><a href="#-可变参数">🔀 可变参数</a></li>
+            <li><a href="#-切片展开-1">📤 切片展开</a></li>
           </ol>
         </li>
       </ol>
     </li>
-    <li><a href="#slice-和-slice-指针的区别">slice 和 slice 指针的区别</a></li>
-    <li><a href="#nil-切片切片为-nil和空切片">nil 切片，切片为 nil和空切片</a></li>
-    <li><a href="#踩坑实录总结">踩坑实录总结</a>
+    <li><a href="#-slice-和-slice-指针的区别">🛠️ slice 和 slice 指针的区别</a></li>
+    <li><a href="#-nil-切片切片为-nil和空切片">⚙️ nil 切片，切片为 nil和空切片</a></li>
+    <li><a href="#-踩坑实录总结">⚠️ 踩坑实录总结</a>
       <ol>
-        <li><a href="#误用slice预分配空间">误用slice预分配空间</a></li>
-        <li><a href="#注意slice和底层数组的关系">注意slice和底层数组的关系</a></li>
+        <li><a href="#-误用slice预分配空间">🔧 误用slice预分配空间</a></li>
+        <li><a href="#-注意slice和底层数组的关系">🔄 注意slice和底层数组的关系</a></li>
+        <li><a href="#-从一个切片截取另一个切片修改新切片的值会影响原来的切片内容吗">❓ 从一个切片截取另一个切片，修改新切片的值会影响原来的切片内容吗？</a></li>
       </ol>
     </li>
-    <li><a href="#底层原理">底层原理</a>
+    <li><a href="#底层原理">🔬底层原理</a>
       <ol>
-        <li><a href="#扩容机制">扩容机制</a>
+        <li><a href="#-扩容机制">📈 扩容机制</a>
           <ol>
-            <li><a href="#go-118之前">Go 1.18之前</a></li>
-            <li><a href="#go-118之后">Go 1.18之后</a></li>
+            <li><a href="#-go-118之前">⏮️ Go 1.18之前</a></li>
+            <li><a href="#-go-118之后">⏭️ Go 1.18之后</a></li>
           </ol>
         </li>
       </ol>
@@ -411,7 +412,7 @@
 
 
                 <time class="article-time--reading">
-                    阅读时长: 7 分钟
+                    阅读时长: 8 分钟
                 </time>
             </div>
 
@@ -419,7 +420,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：3060 字
+                     字数统计：3685 字
                 </time>
             </div>
 
@@ -437,7 +438,7 @@
     <section class="article-content">
     
     
-    <h2 id="切片的定义">切片的定义
+    <h2 id="-切片的定义">📝 切片的定义
 </h2><p>Go 语言中切片是对数组的抽象。</p>
 <p>Go 数组的长度不可改变，在特定场景中这样的集合就不太适用，Go 中提供了一种灵活，功能强悍的内置类型切片(&ldquo;动态数组&rdquo;)，与数组相比切片的长度是不固定的，可以追加元素，在追加时可能使切片的容量增大。切片可以理解为对底层数组的一个动态视图。Go 切片有三个属性：<strong>指针</strong>（pointer，指向底层数组中切片起始位置）、<strong>长度</strong>（len）和<strong>容量</strong>（cap，表示从起始位置到底层数组末尾的容量）。</p>
 <p>特点</p>
@@ -446,7 +447,8 @@
 <li>更改切片的元素会修改其底层数组中对应的元素。</li>
 <li>和它共享底层数组的切片都会观测到这些修改。</li>
 </ul>
-<h2 id="切片的声明方法">切片的声明方法
+<hr>
+<h2 id="-切片的声明方法">🛠️ 切片的声明方法
 </h2><ul>
 <li>
 <p>声明切片：<strong><code>var identifier []type</code></strong> 此时为 nil 切片（还未指向数组）</p>
@@ -632,8 +634,9 @@
 <li>空切片 ：会创建一个空的底层数组（长度为 0），指针指向一个特殊的内存地址（通常是 runtime.zerobase）</li>
 </ul></div>
 
-<h2 id="基本操作">基本操作
-</h2><h3 id="追加元素">追加元素
+<hr>
+<h2 id="-基本操作">⚙️ 基本操作
+</h2><h3 id="-追加元素">🔄 追加元素
 </h3><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -646,7 +649,7 @@
 <li><strong><code>s</code></strong> 是一个元素类型为 <strong><code>T</code></strong> 的切片</li>
 <li>其余类型为 <strong><code>T</code></strong> 的值将会追加到该切片的末尾。</li>
 </ul>
-<h3 id="遍历元素">遍历元素
+<h3 id="-遍历元素">🔍 遍历元素
 </h3><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -759,7 +762,7 @@
 </div>
 </div></div>
 
-<h3 id="删除元素">删除元素
+<h3 id="-删除元素">🗑️ 删除元素
 </h3><p>Go 没有内置的删除元素语法，需要手动实现</p>
 <ul>
 <li>删除尾部元素：移动尾部指针</li>
@@ -800,14 +803,14 @@
 </span></span></span><span class="line"><span class="cl"><span class="nx">a</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">a</span><span class="p">[:</span><span class="nx">i</span><span class="p">],</span><span class="w"> </span><span class="nx">a</span><span class="p">[</span><span class="nx">i</span><span class="o">+</span><span class="nx">N</span><span class="p">:]</span><span class="o">...</span><span class="p">)</span><span class="w"> </span><span class="c1">// 删除中间 N 个元素</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><h3 id="获取长度和容量">获取长度和容量
+</div><h3 id="-获取长度和容量">📏 获取长度和容量
 </h3><p>切片是可索引的，并且可以由 <strong><code>len()</code></strong> 方法获取长度。</p>
 <p>切片提供了计算容量的方法 <strong><code>cap()</code></strong> 可以测量切片最长可以达到多少。</p>
 <ul>
 <li><strong><code>func len(var_name []T)</code></strong></li>
 <li><strong><code>func cap(var_name []T)</code></strong></li>
 </ul>
-<h3 id="复制切片">复制切片
+<h3 id="-复制切片">📋 复制切片
 </h3><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -827,9 +830,9 @@
 <p>返回值：成功复制的元素数量（即 <strong><code>min(len(dst), len(src))</code></strong>）。</p>
 </li>
 </ul>
-<h3 id="切片展开">切片展开
+<h3 id="-切片展开">🔓 切片展开
 </h3><p>在 Go 里，<strong><code>...</code></strong> 主要有 <strong>两个核心用途</strong>，意义完全取决于它出现的位置</p>
-<h4 id="可变参数">可变参数
+<h4 id="-可变参数">🔀 可变参数
 </h4><p>表示<strong>可变参数</strong>（variadic parameter），也就是这个参数可以接收<strong>任意数量</strong>的值。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -861,7 +864,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><h4 id="切片展开-1">切片展开
+</div><h4 id="-切片展开-1">📤 切片展开
 </h4><p>表示<strong>展开切片</strong>（slice expansion），把切片里的元素依次当作独立的参数传入。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -904,7 +907,8 @@
 </span></span></span><span class="line"><span class="cl"><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">a</span><span class="p">)</span><span class="w"> </span><span class="c1">// [1 2 3 4]</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><h2 id="slice-和-slice-指针的区别">slice 和 slice 指针的区别
+</div><hr>
+<h2 id="-slice-和-slice-指针的区别">🛠️ slice 和 slice 指针的区别
 </h2><ul>
 <li>当 slice 作为函数参数时，就是一个普通的结构体。在调用者看来，实参 slice 并不会被函数中的操作改变</li>
 <li>当 slice 指针作为函数参数，在调用者看来，是会被改变原 slice 的。</li>
@@ -915,13 +919,15 @@
 <li>传 slice 是拷贝，在函数内部修改，不会修改 slice 的结构， <strong><code>len</code></strong> 和 <strong><code>cap</code></strong> 不变 ，传slice 指针是修改，会修改其 slice 结构。</li>
 </ul>
 <p>因此要想真的改变外层 slice，只有将返回的新的 slice 赋值到原始 slice，或者向函数传递一个指向 slice 的指针。</p>
-<h2 id="nil-切片切片为-nil和空切片">nil 切片，切片为 nil和空切片
+<hr>
+<h2 id="-nil-切片切片为-nil和空切片">⚙️ nil 切片，切片为 nil和空切片
 </h2><ul>
 <li>nil切片：底层指向数组为nil，不可以直接进行访问，常见于声明阶段 <strong><code>var s []int</code></strong></li>
 <li>空切片：底层指向数组为空数组（非nil），常见于初始化阶段 <strong><code>s := []int{}</code></strong></li>
 </ul>
-<h2 id="踩坑实录总结">踩坑实录总结
-</h2><h3 id="误用slice预分配空间">误用slice预分配空间
+<hr>
+<h2 id="-踩坑实录总结">⚠️ 踩坑实录总结
+</h2><h3 id="-误用slice预分配空间">🔧 误用slice预分配空间
 </h3><p>下面代码预期创建<strong>容量</strong>为2的[]int，实际创建了<strong>长度</strong>为2的[]int。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -984,7 +990,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><h3 id="注意slice和底层数组的关系">注意slice和底层数组的关系
+</div><h3 id="-注意slice和底层数组的关系">🔄 注意slice和底层数组的关系
 </h3><p>slice底层数据结构：</p>
 <ul>
 <li><strong><code>array</code></strong> ：用于存储数据，指向一块连续的内存空间；</li>
@@ -993,7 +999,89 @@
 </ul>
 <p>对数组进行截取操作后赋值给切片（并没有拷贝），与原数组共用内存空间，所以修改切片也会修改原数组对应的数据。</p>
 <p>使用 <strong><code>append</code></strong> 添加数据后，触发扩容产生新的array，与原数组不是同一个内存空间，所以修改原数组不会对切片产生影响。</p>
-<h2 id="底层原理">底层原理
+<h3 id="-从一个切片截取另一个切片修改新切片的值会影响原来的切片内容吗">❓ 从一个切片截取另一个切片，修改新切片的值会影响原来的切片内容吗？
+</h3><p><strong>答案：</strong> 会影响，因为两个切片共享同一个底层数组。</p>
+<p><strong>分析：</strong></p>
+<p>当从一个切片截取另一个切片时，新切片和原切片会共享同一个底层数组。这是因为切片的本质是对底层数组的一个视图，它包含三个字段：指向底层数组的指针、长度和容量。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 示例代码</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 创建一个原始切片</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">original</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kt">int</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 从原始切片截取一个新切片</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">newSlice</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">original</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span><span class="w"> </span><span class="c1">// 新切片包含元素 [2, 3, 4]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 修改新切片的值</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">newSlice</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">10</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 打印原始切片</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">original</span><span class="p">)</span><span class="w"> </span><span class="c1">// 输出: [1 10 3 4 5]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>在上面的例子中，当我们修改新切片 <code>newSlice</code> 的第一个元素时，原始切片 <code>original</code> 的对应元素也被修改了。这是因为两个切片共享同一个底层数组，修改其中一个会影响另一个。</p>
+<p>**注意：**如果对新切片进行 <code>append</code> 操作，当容量不足时会触发扩容，此时新切片会指向一个新的底层数组，与原切片不再共享内存，修改新切片就不会影响原切片了。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 示例代码</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 创建一个原始切片，长度和容量都是3</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">original</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kt">int</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 从原始切片截取一个新切片，长度为2，容量为2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">newSlice</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">original</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span><span class="w"> </span><span class="c1">// 新切片包含元素 [1, 2]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 对新切片进行append操作，触发扩容</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">newSlice</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">newSlice</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 修改新切片的值</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">newSlice</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">10</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 打印原始切片</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">original</span><span class="p">)</span><span class="w"> </span><span class="c1">// 输出: [1 2 3]，不受影响</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 打印新切片</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">newSlice</span><span class="p">)</span><span class="w"> </span><span class="c1">// 输出: [10 2 4 5 6]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>在这个例子中，当对新切片进行 <code>append</code> 操作时，由于容量不足触发了扩容，新切片指向了一个新的底层数组，所以修改新切片不会影响原切片。</p>
+<hr>
+<h2 id="底层原理">🔬底层原理
 </h2><p>切片的底层结构体如下</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -1011,9 +1099,9 @@
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><h3 id="扩容机制">扩容机制
+</div><h3 id="-扩容机制">📈 扩容机制
 </h3><p>当容量不足时，Go 会创建一个新的底层数组</p>
-<h4 id="go-118之前">Go 1.18之前
+<h4 id="-go-118之前">⏮️ Go 1.18之前
 </h4><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -1048,35 +1136,35 @@
 </span><span class="lnt">30
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// src/runtime/slice.go</span><span class="w">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// src/runtime/slice.go</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">growslice</span><span class="p">(</span><span class="nx">et</span><span class="w"> </span><span class="o">*</span><span class="nx">_type</span><span class="p">,</span><span class="w"> </span><span class="nx">old</span><span class="w"> </span><span class="nx">slice</span><span class="p">,</span><span class="w"> </span><span class="nx">cap</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">slice</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">growslice</span><span class="p">(</span><span class="nx">et</span><span class="w"> </span><span class="o">*</span><span class="nx">_type</span><span class="p">,</span><span class="w"> </span><span class="nx">old</span><span class="w"> </span><span class="nx">slice</span><span class="p">,</span><span class="w"> </span><span class="nx">cap</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">slice</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">newcap</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">cap</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">doublecap</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">newcap</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">cap</span><span class="w"> </span><span class="p">&gt;</span><span class="w"> </span><span class="nx">doublecap</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">newcap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">cap</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">cap</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">newcap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">doublecap</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// Check 0 &lt; newcap to detect overflow</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// and prevent an infinite loop.</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">cap</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="nx">newcap</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">4</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// Set newcap to the requested cap when</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// the newcap calculation overflowed.</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="nx">newcap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">cap</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">newcap</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">cap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">doublecap</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">newcap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">cap</span><span class="w"> </span><span class="p">&gt;</span><span class="w"> </span><span class="nx">doublecap</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">newcap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">cap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">cap</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">newcap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">doublecap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// Check 0 &lt; newcap to detect overflow</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// and prevent an infinite loop.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">cap</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="nx">newcap</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">4</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// Set newcap to the requested cap when</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// the newcap calculation overflowed.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="nx">newcap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">cap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">slice</span><span class="p">{</span><span class="nx">p</span><span class="p">,</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">len</span><span class="p">,</span><span class="w"> </span><span class="nx">newcap</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">slice</span><span class="p">{</span><span class="nx">p</span><span class="p">,</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">len</span><span class="p">,</span><span class="w"> </span><span class="nx">newcap</span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
@@ -1093,7 +1181,7 @@
 </ul>
 </li>
 </ul>
-<h4 id="go-118之后">Go 1.18之后
+<h4 id="-go-118之后">⏭️ Go 1.18之后
 </h4><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -1132,39 +1220,39 @@
 </span><span class="lnt">34
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// src/runtime/slice.go</span><span class="w">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// src/runtime/slice.go</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">growslice</span><span class="p">(</span><span class="nx">et</span><span class="w"> </span><span class="o">*</span><span class="nx">_type</span><span class="p">,</span><span class="w"> </span><span class="nx">old</span><span class="w"> </span><span class="nx">slice</span><span class="p">,</span><span class="w"> </span><span class="nx">cap</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">slice</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">growslice</span><span class="p">(</span><span class="nx">et</span><span class="w"> </span><span class="o">*</span><span class="nx">_type</span><span class="p">,</span><span class="w"> </span><span class="nx">old</span><span class="w"> </span><span class="nx">slice</span><span class="p">,</span><span class="w"> </span><span class="nx">cap</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="nx">slice</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">newcap</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">cap</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">doublecap</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">newcap</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">cap</span><span class="w"> </span><span class="p">&gt;</span><span class="w"> </span><span class="nx">doublecap</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">newcap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">cap</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kd">const</span><span class="w"> </span><span class="nx">threshold</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">256</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">cap</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">threshold</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">newcap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">doublecap</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// Check 0 &lt; newcap to detect overflow</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// and prevent an infinite loop.</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">cap</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="c1">// Transition from growing 2x for small slices</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="c1">// to growing 1.25x for large slices. This formula</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="c1">// gives a smooth-ish transition between the two.</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="nx">newcap</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="p">(</span><span class="nx">newcap</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">3</span><span class="o">*</span><span class="nx">threshold</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">4</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// Set newcap to the requested cap when</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// the newcap calculation overflowed.</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="nx">newcap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">cap</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">newcap</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">cap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">doublecap</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">newcap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">cap</span><span class="w"> </span><span class="p">&gt;</span><span class="w"> </span><span class="nx">doublecap</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">newcap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">cap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kd">const</span><span class="w"> </span><span class="nx">threshold</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">256</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">cap</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">threshold</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">newcap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">doublecap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// Check 0 &lt; newcap to detect overflow</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// and prevent an infinite loop.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">cap</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="c1">// Transition from growing 2x for small slices</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="c1">// to growing 1.25x for large slices. This formula</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="c1">// gives a smooth-ish transition between the two.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="nx">newcap</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="p">(</span><span class="nx">newcap</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">3</span><span class="o">*</span><span class="nx">threshold</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">4</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// Set newcap to the requested cap when</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// the newcap calculation overflowed.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="nx">newcap</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="nx">newcap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">cap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">slice</span><span class="p">{</span><span class="nx">p</span><span class="p">,</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">len</span><span class="p">,</span><span class="w"> </span><span class="nx">newcap</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">slice</span><span class="p">{</span><span class="nx">p</span><span class="p">,</span><span class="w"> </span><span class="nx">old</span><span class="p">.</span><span class="nx">len</span><span class="p">,</span><span class="w"> </span><span class="nx">newcap</span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
@@ -1206,7 +1294,7 @@
 
 
         <span>
-            最后更新于 2026-03-03 06:54 UTC
+            最后更新于 2026-03-03 15:19 UTC
         </span>
     </section></footer>
 
@@ -1246,6 +1334,19 @@
     <h2 class="section-title">相关文章</h2>
     <div class="related-content">
         <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/go%E7%9A%84%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E6%9C%BA%E5%88%B6/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Go的错误处理机制</h2>
+        </div>
+    </a>
+</article>
+
             
                 
 <article class="">
@@ -1294,19 +1395,6 @@
 
         <div class="article-details">
             <h2 class="article-title">Go中的string</h2>
-        </div>
-    </a>
-</article>
-
-            
-                
-<article class="">
-    <a href="/p/go%E7%9A%84%E5%87%BD%E6%95%B0/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">Go的函数</h2>
         </div>
     </a>
 </article>
