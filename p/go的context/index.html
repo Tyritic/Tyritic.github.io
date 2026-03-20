@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="从面试高频问题和工程实践两个角度，系统梳理 Go 语言中的 context：类型体系、核心接口、取消机制、超时控制与值传递">
+<title>Go的Context</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/go%E7%9A%84context/'>
+
+<link rel="stylesheet" href="/scss/style.min.f2cb9a36446898add9fd20b802d410fb608daf8ea6af9d45fe3c34719dfdb5eb.css"><meta property='og:title' content="Go的Context">
+<meta property='og:description' content="从面试高频问题和工程实践两个角度，系统梳理 Go 语言中的 context：类型体系、核心接口、取消机制、超时控制与值传递">
+<meta property='og:url' content='https://Tyritic.github.io/p/go%E7%9A%84context/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开发' /><meta property='article:published_time' content='2026-03-20T10:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-03-20T13:44:13&#43;00:00'/>
+<meta name="twitter:title" content="Go的Context">
+<meta name="twitter:description" content="从面试高频问题和工程实践两个角度，系统梳理 Go 语言中的 context：类型体系、核心接口、取消机制、超时控制与值传递">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_691afbb6233f07b9.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#-前言">🧭 前言</a></li>
+    <li><a href="#-context-是什么">📌 Context 是什么</a></li>
+    <li><a href="#-context-的类型体系">🗂️ Context 的类型体系</a>
+      <ol>
+        <li><a href="#-基础类型">🌱 基础类型</a>
+          <ol>
+            <li><a href="#contextbackground"><code>context.Background()</code></a></li>
+            <li><a href="#contexttodo"><code>context.TODO()</code></a></li>
+          </ol>
+        </li>
+        <li><a href="#-派生类型">🌿 派生类型</a></li>
+      </ol>
+    </li>
+    <li><a href="#-context-的四个核心方法">🔍 Context 的四个核心方法</a>
+      <ol>
+        <li><a href="#-deadline">🕒 Deadline</a></li>
+        <li><a href="#-done">📡 Done</a></li>
+        <li><a href="#-err">⚠️ Err</a></li>
+        <li><a href="#-value">🧾 Value</a></li>
+      </ol>
+    </li>
+    <li><a href="#-context-的创建与派生">🌲 Context 的创建与派生</a></li>
+    <li><a href="#-context-在面试和项目里为什么这么重要">🚦 Context 在面试和项目里为什么这么重要</a>
+      <ol>
+        <li><a href="#-并发控制">🧵 并发控制</a></li>
+        <li><a href="#-超时控制">⏱️ 超时控制</a></li>
+        <li><a href="#-请求作用域数据传递">📨 请求作用域数据传递</a></li>
+        <li><a href="#-为什么面试喜欢问-context">🎯 为什么面试喜欢问 Context</a></li>
+      </ol>
+    </li>
+    <li><a href="#-contextwithcancel">🛑 context.WithCancel</a>
+      <ol>
+        <li><a href="#-基本作用">📘 基本作用</a></li>
+        <li><a href="#-示例">🧪 示例</a></li>
+      </ol>
+    </li>
+    <li><a href="#-contextwithdeadline-与-contextwithtimeout">⏰ context.WithDeadline 与 context.WithTimeout</a>
+      <ol>
+        <li><a href="#-withdeadline">⌛ WithDeadline</a></li>
+        <li><a href="#-withtimeout">⌚ WithTimeout</a></li>
+        <li><a href="#-超时控制示例">🧪 超时控制示例</a></li>
+      </ol>
+    </li>
+    <li><a href="#-contextwithvalue">🧷 context.WithValue</a>
+      <ol>
+        <li><a href="#-适合传什么">✅ 适合传什么</a></li>
+        <li><a href="#-不适合传什么">❌ 不适合传什么</a></li>
+      </ol>
+    </li>
+    <li><a href="#-context-的值传递机制">🔁 Context 的值传递机制</a>
+      <ol>
+        <li><a href="#-不可变性设计">🧱 不可变性设计</a></li>
+        <li><a href="#-链式查找机制">🔗 链式查找机制</a></li>
+        <li><a href="#-类型安全与请求范围隔离">🛡️ 类型安全与请求范围隔离</a></li>
+      </ol>
+    </li>
+    <li><a href="#-context-的取消传播机制">🌊 Context 的取消传播机制</a>
+      <ol>
+        <li><a href="#-调用-cancel-后会发生什么">📋 调用 <code>cancel()</code> 后会发生什么</a></li>
+        <li><a href="#-一个典型的监听写法">🧪 一个典型的监听写法</a></li>
+      </ol>
+    </li>
+    <li><a href="#-context-与-channel-的关系">🔗 Context 与 Channel 的关系</a></li>
+    <li><a href="#-context-的超时实现原理">⌛ Context 的超时实现原理</a>
+      <ol>
+        <li><a href="#-核心点可以概括为">🧩 核心点可以概括为</a></li>
+      </ol>
+    </li>
+    <li><a href="#-为什么-context-能防止-goroutine-泄漏">🛡️ 为什么 Context 能防止 goroutine 泄漏</a></li>
+    <li><a href="#-工程实践建议">🧠 工程实践建议</a>
+      <ol>
+        <li><a href="#-把-context-作为第一个参数传递">✅ 把 Context 作为第一个参数传递</a></li>
+        <li><a href="#-不要把-context-存进结构体">✅ 不要把 Context 存进结构体</a></li>
+        <li><a href="#-用完-cancel-要及时调用">✅ 用完 cancel 要及时调用</a></li>
+        <li><a href="#-只传递请求级元数据">✅ 只传递请求级元数据</a></li>
+        <li><a href="#-在阻塞点监听-ctxdone">✅ 在阻塞点监听 <code>ctx.Done()</code></a></li>
+        <li><a href="#-用自定义-key-类型避免冲突">✅ 用自定义 key 类型避免冲突</a></li>
+      </ol>
+    </li>
+    <li><a href="#-面试高频追问">🎯 面试高频追问</a></li>
+    <li><a href="#-常见误区">⚠️ 常见误区</a>
+      <ol>
+        <li><a href="#-把-context-当成万能参数容器">❌ 把 Context 当成万能参数容器</a></li>
+        <li><a href="#-忘记调用-cancel">❌ 忘记调用 cancel</a></li>
+        <li><a href="#-在子函数里重新创建-background">❌ 在子函数里重新创建 Background</a></li>
+        <li><a href="#-忽略-ctxerr">❌ 忽略 <code>ctx.Err()</code></a></li>
+        <li><a href="#-在-context-里塞入大对象或核心依赖">❌ 在 Context 里塞入大对象或核心依赖</a></li>
+      </ol>
+    </li>
+    <li><a href="#-小结">🧩 小结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/golang/" style="background-color: #2a9d8f; color: #fff;">
+                Golang
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/go%E7%9A%84context/">Go的Context</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            从面试高频问题和工程实践两个角度，系统梳理 Go 语言中的 context：类型体系、核心接口、取消机制、超时控制与值传递
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-03-20</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 12 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：5538 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="-前言">🧭 前言
+</h2><p>如果说 <strong>goroutine</strong> 和 <strong>channel</strong> 是 Go 并发编程里最容易先学到的两个组件，那么 <strong>context</strong> 就是面试和项目里都绕不过去的第三个关键点。</p>
+<p>它在语法层面并不复杂，甚至看起来只有几个方法，但在工程层面几乎无处不在。无论是 <strong>HTTP 请求处理</strong>、<strong>RPC 调用</strong>、<strong>数据库访问</strong>、<strong>任务编排</strong>，还是 <strong>链路追踪</strong> 与 <strong>超时控制</strong>，<code>context</code> 都扮演着非常核心的角色。</p>
+<p>很多时候，面试官问 <code>context</code>，并不是只想听你背出 <code>Done()</code>、<code>Err()</code>、<code>Deadline()</code> 这几个方法，而是想看你是否真的理解：<strong>它为什么存在、它是如何取消子任务的、它在项目里到底解决了什么问题</strong>。</p>
+<p>本文结合 <a class="link" href="E:/MyBlog/GolangGuide/Go%e8%af%ad%e8%a8%80%e7%b3%bb%e5%88%97/Go%e8%af%ad%e8%a8%80%e8%bf%9b%e9%98%b6/Context.md" >Context.md</a> 的讲解内容，并补充 <code>pdf/Go基础.pdf</code> 中关于 <strong>Context 类型分类、值传递机制、取消传播、超时实现原理</strong> 的说明，从“概念理解 + 面试高频 + 工程实践”三个角度系统梳理 <code>context</code>。</p>
+<hr>
+<h2 id="-context-是什么">📌 Context 是什么
+</h2><p><code>context</code> 是 Go 在 <strong>1.7</strong> 版本引入标准库的重要组件，它本质上是一个用于在调用链中传递控制信息的接口。官方定义如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">Context</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">Deadline</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="nx">deadline</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">Done</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;-</span><span class="kd">chan</span><span class="w"> </span><span class="kd">struct</span><span class="p">{}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">Err</span><span class="p">()</span><span class="w"> </span><span class="kt">error</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">Value</span><span class="p">(</span><span class="nx">key</span><span class="w"> </span><span class="kt">any</span><span class="p">)</span><span class="w"> </span><span class="kt">any</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>虽然接口很小，但它解决的是服务端开发里非常关键的几个问题：</p>
+<ul>
+<li><strong>取消通知</strong>：父任务结束后，通知子任务尽快退出。</li>
+<li><strong>超时控制</strong>：为请求、SQL、RPC 等操作设置截止时间。</li>
+<li><strong>截止时间传播</strong>：让下游感知当前调用链还剩多少执行时间。</li>
+<li><strong>请求级数据传递</strong>：在同一条调用链里透传少量元数据。</li>
+</ul>
+<p>可以把 <strong>Context</strong> 理解成一条请求的“上下文容器”。它不负责执行业务逻辑，而是负责告诉调用链上的每一层：这个请求是谁发起的、还能活多久、是否应该停止、是否携带额外信息。</p>
+<p>根据 <code>Go基础.pdf</code> 中的总结，<strong>Context 的核心作用</strong>可以概括为一句话：</p>
+<blockquote>
+<p><strong>在并发操作之间传递取消信号、超时控制和请求作用域数据。</strong></p>
+</blockquote>
+<hr>
+<h2 id="-context-的类型体系">🗂️ Context 的类型体系
+</h2><p>结合 PDF 中的分类方式，<code>context</code> 可以分成两大类：<strong>基础类型</strong> 和 <strong>派生类型</strong>。</p>
+<h3 id="-基础类型">🌱 基础类型
+</h3><p>基础类型通常作为一棵上下文树的起点。</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>类型</th>
+          <th>创建方式</th>
+          <th>特点</th>
+          <th>典型使用场景</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>context.Background()</code></td>
+          <td>直接调用</td>
+          <td>不可取消、无超时、无值</td>
+          <td>程序入口、主函数、初始化流程、顶级请求</td>
+      </tr>
+      <tr>
+          <td><code>context.TODO()</code></td>
+          <td>直接调用</td>
+          <td>同样不可取消、无超时、无值</td>
+          <td>尚未明确该用哪种 Context 时的占位</td>
+      </tr>
+  </tbody>
+</table></div>
+<h4 id="contextbackground"><code>context.Background()</code>
+</h4><p>它通常作为主入口的根上下文，适合：</p>
+<ul>
+<li><code>main</code> 函数</li>
+<li>初始化逻辑</li>
+<li>顶层请求起点</li>
+<li>测试入口</li>
+</ul>
+<h4 id="contexttodo"><code>context.TODO()</code>
+</h4><p>它表示“这里以后会补上下文，但现在还没想好”。</p>
+<p>它不是功能更强的版本，只是一个过渡占位。如果你明确知道这里需要根上下文，就应该优先使用 <code>context.Background()</code>。</p>
+<h3 id="-派生类型">🌿 派生类型
+</h3><p>派生类型是通过基础 <code>Context</code> 再创建出来的，它们具备取消、超时或传值能力。</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>类型</th>
+          <th>创建方式</th>
+          <th>特点</th>
+          <th>常见场景</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>context.WithCancel(parent)</code></td>
+          <td>手动调用 <code>cancel()</code></td>
+          <td>主动取消控制</td>
+          <td>手动停止任务、协程退出</td>
+      </tr>
+      <tr>
+          <td><code>context.WithTimeout(parent, timeout)</code></td>
+          <td>超时后自动取消</td>
+          <td>有超时要求</td>
+          <td>RPC、HTTP、数据库操作</td>
+      </tr>
+      <tr>
+          <td><code>context.WithDeadline(parent, deadline)</code></td>
+          <td>到指定时间点自动取消</td>
+          <td>精确截止时间控制</td>
+          <td>有明确结束时刻的任务</td>
+      </tr>
+      <tr>
+          <td><code>context.WithValue(parent, key, val)</code></td>
+          <td>绑定键值对</td>
+          <td>传递请求范围数据</td>
+          <td><code>traceID</code>、<code>userID</code>、认证信息</td>
+      </tr>
+  </tbody>
+</table></div>
+<hr>
+<h2 id="-context-的四个核心方法">🔍 Context 的四个核心方法
+</h2><h3 id="-deadline">🕒 Deadline
+</h3><p><code>Deadline()</code> 用来返回当前 <code>context.Context</code> 的截止时间：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">deadline</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Deadline</span><span class="p">()</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>如果 <code>ok == true</code>，说明当前上下文设置了截止时间。</li>
+<li>如果 <code>ok == false</code>，说明当前上下文没有时间限制。</li>
+</ul>
+<p>它的意义在于：下游任务可以根据剩余时间决定是否继续执行，或者提前做降级处理。</p>
+<h3 id="-done">📡 Done
+</h3><p><code>Done()</code> 返回一个只读 <code>channel</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">done</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Done</span><span class="p">()</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>当 <code>context</code> 被取消，或者达到超时时间时，这个 <code>channel</code> 会被关闭。业务代码通常通过 <code>select</code> 来监听它：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="k">select</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">case</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Done</span><span class="p">():</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">default</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 继续处理任务</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>根据 PDF 中的总结，<code>Done()</code> 是 <strong>Context 取消机制的核心</strong>。<code>goroutine</code> 正是通过监听这个通道，才能及时响应取消信号。</p>
+<h3 id="-err">⚠️ Err
+</h3><p><code>Err()</code> 用来说明当前 <code>context</code> 为什么结束：</p>
+<ul>
+<li>如果是主动取消，返回 <code>context.Canceled</code></li>
+<li>如果是超时结束，返回 <code>context.DeadlineExceeded</code></li>
+</ul>
+<p>因此它通常和 <code>Done()</code> 配合使用：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="o">&lt;-</span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Done</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Err</span><span class="p">())</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="-value">🧾 Value
+</h3><p><code>Value()</code> 用来读取上下文中的键值对：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">traceID</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Value</span><span class="p">(</span><span class="nx">traceKey</span><span class="p">)</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>它适合传递少量、请求级、跨函数链路共享的数据，例如：</p>
+<ul>
+<li><code>traceID</code></li>
+<li><code>userID</code></li>
+<li>日志埋点字段</li>
+<li>灰度标记</li>
+</ul>
+<p>但它<strong>不应该</strong>被当成普通函数参数的替代品，更不适合拿来传业务核心对象。</p>
+<hr>
+<h2 id="-context-的创建与派生">🌲 Context 的创建与派生
+</h2><p>真正让 <code>context</code> 发挥作用的，是基于父 <code>context</code> 继续派生新的子 <code>context</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">WithCancel</span><span class="p">(</span><span class="nx">parent</span><span class="w"> </span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">cancel</span><span class="w"> </span><span class="nx">CancelFunc</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">WithDeadline</span><span class="p">(</span><span class="nx">parent</span><span class="w"> </span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">deadline</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">CancelFunc</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">WithTimeout</span><span class="p">(</span><span class="nx">parent</span><span class="w"> </span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">timeout</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">CancelFunc</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">WithValue</span><span class="p">(</span><span class="nx">parent</span><span class="w"> </span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="p">,</span><span class="w"> </span><span class="nx">val</span><span class="w"> </span><span class="kt">any</span><span class="p">)</span><span class="w"> </span><span class="nx">Context</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>这意味着 <code>context</code> 在结构上不是孤立存在的，而是形成了一棵上下文树：</p>
+<ul>
+<li>父 <code>context</code> 被取消时，子 <code>context</code> 也会一起取消。</li>
+<li>父 <code>context</code> 设置了截止时间，子 <code>context</code> 通常也会受影响。</li>
+<li>子 <code>context</code> 可以在父级能力基础上继续增加超时、取消或附加值。</li>
+</ul>
+<p>这种树状结构，也是 <code>context</code> 能够自然适配一整条调用链的原因。</p>
+<hr>
+<h2 id="-context-在面试和项目里为什么这么重要">🚦 Context 在面试和项目里为什么这么重要
+</h2><p>从用途上看，<code>context</code> 最核心的价值主要有三个。</p>
+<h3 id="-并发控制">🧵 并发控制
+</h3><p>在实际项目中，一个用户请求往往不会只在一个 <code>goroutine</code> 里完成。</p>
+<p>例如：</p>
+<ol>
+<li>网关接到请求。</li>
+<li>服务层发起一次 RPC。</li>
+<li>RPC 内部再访问数据库和缓存。</li>
+<li>某些步骤还会并发执行多个子任务。</li>
+</ol>
+<p>如果在这个过程中，最上游请求已经失败、超时或者用户主动断开连接，那么后续任务继续执行往往已经没有意义。此时就可以通过 <code>context</code> 发出取消信号，让整条调用链上的任务尽快退出。</p>
+<h3 id="-超时控制">⏱️ 超时控制
+</h3><p>在 HTTP、RPC、数据库访问等场景下，很多操作都必须带超时限制。否则一旦下游卡住，上游就会一直阻塞。</p>
+<p><code>context</code> 提供了统一的超时模型，让调用方和被调用方都能以同一种方式处理时间约束。</p>
+<h3 id="-请求作用域数据传递">📨 请求作用域数据传递
+</h3><p>根据 PDF 中的说法，<code>context</code> 还承担 <strong>Request-scoped data</strong> 的透传职责。典型数据包括：</p>
+<ul>
+<li>请求 ID</li>
+<li>链路追踪 ID</li>
+<li>用户身份信息</li>
+<li>认证数据</li>
+</ul>
+<p>这类数据只在当前请求生命周期内有效，不应该被提升为全局变量。</p>
+<h3 id="-为什么面试喜欢问-context">🎯 为什么面试喜欢问 Context
+</h3><p><code>context</code> 之所以是高频考点，本质上是因为它同时覆盖了三个层面：</p>
+<ul>
+<li><strong>接口层</strong>：能不能说清楚 <code>Deadline</code>、<code>Done</code>、<code>Err</code>、<code>Value</code> 各自做什么。</li>
+<li><strong>并发层</strong>：能不能说明 <code>cancel</code> 是如何向子任务传播的，为什么它能避免 <code>goroutine</code> 泄漏。</li>
+<li><strong>工程层</strong>：能不能讲清楚为什么 <code>HTTP</code>、<code>RPC</code>、数据库驱动都把 <code>ctx</code> 放在第一个参数，以及项目里应该怎么正确使用它。</li>
+</ul>
+<p>换句话说，<code>context</code> 不只是一个 API 点，而是 Go 工程化能力的一个缩影。</p>
+<hr>
+<h2 id="-contextwithcancel">🛑 context.WithCancel
+</h2><h3 id="-基本作用">📘 基本作用
+</h3><p><code>context.WithCancel</code> 会基于父上下文派生一个可以手动取消的子上下文：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">cancel</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">WithCancel</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">())</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">defer</span><span class="w"> </span><span class="nf">cancel</span><span class="p">()</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>一旦调用 <code>cancel()</code>：</p>
+<ul>
+<li>当前 <code>ctx.Done()</code> 会被关闭</li>
+<li>所有监听这个 <code>ctx</code> 的 <code>goroutine</code> 都会收到退出信号</li>
+<li>当前上下文的子上下文也会递归取消</li>
+</ul>
+<h3 id="-示例">🧪 示例
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;context&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;time&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">watch</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">select</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Done</span><span class="p">():</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;%s exit: %v\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="p">,</span><span class="w"> </span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Err</span><span class="p">())</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">default</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;%s working...\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">cancel</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">WithCancel</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">())</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="nf">watch</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;worker-1&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="nf">watch</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;worker-2&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">3</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">cancel</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>这个模式非常适合：</p>
+<ul>
+<li>手动停止后台任务</li>
+<li>控制一组并发任务统一退出</li>
+<li>某个关键步骤失败后，取消其他子任务</li>
+</ul>
+<hr>
+<h2 id="-contextwithdeadline-与-contextwithtimeout">⏰ context.WithDeadline 与 context.WithTimeout
+</h2><h3 id="-withdeadline">⌛ WithDeadline
+</h3><p><code>context.WithDeadline</code> 直接指定一个截止时刻：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">cancel</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">WithDeadline</span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">(),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Now</span><span class="p">().</span><span class="nf">Add</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">defer</span><span class="w"> </span><span class="nf">cancel</span><span class="p">()</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>只要到达这个时间点，即使没有手动调用 <code>cancel()</code>，<code>ctx.Done()</code> 也会自动关闭。</p>
+<h3 id="-withtimeout">⌚ WithTimeout
+</h3><p><code>context.WithTimeout</code> 本质上是 <code>WithDeadline</code> 的便捷写法：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">cancel</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">WithTimeout</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">(),</span><span class="w"> </span><span class="mi">3</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">defer</span><span class="w"> </span><span class="nf">cancel</span><span class="p">()</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>它更适合日常开发，因为大部分场景下我们关心的是“最多执行多久”，而不是“精确截止到哪一刻”。</p>
+<h3 id="-超时控制示例">🧪 超时控制示例
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">handle</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">resultCh</span><span class="w"> </span><span class="o">&lt;-</span><span class="kd">chan</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">select</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">resultCh</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;result:&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">result</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Done</span><span class="p">():</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Err</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>在 Web 服务、数据库操作、第三方接口调用中，这种写法非常常见。它的价值在于：一旦超时，调用方可以及时返回，而不会让下游任务无限期阻塞。</p>
+<hr>
+<h2 id="-contextwithvalue">🧷 context.WithValue
+</h2><p><code>context.WithValue</code> 用于从父上下文派生一个携带键值对的子上下文：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">traceIDKey</span><span class="w"> </span><span class="kd">struct</span><span class="p">{}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nx">ctx</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">WithValue</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">(),</span><span class="w"> </span><span class="nx">traceIDKey</span><span class="p">{},</span><span class="w"> </span><span class="s">&#34;req-123456&#34;</span><span class="p">)</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>读取时通过同样的 key 获取：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">traceID</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Value</span><span class="p">(</span><span class="nx">traceIDKey</span><span class="p">{})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">traceID</span><span class="p">)</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="-适合传什么">✅ 适合传什么
+</h3><ul>
+<li>链路 ID</li>
+<li>请求元数据</li>
+<li>认证信息</li>
+<li>日志上下文字段</li>
+</ul>
+<h3 id="-不适合传什么">❌ 不适合传什么
+</h3><ul>
+<li>数据库连接</li>
+<li>大对象</li>
+<li>可选业务参数</li>
+<li>本应显式声明的函数入参</li>
+</ul>
+<p>一个常见最佳实践是：<strong>不要直接使用字符串作为 key</strong>，而是自定义私有类型，避免不同包之间发生 key 冲突。</p>
+<hr>
+<h2 id="-context-的值传递机制">🔁 Context 的值传递机制
+</h2><p>这部分是 <code>Go基础.pdf</code> 里补充得比较完整的一块。</p>
+<h3 id="-不可变性设计">🧱 不可变性设计
+</h3><p>每次调用 <code>WithValue</code>，都会创建一个新的 <code>Context</code> 节点，而不会修改旧节点。这意味着：</p>
+<ul>
+<li>原有 <code>Context</code> 不变</li>
+<li>新值挂在新的节点上</li>
+<li>多个 <code>goroutine</code> 可以安全共享同一个父 <code>Context</code></li>
+</ul>
+<p>这也是它具备并发安全的重要原因之一。</p>
+<h3 id="-链式查找机制">🔗 链式查找机制
+</h3><p>当调用 <code>Value(key)</code> 时：</p>
+<ol>
+<li>先检查当前节点是否有这个 key。</li>
+<li>如果没有，就继续向上查找父 <code>Context</code>。</li>
+<li>一直查到根节点，直到找到对应值或返回 <code>nil</code>。</li>
+</ol>
+<p>这种设计的好处在于：<strong>子 Context 可以自然访问父 Context 中已经携带的数据</strong>，从而实现调用链上的层次化透传。</p>
+<h3 id="-类型安全与请求范围隔离">🛡️ 类型安全与请求范围隔离
+</h3><p>PDF 中还强调了两个特点：</p>
+<ul>
+<li><strong>类型安全</strong>：通过自定义 key 类型避免冲突。</li>
+<li><strong>请求范围隔离</strong>：数据只在当前请求生命周期内有效，不污染全局状态。</li>
+</ul>
+<p>这也是为什么 <code>context</code> 非常适合承载 <code>traceID</code>、<code>userID</code>、认证信息等“请求级元数据”。</p>
+<hr>
+<h2 id="-context-的取消传播机制">🌊 Context 的取消传播机制
+</h2><p><code>context</code> 之所以在并发编程里这么重要，核心就在于它的“父子级联取消”能力。</p>
+<p>根据 PDF 中的描述，<strong>Context 的取消机制基于 <code>channel</code> 实现</strong>：</p>
+<ul>
+<li>每个 <code>cancelCtx</code> 节点内部都包含一个 <code>done channel</code></li>
+<li>一旦调用 <code>cancel()</code>，这个通道会被关闭</li>
+<li>子 <code>Context</code> 会监听父 <code>Context</code> 的 <code>done</code> 通道</li>
+<li>父级取消时，子级会自动收到取消信号</li>
+</ul>
+<h3 id="-调用-cancel-后会发生什么">📋 调用 <code>cancel()</code> 后会发生什么
+</h3><ol>
+<li>关闭当前 <code>Context</code> 的 <code>done channel</code></li>
+<li>所有监听 <code>&lt;-ctx.Done()</code> 的 <code>goroutine</code> 立即收到通知</li>
+<li>递归取消所有子 <code>Context</code></li>
+<li>从父 <code>Context</code> 中解除注册，避免内存泄漏</li>
+</ol>
+<h3 id="-一个典型的监听写法">🧪 一个典型的监听写法
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">worker</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">select</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Done</span><span class="p">():</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;worker exit:&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Err</span><span class="p">())</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">default</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// 执行具体工作</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>这种写法的意义在于：任务不是被“强杀”，而是通过协作式取消的方式优雅退出。</p>
+<hr>
+<h2 id="-context-与-channel-的关系">🔗 Context 与 Channel 的关系
+</h2><p>很多人第一次学习 <code>context</code> 时，会觉得它像是一个“高级版控制器”。但从底层思想看，它和 <strong>channel</strong> 的关系非常紧密。</p>
+<p><code>Context</code> 接口中的这行定义非常关键：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nf">Done</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;-</span><span class="kd">chan</span><span class="w"> </span><span class="kd">struct</span><span class="p">{}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>也就是说，<code>context</code> 的取消机制本质上依赖于一个只读 <code>channel</code>：</p>
+<ul>
+<li>调用 <code>cancel()</code> 时，关闭 <code>done channel</code></li>
+<li>各个 <code>goroutine</code> 通过 <code>&lt;-ctx.Done()</code> 监听取消信号</li>
+<li>一旦收到信号，就停止当前任务</li>
+</ul>
+<p>因此你可以把 <code>context</code> 看成是对 <strong>channel 通知机制</strong> 的进一步封装：</p>
+<ul>
+<li><code>channel</code> 更偏向通用通信</li>
+<li><code>context</code> 更偏向请求生命周期控制</li>
+</ul>
+<p>如果只是普通数据传递，优先考虑 <code>channel</code>；如果需要统一管理超时、取消和调用链元数据，优先考虑 <code>context</code>。</p>
+<hr>
+<h2 id="-context-的超时实现原理">⌛ Context 的超时实现原理
+</h2><p>这一部分也是 PDF 里比较有价值的补充。</p>
+<p><code>context.WithTimeout</code> 的本质，其实就是调用了 <code>context.WithDeadline</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">WithTimeout</span><span class="p">(</span><span class="nx">parent</span><span class="w"> </span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">timeout</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">CancelFunc</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nf">WithDeadline</span><span class="p">(</span><span class="nx">parent</span><span class="p">,</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nf">Now</span><span class="p">().</span><span class="nf">Add</span><span class="p">(</span><span class="nx">timeout</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>而 <code>WithDeadline</code> 内部会构造一个带定时器能力的上下文，常见可理解为 <code>timerCtx</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">WithDeadline</span><span class="p">(</span><span class="nx">parent</span><span class="w"> </span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">d</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">CancelFunc</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">c</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">timerCtx</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">cancelCtx</span><span class="p">:</span><span class="w"> </span><span class="nx">cancelCtx</span><span class="p">{</span><span class="nx">Context</span><span class="p">:</span><span class="w"> </span><span class="nx">parent</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">deadline</span><span class="p">:</span><span class="w">  </span><span class="nx">d</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">stop</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nf">AfterFunc</span><span class="p">(</span><span class="nx">time</span><span class="p">.</span><span class="nf">Until</span><span class="p">(</span><span class="nx">d</span><span class="p">),</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">c</span><span class="p">.</span><span class="nf">cancel</span><span class="p">(</span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nx">DeadlineExceeded</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nf">cancel</span><span class="p">(</span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="nx">Canceled</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="-核心点可以概括为">🧩 核心点可以概括为
+</h3><ul>
+<li><code>WithTimeout</code> 是 <code>WithDeadline</code> 的语法糖</li>
+<li>内部会启动一个 <strong>timer</strong> 跟踪超时时间</li>
+<li>到达截止时间后，自动调用取消逻辑</li>
+<li><code>Done()</code> 对应的通道会被关闭</li>
+<li>其他 <code>goroutine</code> 通过 <code>&lt;-ctx.Done()</code> 感知超时</li>
+</ul>
+<p>这也是为什么 <code>context</code> 的超时控制既统一，又不需要我们手动维护一堆定时器对象。</p>
+<hr>
+<h2 id="-为什么-context-能防止-goroutine-泄漏">🛡️ 为什么 Context 能防止 goroutine 泄漏
+</h2><p>PDF 里专门强调了一点：<code>context</code> 的一个重要价值是<strong>防止 goroutine 泄漏</strong>。</p>
+<p>如果没有取消机制，子任务很可能在这些场景里一直挂着：</p>
+<ul>
+<li>上游请求已经返回，但下游任务还在跑</li>
+<li>客户端已经断开连接，但服务端还在等待数据库</li>
+<li>某个 RPC 已经失败，但其他并发子任务还没停</li>
+</ul>
+<p>而引入 <code>context</code> 后，只要在阻塞点监听 <code>ctx.Done()</code>，这些任务就能在请求结束时自动退出。</p>
+<p>这在以下场景里尤其重要：</p>
+<ul>
+<li>HTTP 请求处理</li>
+<li>RPC 调用链</li>
+<li>异步任务编排</li>
+<li>worker 池</li>
+<li>长轮询和流式处理</li>
+</ul>
+<hr>
+<h2 id="-工程实践建议">🧠 工程实践建议
+</h2><h3 id="-把-context-作为第一个参数传递">✅ 把 Context 作为第一个参数传递
+</h3><p>约定俗成的写法是：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">QueryUser</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">id</span><span class="w"> </span><span class="kt">int64</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">User</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>把 <code>ctx</code> 放在第一个参数位置，可以让函数职责更清晰，也更符合 Go 社区约定。</p>
+<h3 id="-不要把-context-存进结构体">✅ 不要把 Context 存进结构体
+</h3><p><code>context</code> 应该跟随一次请求流动，而不是被长期持有。把它塞进结构体字段里，容易造成生命周期混乱。</p>
+<h3 id="-用完-cancel-要及时调用">✅ 用完 cancel 要及时调用
+</h3><p>无论是 <code>WithCancel</code>、<code>WithTimeout</code> 还是 <code>WithDeadline</code>，只要拿到了 <code>cancel</code>，通常都应该及时调用：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">cancel</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">WithTimeout</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">(),</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">defer</span><span class="w"> </span><span class="nf">cancel</span><span class="p">()</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>这不仅是语义完整，也有助于尽早释放关联资源。</p>
+<h3 id="-只传递请求级元数据">✅ 只传递请求级元数据
+</h3><p><code>WithValue</code> 很方便，但不能滥用。它适合做透传，不适合做参数黑洞。</p>
+<h3 id="-在阻塞点监听-ctxdone">✅ 在阻塞点监听 <code>ctx.Done()</code>
+</h3><p>尤其是在这些地方：</p>
+<ul>
+<li><code>select</code></li>
+<li>网络请求</li>
+<li>数据库查询</li>
+<li>worker 循环</li>
+<li>长时间计算任务</li>
+</ul>
+<p>否则即使上游已经取消，当前任务也可能继续白白运行。</p>
+<h3 id="-用自定义-key-类型避免冲突">✅ 用自定义 key 类型避免冲突
+</h3><p>推荐写法：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">traceKey</span><span class="w"> </span><span class="kd">struct</span><span class="p">{}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>而不是直接用：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">ctx</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">WithValue</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;traceID&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;xxx&#34;</span><span class="p">)</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>前者更安全，也更符合工程实践。</p>
+<hr>
+<h2 id="-面试高频追问">🎯 面试高频追问
+</h2><p>在面试里，围绕 <code>context</code> 的追问通常不会停留在“它是什么”这一层，而是会继续往下问：</p>
+<ul>
+<li><strong><code>context.Background()</code> 和 <code>context.TODO()</code> 有什么区别？</strong>
+一般回答重点不是功能差异，而是语义差异：前者是明确的根上下文，后者是暂时占位。</li>
+<li><strong><code>WithTimeout</code> 和 <code>WithDeadline</code> 有什么区别？</strong>
+前者传的是相对时间，后者传的是绝对时间，本质上 <code>WithTimeout</code> 可以看成是 <code>WithDeadline</code> 的语法糖。</li>
+<li><strong>为什么 <code>context</code> 能取消子任务？</strong>
+因为内部维护了一棵上下文树，父 <code>Context</code> 取消后，会关闭 <code>done channel</code> 并递归通知子节点。</li>
+<li><strong><code>WithValue</code> 为什么不建议乱用？</strong>
+因为它适合透传请求级元数据，不适合替代显式参数，更不适合塞业务核心依赖。</li>
+<li><strong>项目里如果不传 <code>context</code> 会怎么样？</strong>
+最直接的问题就是超时控制缺失、请求取消无法下传，以及更容易出现 <code>goroutine</code> 泄漏。</li>
+</ul>
+<p>这几个问题如果能连起来讲，基本上就已经不是“会用 context”，而是“真正理解 context 了”。</p>
+<hr>
+<h2 id="-常见误区">⚠️ 常见误区
+</h2><h3 id="-把-context-当成万能参数容器">❌ 把 Context 当成万能参数容器
+</h3><p><code>context</code> 不是为了代替函数参数设计的。凡是和业务逻辑强相关、而且函数明确需要的值，都应该显式传参。</p>
+<h3 id="-忘记调用-cancel">❌ 忘记调用 cancel
+</h3><p>拿到了 <code>cancel</code> 却不调用，容易让内部定时器、子任务或资源延迟释放。</p>
+<h3 id="-在子函数里重新创建-background">❌ 在子函数里重新创建 Background
+</h3><p>错误示例：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">doQuery</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ctx</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>这样会切断上游传下来的取消链路。正确做法是继续使用外部传入的 <code>ctx</code>。</p>
+<h3 id="-忽略-ctxerr">❌ 忽略 <code>ctx.Err()</code>
+</h3><p>很多代码虽然监听了 <code>Done()</code>，但没有区分到底是“主动取消”还是“超时失败”。而这两种情况在日志、重试、告警策略上往往并不相同。</p>
+<h3 id="-在-context-里塞入大对象或核心依赖">❌ 在 Context 里塞入大对象或核心依赖
+</h3><p>例如数据库连接、缓存客户端、配置中心实例等，都不应该放进 <code>context</code>。这些东西应通过依赖注入或显式参数传递。</p>
+<hr>
+<h2 id="-小结">🧩 小结
+</h2><p><code>context</code> 看似只是 Go 标准库里的一个小接口，但它承担的是整条调用链的“控制面”职责。</p>
+<p>你可以把它总结为一句话：</p>
+<blockquote>
+<p><strong>Context 用来在调用链中传递取消信号、截止时间和请求级元数据。</strong></p>
+</blockquote>
+<p>如果从面试角度看，它考察的是你对 <strong>并发控制、超时机制、调用链传参、资源治理</strong> 这些问题的理解深度；如果从工程角度看，它解决的是请求取消无法下传、超时边界不清晰、子任务难以统一退出这些真实问题。</p>
+<p>所以 <code>context</code> 这个知识点很典型：<strong>语法不复杂，但非常考验工程理解</strong>。掌握它之后，再去看 Go 中的 <strong>HTTP 服务</strong>、<strong>数据库驱动</strong>、<strong>gRPC</strong>、<strong>消息消费</strong> 和 <strong>并发任务编排</strong>，会发现大量 API 都把它放在首位。</p>
+<p>如果你刚开始接触 Go，并且已经掌握了 <strong>goroutine</strong> 和 <strong>channel</strong>，那么 <code>context</code> 就是你从“会写并发代码”走向“会写工程代码”的重要一步。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91/">后端开发</a>
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026-03-20 13:44 UTC
+        </span>
+    </section></footer>
+
+
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI&#43;WdtXRGWt2kTvGFasHpSy3SV"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG&#43;vnGctmUb0ZY0l8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"integrity="sha384-&#43;VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4&#43;/RRE05"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+        renderMathInElement(document.body, {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ],
+            ignoredClasses: ["gist"]
+        });})
+</script>
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/go%E7%9A%84%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E6%9C%BA%E5%88%B6/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Go的错误处理机制</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/go%E7%9A%84gmp%E6%9C%BA%E5%88%B6/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Go的GMP机制</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/go%E7%9A%84%E5%B9%B6%E5%8F%91%E6%93%8D%E4%BD%9C/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Go的并发操作</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/go-%E7%9A%84%E6%8E%92%E5%BA%8F/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Go 的排序</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/go%E7%9A%84%E5%88%87%E7%89%87slice/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Go的切片slice</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2026 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
