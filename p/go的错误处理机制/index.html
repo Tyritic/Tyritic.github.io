@@ -10,7 +10,7 @@
 <meta property='og:description' content="深入探讨Go语言的错误处理机制，包括核心概念、最佳实践和常见模式">
 <meta property='og:url' content='https://Tyritic.github.io/p/go%E7%9A%84%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E6%9C%BA%E5%88%B6/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开发' /><meta property='article:published_time' content='2026-03-03T22:55:24&#43;08:00'/><meta property='article:modified_time' content='2026-03-23T04:31:47&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开发' /><meta property='article:published_time' content='2026-03-03T22:55:24&#43;08:00'/><meta property='article:modified_time' content='2026-03-23T05:36:30&#43;00:00'/>
 <meta name="twitter:title" content="Go的错误处理机制">
 <meta name="twitter:description" content="深入探讨Go语言的错误处理机制，包括核心概念、最佳实践和常见模式">
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -354,14 +354,23 @@
           <ol>
             <li><a href="#-基本概念">💡 基本概念</a></li>
             <li><a href="#-实现原理">⚙️ 实现原理</a></li>
-            <li><a href="#-defer执行顺序">🔢 defer执行顺序</a></li>
-            <li><a href="#-defer修改返回值">✏️ defer修改返回值</a></li>
             <li><a href="#-哪些异常不会被recover">🚫 哪些异常不会被recover</a></li>
-            <li><a href="#-defer语句的主要用途">💡 defer语句的主要用途</a></li>
             <li><a href="#-在子协程中使用recover">🌐 在子协程中使用recover</a></li>
-            <li><a href="#-defer与return的执行顺序">⏱️ defer与return的执行顺序</a></li>
             <li><a href="#-panic嵌套">🔄 panic嵌套</a></li>
             <li><a href="#-底层原理">⚙️ 底层原理</a></li>
+          </ol>
+        </li>
+        <li><a href="#-defer-原理详解">🧵 defer 原理详解</a>
+          <ol>
+            <li><a href="#-defer是什么">❓ defer是什么</a></li>
+            <li><a href="#-defer-的使用形式">🧪 defer 的使用形式</a></li>
+            <li><a href="#-defer-的底层结构">🧱 defer 的底层结构</a></li>
+            <li><a href="#-defer-的执行过程">⚙️ defer 的执行过程</a></li>
+            <li><a href="#-defer函数执行">🔁 defer函数执行</a></li>
+            <li><a href="#-defer执行顺序">🔢 defer执行顺序</a></li>
+            <li><a href="#-defer修改返回值">✏️ defer修改返回值</a></li>
+            <li><a href="#-defer语句的主要用途">💡 defer语句的主要用途</a></li>
+            <li><a href="#-defer与return的执行顺序">⏱️ defer与return的执行顺序</a></li>
           </ol>
         </li>
         <li><a href="#-总结">📚 总结</a></li>
@@ -435,7 +444,7 @@
 
 
                 <time class="article-time--reading">
-                    阅读时长: 11 分钟
+                    阅读时长: 16 分钟
                 </time>
             </div>
 
@@ -443,7 +452,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：5408 字
+                     字数统计：7735 字
                 </time>
             </div>
 
@@ -967,17 +976,6 @@
 </h4><p><strong>panic</strong>：Go运行时维护了一个与goroutine关联的<code>_g</code>结构体，其中包含一个<code>_panic</code>链表字段。每当发生panic时，runtime会创建一个新的<code>_panic</code>结构体节点，并将其插入到当前goroutine的panic链表头部。这个结构体记录了panic的值、是否已被recover捕获等信息。同时，runtime会保存当前的程序计数器（PC）和栈指针（SP），以便后续进行栈展开。随后，系统开始执行当前函数中所有已经defer但尚未执行的函数（LIFO顺序）。</p>
 <p><strong>recover</strong>：recover也是内置函数，在编译期间被特殊处理。它只能在defer函数体内有效调用。其内部逻辑是检查当前goroutine是否存在未被处理的<code>_panic</code>对象，并判断该<code>_panic</code>是否正在被当前defer函数处理。如果是，则将该<code>_panic</code>标记为&quot;已recover&quot;，并返回其value字段；否则返回nil。</p>
 <p><strong>栈展开</strong>：当panic发生后，Go运行时会从当前函数开始向上逐层退出函数调用帧。每退回到一个函数，就执行其defer列表中的函数。这一过程持续到某一层的defer函数成功调用recover为止。若一直没有recover，则最终到达main函数或goroutine入口，打印panic信息并退出程序。</p>
-<h4 id="-defer执行顺序">🔢 defer执行顺序
-</h4><ul>
-<li><strong>先进后出（LIFO, Last In First Out）</strong>：defer 注册的函数会被压入栈，在函数返回时按后进先出的顺序执行。</li>
-<li><strong>函数返回时触发</strong>：defer 并不是立即执行，而是在包含它的函数返回时执行，包括正常返回和因 panic 异常返回。</li>
-</ul>
-<h4 id="-defer修改返回值">✏️ defer修改返回值
-</h4><p>在 Go 中，defer 可以修改返回值，但需要满足一定条件：函数必须有命名返回值。</p>
-<ul>
-<li><strong>匿名返回值</strong>（直接 return expr）的情况：defer 无法直接修改返回值，因为返回值是函数返回语句时才确定的。</li>
-<li><strong>命名返回值</strong>（func foo() (ret int) {}）：函数的返回值变量在函数体内是可见的，defer 可以直接修改这个变量的值。当执行 return 时，Go 会先执行 defer，再返回命名返回值的最终值。</li>
-</ul>
 <h4 id="-哪些异常不会被recover">🚫 哪些异常不会被recover
 </h4><ul>
 <li><strong>运行时致命错误</strong>（fatal runtime errors）</li>
@@ -985,52 +983,6 @@
 <li><strong>Go runtime 自身内部错误</strong>（runtime panic 之外的致命错误）</li>
 <li><strong>程序直接调用 os.Exit()</strong></li>
 </ul>
-<h4 id="-defer语句的主要用途">💡 defer语句的主要用途
-</h4><ol>
-<li><strong>释放资源</strong>：defer 可以保证在函数退出时释放资源，常用于文件、网络连接、锁等资源的关闭或释放。</li>
-<li><strong>保证执行顺序</strong>：defer 是后进先出（LIFO），可以保证一组操作按相反顺序执行。</li>
-<li><strong>错误处理与恢复</strong>：与 recover 结合，可以捕获 panic，防止程序崩溃。</li>
-</ol>
-<p><strong>📁 资源释放示例</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">CopyFile</span><span class="p">(</span><span class="nx">dstFile</span><span class="p">,</span><span class="w"> </span><span class="nx">srcFile</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">wr</span><span class="w"> </span><span class="kt">int64</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">src</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nf">Open</span><span class="p">(</span><span class="nx">srcFile</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">defer</span><span class="w"> </span><span class="nx">src</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">dst</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="nx">dstFile</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">defer</span><span class="w"> </span><span class="nx">dst</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">wr</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nf">Copy</span><span class="p">(</span><span class="nx">dst</span><span class="p">,</span><span class="w"> </span><span class="nx">src</span><span class="p">)</span><span class="w">  
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">wr</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p>只要我们正确打开了某个资源，在没有返回错误的情况下，都可以用 defer 延迟调用来关闭资源。这是 Go 语言中非常常见的一种资源关闭方式。</p>
 <h4 id="-在子协程中使用recover">🌐 在子协程中使用recover
 </h4><p>建议在子协程（goroutine）中使用 recover，主要是为了防止整个程序因为子协程的 panic 而崩溃。</p>
 <p><strong>原因</strong>：每个 goroutine 是独立执行的线程单元。如果子协程内部发生 panic，而没有被 recover 捕获：</p>
@@ -1043,151 +995,6 @@
 <li><strong>隔离子协程的错误</strong>：使用 recover 可以捕获子协程的 panic，防止它终止整个程序。主程序可以继续执行，同时对子协程错误进行处理或重启。</li>
 <li><strong>实现容错与重启机制</strong>：捕获 panic 后可以记录日志，上报错误，重启该子协程。</li>
 </ul>
-<h4 id="-defer与return的执行顺序">⏱️ defer与return的执行顺序
-</h4><p>return语句的执行是原子性的，它包含<strong>三个步骤</strong>：</p>
-<ol>
-<li><strong>第一步</strong>：为返回值赋值</li>
-<li><strong>第二步</strong>：执行defer语句</li>
-<li><strong>第三步</strong>：执行RET指令，返回到调用者</li>
-</ol>
-<p>defer的操作步骤：</p>
-<ol>
-<li><strong>注册阶段</strong>：遇到defer时，将函数压入defer栈</li>
-<li><strong>执行阶段</strong>：在return的第二步执行，按照LIFO顺序</li>
-</ol>
-<p><strong>⚠️ 重要：defer 参数的确定性</strong></p>
-<p>defer 定义的延迟函数的参数在 defer 语句出现时就已经确定下来了！</p>
-<p><strong>示例 1：基本类型参数</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">deferRun</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="kd">var</span><span class="w"> </span><span class="nx">num</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">defer</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;num is %d&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">num</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">num</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">2</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">return</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">(){</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">deferRun</span><span class="p">()</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p>运行结果：<code>num is 1</code></p>
-<p><strong>解析</strong>：延迟函数 <code>defer fmt.Printf(&quot;num is %d&quot;, num)</code> 的参数 <code>num</code> 在 defer 语句出现的时候就已经确定，<code>num=1</code>，所以不管后面怎么修改 <code>num</code> 的值，最终传递给 defer 函数的参数已经固定是 <code>1</code> 了。</p>
-<p><strong>示例 2：指针类型参数</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"> </span><span class="nf">deferRun</span><span class="p">()</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">deferRun</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"> </span><span class="kd">var</span><span class="w"> </span><span class="nx">arr</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="kt">int</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"> </span><span class="k">defer</span><span class="w"> </span><span class="nf">printArr</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">arr</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"> 
-</span></span></span><span class="line"><span class="cl"><span class="w"> </span><span class="nx">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">100</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"> </span><span class="k">return</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">printArr</span><span class="p">(</span><span class="nx">arr</span><span class="w"> </span><span class="o">*</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">arr</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">arr</span><span class="p">[</span><span class="nx">i</span><span class="p">])</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"> </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">   
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p>运行结果：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">100
-</span></span><span class="line"><span class="cl">2
-</span></span><span class="line"><span class="cl">3
-</span></span><span class="line"><span class="cl">4
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>解析</strong>：虽然参数在 defer 语句出现时确定，但这里传递的是地址，地址没变，然而地址对应的内容被修改了，所以输出会被修改。</p>
-<p><strong>示例 3：命名返回值 defer 修改</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">res</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">deferRun</span><span class="p">()</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">res</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">deferRun</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="nx">res</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">num</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">defer</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">res</span><span class="o">++</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}()</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">num</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p>运行结果：<code>2</code></p>
-<p><strong>解析</strong>：函数的 return 过程分解为三步：</p>
-<ol>
-<li>设置返回值（res = num = 1）</li>
-<li>执行 defer 语句（res++，所以 res = 2）</li>
-<li>将结果返回（返回 res = 2）</li>
-</ol>
-<p>所以最终结果是 <code>2</code>。</p>
 <h4 id="-panic嵌套">🔄 panic嵌套
 </h4><p>在 Go 语言中，如果一个函数中发生了 panic，然后在 defer 中又发生了 panic，这被称为panic嵌套或二次 panic：</p>
 <ul>
@@ -1270,6 +1077,638 @@
   <img src="image-20250628235415079.png" alt="recover执行" width="60%">
 </div>
 <hr>
+<hr>
+<h3 id="-defer-原理详解">🧵 defer 原理详解
+</h3><h4 id="-defer是什么">❓ defer是什么
+</h4><p><code>defer</code> 是 Go 语言中的一个关键字，用来修饰函数调用。它的作用是让 <code>defer</code> 后面的函数或方法调用延迟到当前函数 <code>return</code> 或 <code>panic</code> 时再执行。</p>
+<h4 id="-defer-的使用形式">🧪 defer 的使用形式
+</h4><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="k">defer</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>使用 <code>defer</code> 时，只需要在后面跟上具体的函数调用即可。编译器会注册一个延迟执行的函数，并在注册时确定函数名和参数，等当前函数退出时再执行。</p>
+<h4 id="-defer-的底层结构">🧱 defer 的底层结构
+</h4><p>进行 <code>defer</code> 函数调用时，底层其实会生成一个 <code>_defer</code> 结构。一个函数中可能有多次 <code>defer</code> 调用，因此会生成多个这样的 <code>_defer</code> 结构。这些 <code>_defer</code> 结构会以链表的形式存储，当前 <code>goroutine</code> 的 <code>_defer</code> 指针指向链表头节点。</p>
+<p><code>_defer</code> 的结构定义在 <code>src/runtime/runtime2.go</code> 中，源码如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">_defer</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">started</span><span class="w"> </span><span class="kt">bool</span><span class="w">   </span><span class="c1">// 标志位，标识 defer 函数是否已经开始执行，默认为 false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">heap</span><span class="w">    </span><span class="kt">bool</span><span class="w">   </span><span class="c1">// 标记当前 defer 结构是否分配在堆上</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">openDefer</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="c1">// 标识当前 defer 是否以开放编码的方式实现</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">sp</span><span class="w">        </span><span class="kt">uintptr</span><span class="w"> </span><span class="c1">// 调用方的 sp 寄存器指针，即栈指针</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">pc</span><span class="w">        </span><span class="kt">uintptr</span><span class="w"> </span><span class="c1">// 调用方的程序计数器指针</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">fn</span><span class="w">        </span><span class="kd">func</span><span class="p">()</span><span class="w">  </span><span class="c1">// defer 注册的延迟执行函数</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">_panic</span><span class="w">    </span><span class="o">*</span><span class="nx">_panic</span><span class="w"> </span><span class="c1">// 标识是否由 panic 触发，非 panic 触发时为 nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">link</span><span class="w">      </span><span class="o">*</span><span class="nx">_defer</span><span class="w"> </span><span class="c1">// defer 链表</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">fd</span><span class="w">        </span><span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span><span class="w"> </span><span class="c1">// defer 调用的相关参数</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">varp</span><span class="w">      </span><span class="kt">uintptr</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">framepc</span><span class="w">   </span><span class="kt">uintptr</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>底层存储如下图：</p>
+<div align="center">
+  <img src="defer-struct.png" alt="defer 底层链表结构" width="60%">
+</div>
+<p><code>defer</code> 函数在注册时，创建的 <code>_defer</code> 结构会依次插入到 <code>_defer</code> 链表表头。在当前函数 <code>return</code> 时，再依次从链表表头取出 <code>_defer</code> 结构执行其中的 <code>fn</code> 函数。</p>
+<h4 id="-defer-的执行过程">⚙️ defer 的执行过程
+</h4><p>在探究 <code>defer</code> 的执行过程之前，可以先简单看一下 Go 程序的编译流程。Go 程序由 <code>.go</code> 文件编译成最终的二进制机器码时，<code>defer</code> 关键字主要在生成 SSA 中间代码阶段被处理。</p>
+<div align="center">
+  <img src="defer-compile-flow.png" alt="defer 在编译阶段的处理流程" width="60%">
+</div>
+<p>编译器遇到 <code>defer</code> 语句时，会插入两类函数：</p>
+<ol>
+<li><code>defer</code> 内存分配函数：<code>deferproc</code>（堆分配）或 <code>deferprocStack</code>（栈分配）</li>
+<li>执行函数：<code>deferreturn</code></li>
+</ol>
+<p><code>defer</code> 的处理逻辑位于 <code>cmd/compile/internal/ssagen/ssa.go</code> 的 <code>state.stmt()</code> 方法中。下面是关键代码：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="k">case</span><span class="w"> </span><span class="nx">ir</span><span class="p">.</span><span class="nx">ODEFER</span><span class="p">:</span><span class="w">     </span><span class="c1">// 如果节点是 defer 节点</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">n</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">n</span><span class="p">.(</span><span class="o">*</span><span class="nx">ir</span><span class="p">.</span><span class="nx">GoDeferStmt</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="nx">base</span><span class="p">.</span><span class="nx">Debug</span><span class="p">.</span><span class="nx">Defer</span><span class="w"> </span><span class="p">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="kd">var</span><span class="w"> </span><span class="nx">defertype</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">hasOpenDefers</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="nx">defertype</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#34;open-coded&#34;</span><span class="w">  </span><span class="c1">// 开放编码</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">n</span><span class="p">.</span><span class="nf">Esc</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nx">ir</span><span class="p">.</span><span class="nx">EscNever</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="nx">defertype</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#34;stack-allocated&#34;</span><span class="w">   </span><span class="c1">// 栈分配</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="nx">defertype</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#34;heap-allocated&#34;</span><span class="w">   </span><span class="c1">// 堆分配</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">base</span><span class="p">.</span><span class="nf">WarnfAt</span><span class="p">(</span><span class="nx">n</span><span class="p">.</span><span class="nf">Pos</span><span class="p">(),</span><span class="w"> </span><span class="s">&#34;%s defer&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">defertype</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">hasOpenDefers</span><span class="w"> </span><span class="p">{</span><span class="w">  </span><span class="c1">// 如果可以开放编码，即内联实现</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">s</span><span class="p">.</span><span class="nf">openDeferRecord</span><span class="p">(</span><span class="nx">n</span><span class="p">.</span><span class="nx">Call</span><span class="p">.(</span><span class="o">*</span><span class="nx">ir</span><span class="p">.</span><span class="nx">CallExpr</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">d</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">callDefer</span><span class="w">       </span><span class="c1">// 否则默认使用堆分配</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="nx">n</span><span class="p">.</span><span class="nf">Esc</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nx">ir</span><span class="p">.</span><span class="nx">EscNever</span><span class="w"> </span><span class="p">{</span><span class="w">   </span><span class="c1">// 没有内存逃逸，使用栈分配</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="nx">d</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">callDeferStack</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">s</span><span class="p">.</span><span class="nf">callResult</span><span class="p">(</span><span class="nx">n</span><span class="p">.</span><span class="nx">Call</span><span class="p">.(</span><span class="o">*</span><span class="nx">ir</span><span class="p">.</span><span class="nx">CallExpr</span><span class="p">),</span><span class="w"> </span><span class="nx">d</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>从这段代码可以看出，<code>defer</code> 目前有三种实现方式：堆上分配、栈上分配，以及开放编码。Go 会优先使用开放编码；当开放编码不满足、但又没有发生内存逃逸时，会使用栈分配；其他情况下才退回到堆分配。这样做的核心目的就是提升性能。</p>
+<p><strong><code>_defer</code> 内存分配</strong></p>
+<p>前面的分析已经说明，<code>_defer</code> 结构会根据场景分配在不同位置。堆上分配调用的是 <code>runtime.deferproc</code>，栈上分配调用的是 <code>runtime.deferprocStack</code>。</p>
+<p><strong>堆上分配</strong></p>
+<p>先看 <code>deferproc</code>，在 Go 1.13 之前只有这一种方式，也就是说那时 <code>_defer</code> 只能分配在堆上。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">deferproc</span><span class="p">(</span><span class="nx">fn</span><span class="w"> </span><span class="kd">func</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">gp</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">getg</span><span class="p">()</span><span class="w">      </span><span class="c1">// 获取 goroutine，defer 在哪个 goroutine 中执行</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="nx">gp</span><span class="p">.</span><span class="nx">m</span><span class="p">.</span><span class="nx">curg</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">gp</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nf">throw</span><span class="p">(</span><span class="s">&#34;defer on system stack&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">d</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">newdefer</span><span class="p">()</span><span class="w">   </span><span class="c1">// 在堆中新建一个 _defer 对象</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">_panic</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nf">throw</span><span class="p">(</span><span class="s">&#34;deferproc: d.panic != nil after newdefer&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">d</span><span class="p">.</span><span class="nx">link</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">gp</span><span class="p">.</span><span class="nx">_defer</span><span class="w">   </span><span class="c1">// 加入到 goroutine 的 defer 链表头部</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">gp</span><span class="p">.</span><span class="nx">_defer</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">d</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">d</span><span class="p">.</span><span class="nx">fn</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">fn</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">d</span><span class="p">.</span><span class="nx">pc</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nf">getcallerpc</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">d</span><span class="p">.</span><span class="nx">sp</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nf">getcallersp</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nf">return0</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>其中重点是 <code>newdefer()</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">newdefer</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">_defer</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="kd">var</span><span class="w"> </span><span class="nx">d</span><span class="w"> </span><span class="o">*</span><span class="nx">_defer</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">mp</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">acquirem</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">pp</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">mp</span><span class="p">.</span><span class="nx">p</span><span class="p">.</span><span class="nf">ptr</span><span class="p">()</span><span class="w">    </span><span class="c1">// 获取逻辑处理器 p</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">pp</span><span class="p">.</span><span class="nx">deferpool</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">sched</span><span class="p">.</span><span class="nx">deferpool</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nf">lock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">sched</span><span class="p">.</span><span class="nx">deferlock</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">pp</span><span class="p">.</span><span class="nx">deferpool</span><span class="p">)</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nb">cap</span><span class="p">(</span><span class="nx">pp</span><span class="p">.</span><span class="nx">deferpool</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">sched</span><span class="p">.</span><span class="nx">deferpool</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="nx">d</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">sched</span><span class="p">.</span><span class="nx">deferpool</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="nx">sched</span><span class="p">.</span><span class="nx">deferpool</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">link</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="nx">d</span><span class="p">.</span><span class="nx">link</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="nx">pp</span><span class="p">.</span><span class="nx">deferpool</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">append</span><span class="p">(</span><span class="nx">pp</span><span class="p">.</span><span class="nx">deferpool</span><span class="p">,</span><span class="w"> </span><span class="nx">d</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nf">unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">sched</span><span class="p">.</span><span class="nx">deferlock</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="nx">n</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">pp</span><span class="p">.</span><span class="nx">deferpool</span><span class="p">);</span><span class="w"> </span><span class="nx">n</span><span class="w"> </span><span class="p">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">d</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">pp</span><span class="p">.</span><span class="nx">deferpool</span><span class="p">[</span><span class="nx">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">pp</span><span class="p">.</span><span class="nx">deferpool</span><span class="p">[</span><span class="nx">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">pp</span><span class="p">.</span><span class="nx">deferpool</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">pp</span><span class="p">.</span><span class="nx">deferpool</span><span class="p">[:</span><span class="nx">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nf">releasem</span><span class="p">(</span><span class="nx">mp</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">mp</span><span class="p">,</span><span class="w"> </span><span class="nx">pp</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="nx">d</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">d</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">new</span><span class="p">(</span><span class="nx">_defer</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">d</span><span class="p">.</span><span class="nx">heap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">return</span><span class="w"> </span><span class="nx">d</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>可以看出，堆上 <code>defer</code> 的创建借助了内存复用和内存池的思想。创建过程是：优先从 <code>p</code> 的本地 <code>defer</code> 缓存池或全局缓存池中取可复用的 <code>_defer</code> 结构；找不到时，才会在堆上新建。</p>
+<p><strong>栈上分配</strong></p>
+<p><code>runtime.deferprocStack</code> 是 Go 1.13 之后引入的优化方式。由于直接在栈上分配，效率通常会更高。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 在调用这个函数之前，defer 结构已经在栈上创建好，这里只是作为参数传进来赋值</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">deferprocStack</span><span class="p">(</span><span class="nx">d</span><span class="w"> </span><span class="o">*</span><span class="nx">_defer</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">gp</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">getg</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="nx">gp</span><span class="p">.</span><span class="nx">m</span><span class="p">.</span><span class="nx">curg</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">gp</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nf">throw</span><span class="p">(</span><span class="s">&#34;defer on system stack&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">d</span><span class="p">.</span><span class="nx">started</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">d</span><span class="p">.</span><span class="nx">heap</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">d</span><span class="p">.</span><span class="nx">openDefer</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">d</span><span class="p">.</span><span class="nx">sp</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nf">getcallersp</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">d</span><span class="p">.</span><span class="nx">pc</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nf">getcallerpc</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">d</span><span class="p">.</span><span class="nx">framepc</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">0</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">d</span><span class="p">.</span><span class="nx">varp</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">0</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="o">*</span><span class="p">(</span><span class="o">*</span><span class="kt">uintptr</span><span class="p">)(</span><span class="nx">unsafe</span><span class="p">.</span><span class="nf">Pointer</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">d</span><span class="p">.</span><span class="nx">_panic</span><span class="p">))</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">0</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="o">*</span><span class="p">(</span><span class="o">*</span><span class="kt">uintptr</span><span class="p">)(</span><span class="nx">unsafe</span><span class="p">.</span><span class="nf">Pointer</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">d</span><span class="p">.</span><span class="nx">fd</span><span class="p">))</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">0</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="o">*</span><span class="p">(</span><span class="o">*</span><span class="kt">uintptr</span><span class="p">)(</span><span class="nx">unsafe</span><span class="p">.</span><span class="nf">Pointer</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">d</span><span class="p">.</span><span class="nx">link</span><span class="p">))</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">uintptr</span><span class="p">(</span><span class="nx">unsafe</span><span class="p">.</span><span class="nf">Pointer</span><span class="p">(</span><span class="nx">gp</span><span class="p">.</span><span class="nx">_defer</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="o">*</span><span class="p">(</span><span class="o">*</span><span class="kt">uintptr</span><span class="p">)(</span><span class="nx">unsafe</span><span class="p">.</span><span class="nf">Pointer</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">gp</span><span class="p">.</span><span class="nx">_defer</span><span class="p">))</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">uintptr</span><span class="p">(</span><span class="nx">unsafe</span><span class="p">.</span><span class="nf">Pointer</span><span class="p">(</span><span class="nx">d</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nf">return0</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>Go 在编译阶段生成 SSA 时，如果判断出 <code>_defer</code> 可以在栈上分配，编译器就会直接在函数调用栈上初始化 <code>_defer</code> 记录，并把它作为参数传给 <code>deferprocStack</code>。</p>
+<p><strong>开放编码</strong></p>
+<p>第三种方式是开放编码（open-coded defer），这是 Go 1.14 引入的进一步优化。它通过代码内联优化，让函数末尾直接调用 <code>defer</code> 函数，从而减少一次运行时函数调用开销。</p>
+<p><code>walkStmt()</code> 中的关键代码如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="k">case</span><span class="w"> </span><span class="nx">ir</span><span class="p">.</span><span class="nx">ODEFER</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">n</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">n</span><span class="p">.(</span><span class="o">*</span><span class="nx">ir</span><span class="p">.</span><span class="nx">GoDeferStmt</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">ir</span><span class="p">.</span><span class="nx">CurFunc</span><span class="p">.</span><span class="nf">SetHasDefer</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">ir</span><span class="p">.</span><span class="nx">CurFunc</span><span class="p">.</span><span class="nx">NumDefers</span><span class="o">++</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="nx">ir</span><span class="p">.</span><span class="nx">CurFunc</span><span class="p">.</span><span class="nx">NumDefers</span><span class="w"> </span><span class="p">&gt;</span><span class="w"> </span><span class="nx">maxOpenDefers</span><span class="w"> </span><span class="p">{</span><span class="w">  </span><span class="c1">// maxOpenDefers = 8</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">ir</span><span class="p">.</span><span class="nx">CurFunc</span><span class="p">.</span><span class="nf">SetOpenCodedDeferDisallowed</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="nx">n</span><span class="p">.</span><span class="nf">Esc</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">ir</span><span class="p">.</span><span class="nx">EscNever</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// If n.Esc is not EscNever, then this defer occurs in a loop,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// so open-coded defers cannot be used in this function.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">ir</span><span class="p">.</span><span class="nx">CurFunc</span><span class="p">.</span><span class="nf">SetOpenCodedDeferDisallowed</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">fallthrough</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里的 <code>n.Esc() != ir.EscNever</code> 实际上是在判断 <code>defer</code> 是否出现在循环体中。因为 <code>defer</code> 若出现在 <code>for</code> 循环中，编译器无法在编译期确定它会被执行多少次，这通常会触发逃逸，最终只能走堆分配。因此在性能敏感路径里，尽量不要在循环中使用 <code>defer</code>。</p>
+<p><code>buildssa()</code> 里的关键代码如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">s</span><span class="p">.</span><span class="nx">hasOpenDefers</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">base</span><span class="p">.</span><span class="nx">Flag</span><span class="p">.</span><span class="nx">N</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">hasdefer</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">!</span><span class="nx">s</span><span class="p">.</span><span class="nx">curfn</span><span class="p">.</span><span class="nf">OpenCodedDeferDisallowed</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">switch</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">case</span><span class="w"> </span><span class="nx">base</span><span class="p">.</span><span class="nx">Debug</span><span class="p">.</span><span class="nx">NoOpenDefer</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">s</span><span class="p">.</span><span class="nx">hasOpenDefers</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">case</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">hasOpenDefers</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="nx">base</span><span class="p">.</span><span class="nx">Ctxt</span><span class="p">.</span><span class="nx">Flag_shared</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">base</span><span class="p">.</span><span class="nx">Ctxt</span><span class="p">.</span><span class="nx">Flag_dynlink</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">base</span><span class="p">.</span><span class="nx">Ctxt</span><span class="p">.</span><span class="nx">Arch</span><span class="p">.</span><span class="nx">Name</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&#34;386&#34;</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">s</span><span class="p">.</span><span class="nx">hasOpenDefers</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">if</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">hasOpenDefers</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nx">curfn</span><span class="p">.</span><span class="nx">Exit</span><span class="p">)</span><span class="w"> </span><span class="p">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">s</span><span class="p">.</span><span class="nx">hasOpenDefers</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">if</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">hasOpenDefers</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">f</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">curfn</span><span class="p">.</span><span class="nf">Type</span><span class="p">().</span><span class="nf">Results</span><span class="p">().</span><span class="nf">FieldSlice</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">f</span><span class="p">.</span><span class="nx">Nname</span><span class="p">.(</span><span class="o">*</span><span class="nx">ir</span><span class="p">.</span><span class="nx">Name</span><span class="p">).</span><span class="nf">OnStack</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="nx">s</span><span class="p">.</span><span class="nx">hasOpenDefers</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="k">break</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">if</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">hasOpenDefers</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">s</span><span class="p">.</span><span class="nx">curfn</span><span class="p">.</span><span class="nx">NumReturns</span><span class="o">*</span><span class="nx">s</span><span class="p">.</span><span class="nx">curfn</span><span class="p">.</span><span class="nx">NumDefers</span><span class="w"> </span><span class="p">&gt;</span><span class="w"> </span><span class="mi">15</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">s</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>总结一下，在 Go 1.14 之后，Go 会优先采用开放编码的方式处理 <code>defer</code>，但需要满足以下条件：</p>
+<ul>
+<li><code>build</code> 编译时没有设置 <code>-N</code></li>
+<li><code>defer</code> 函数个数不超过 <code>8</code></li>
+<li><code>defer</code> 所在函数的返回值个数与 <code>defer</code> 函数个数的乘积不超过 <code>15</code></li>
+<li><code>defer</code> 没有出现在循环语句中</li>
+</ul>
+<h4 id="-defer函数执行">🔁 defer函数执行
+</h4><p>在给 <code>defer</code> 分配好内存之后，剩下的就是执行过程了。在函数退出时，<code>deferreturn</code> 会执行 <code>defer</code> 链表上的各个延迟函数。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">deferreturn</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">gp</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">getg</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">for</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">d</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">gp</span><span class="p">.</span><span class="nx">_defer</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="nx">d</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">sp</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">getcallersp</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">sp</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">sp</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">openDefer</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="nx">done</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">runOpenDeferFrame</span><span class="p">(</span><span class="nx">gp</span><span class="p">,</span><span class="w"> </span><span class="nx">d</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">done</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nf">throw</span><span class="p">(</span><span class="s">&#34;unfinished open-coded defers in deferreturn&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="nx">gp</span><span class="p">.</span><span class="nx">_defer</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">link</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="nf">freedefer</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">fn</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">fn</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">d</span><span class="p">.</span><span class="nx">fn</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">gp</span><span class="p">.</span><span class="nx">_defer</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">d</span><span class="p">.</span><span class="nx">link</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nf">freedefer</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nf">fn</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>当 Go 函数执行到 <code>return</code> 关键字时，会触发对 <code>deferreturn</code> 的调用。它的逻辑比较直接，就是遍历当前 <code>goroutine</code> 上的 <code>defer</code> 链表，从表头开始依次取出 <code>_defer</code> 结构，再执行其中保存的函数。</p>
+<p>这里可以得到三个关键结论：</p>
+<ol>
+<li>遇到 <code>defer</code> 关键字时，编译器会在编译阶段插入 <code>deferproc()</code> 或 <code>deferprocStack()</code>，并在 <code>return</code> 前插入 <code>deferreturn()</code></li>
+<li><code>defer</code> 的执行顺序是 LIFO，因为每次创建的 <code>_defer</code> 结构都会插入到链表表头</li>
+<li><code>defer</code> 目前主要有三种实现方式：堆上分配、栈上分配，以及开放编码</li>
+</ol>
+<h4 id="-defer执行顺序">🔢 defer执行顺序
+</h4><ul>
+<li><strong>先进后出（LIFO, Last In First Out）</strong>：<code>defer</code> 注册的函数会被压入栈，在函数返回时按后进先出的顺序执行。</li>
+<li><strong>函数返回时触发</strong>：<code>defer</code> 并不是立即执行，而是在包含它的函数返回时执行，包括正常返回和因 <code>panic</code> 异常返回。</li>
+</ul>
+<h4 id="-defer修改返回值">✏️ defer修改返回值
+</h4><p>在 Go 中，<code>defer</code> 可以修改返回值，但需要满足一定条件：函数必须有命名返回值。</p>
+<ul>
+<li><strong>匿名返回值</strong>：直接 <code>return expr</code> 时，<code>defer</code> 无法直接修改返回值，因为返回值是在函数返回语句执行时才确定的。</li>
+<li><strong>命名返回值</strong>：如 <code>func foo() (ret int) {}</code>，返回值变量在函数体内可见，<code>defer</code> 可以直接修改它。执行 <code>return</code> 时，Go 会先执行 <code>defer</code>，再返回命名返回值的最终结果。</li>
+</ul>
+<h4 id="-defer语句的主要用途">💡 defer语句的主要用途
+</h4><ol>
+<li><strong>释放资源</strong>：<code>defer</code> 可以保证在函数退出时释放资源，常用于文件、网络连接、锁等资源的关闭或释放。</li>
+<li><strong>保证执行顺序</strong>：<code>defer</code> 是后进先出，可以保证一组操作按相反顺序执行。</li>
+<li><strong>错误处理与恢复</strong>：与 <code>recover</code> 结合时，可以捕获 <code>panic</code>，防止程序崩溃。</li>
+</ol>
+<p><strong>📁 资源释放示例</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">CopyFile</span><span class="p">(</span><span class="nx">dstFile</span><span class="p">,</span><span class="w"> </span><span class="nx">srcFile</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">wr</span><span class="w"> </span><span class="kt">int64</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">src</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nf">Open</span><span class="p">(</span><span class="nx">srcFile</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">defer</span><span class="w"> </span><span class="nx">src</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">dst</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="nx">dstFile</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">defer</span><span class="w"> </span><span class="nx">dst</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">wr</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nf">Copy</span><span class="p">(</span><span class="nx">dst</span><span class="p">,</span><span class="w"> </span><span class="nx">src</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">wr</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>只要我们正确打开了某个资源，在没有返回错误的情况下，都可以用 <code>defer</code> 延迟调用来关闭资源。这是 Go 语言中非常常见的一种资源关闭方式。</p>
+<h4 id="-defer与return的执行顺序">⏱️ defer与return的执行顺序
+</h4><p><code>return</code> 语句的执行包含三个步骤：</p>
+<ol>
+<li><strong>第一步</strong>：为返回值赋值</li>
+<li><strong>第二步</strong>：执行 <code>defer</code> 语句</li>
+<li><strong>第三步</strong>：执行 <code>RET</code> 指令，返回到调用者</li>
+</ol>
+<p><code>defer</code> 的操作步骤如下：</p>
+<ol>
+<li><strong>注册阶段</strong>：遇到 <code>defer</code> 时，将函数压入 <code>defer</code> 栈</li>
+<li><strong>执行阶段</strong>：在 <code>return</code> 的第二步执行，按照 LIFO 顺序调用</li>
+</ol>
+<p><strong>⚠️ 重要：defer 参数的确定性</strong></p>
+<p><code>defer</code> 定义的延迟函数参数，在 <code>defer</code> 语句出现时就已经确定下来了。</p>
+<p><strong>示例 1：基本类型参数</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">deferRun</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">num</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">defer</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;num is %d&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">num</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">num</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">deferRun</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>运行结果：<code>num is 1</code></p>
+<p>解析：延迟函数 <code>defer fmt.Printf(&quot;num is %d&quot;, num)</code> 的参数 <code>num</code> 在 <code>defer</code> 语句出现时就已经确定为 <code>1</code>，因此后续即使修改 <code>num</code>，最终传给 <code>defer</code> 函数的参数仍然是 <code>1</code>。</p>
+<p><strong>示例 2：指针类型参数</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">deferRun</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">deferRun</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">arr</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="kt">int</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">defer</span><span class="w"> </span><span class="nf">printArr</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">arr</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">100</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">printArr</span><span class="p">(</span><span class="nx">arr</span><span class="w"> </span><span class="o">*</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">arr</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">arr</span><span class="p">[</span><span class="nx">i</span><span class="p">])</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>运行结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">100
+</span></span><span class="line"><span class="cl">2
+</span></span><span class="line"><span class="cl">3
+</span></span><span class="line"><span class="cl">4
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>解析：虽然参数在 <code>defer</code> 语句出现时就已确定，但这里传递的是地址。地址本身没变，不过地址指向的内容被改了，所以最终输出会体现修改后的值。</p>
+<p><strong>示例 3：命名返回值 defer 修改</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">res</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">deferRun</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">res</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">deferRun</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="nx">res</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">num</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">defer</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">res</span><span class="o">++</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">num</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>运行结果：<code>2</code></p>
+<p>解析：函数的 <code>return</code> 过程可以拆成三步：</p>
+<ol>
+<li>设置返回值，即 <code>res = num = 1</code></li>
+<li>执行 <code>defer</code> 语句，即 <code>res++</code>，所以 <code>res = 2</code></li>
+<li>返回结果，即返回 <code>res = 2</code></li>
+</ol>
+<p>所以最终结果是 <code>2</code>。</p>
 <h3 id="-总结">📚 总结
 </h3><p>Go 语言的错误处理机制以其简洁、实用的设计赢得了开发者的青睐。通过理解 <code>error</code> 接口、错误返回模式、错误包装与上下文、自定义错误类型以及最佳实践，开发者可以编写更加健壮、可维护的代码。</p>
 <p>在实际开发中，应遵循以下原则：</p>
@@ -1304,7 +1743,7 @@
 
 
         <span>
-            最后更新于 2026-03-23 04:31 UTC
+            最后更新于 2026-03-23 05:36 UTC
         </span>
     </section></footer>
 
