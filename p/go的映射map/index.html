@@ -10,7 +10,7 @@
 <meta property='og:description' content="Go的映射map">
 <meta property='og:url' content='https://Tyritic.github.io/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='' /><meta property='article:published_time' content='2025-06-29T21:53:58&#43;08:00'/><meta property='article:modified_time' content='2026-03-20T15:40:04&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='' /><meta property='article:published_time' content='2025-06-29T21:53:58&#43;08:00'/><meta property='article:modified_time' content='2026-03-23T03:07:19&#43;00:00'/>
 <meta name="twitter:title" content="Go的映射map">
 <meta name="twitter:description" content="Go的映射map">
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -329,10 +329,9 @@
     </li>
     <li><a href="#-底层原理">🔬 底层原理</a>
       <ol>
-        <li><a href="#-底层数据结构">🪣 底层数据结构</a></li>
-        <li><a href="#-哈希定位原理">🎯 哈希定位原理</a></li>
-        <li><a href="#-哈希冲突">⚔️ 哈希冲突</a></li>
-        <li><a href="#-扩容机制">📈 扩容机制</a>
+        <li><a href="#-数据结构与内存布局">🪣 数据结构与内存布局</a></li>
+        <li><a href="#-哈希定位与冲突处理">🎯 哈希定位与冲突处理</a></li>
+        <li><a href="#-扩容与迁移">📈 扩容与迁移</a>
           <ol>
             <li><a href="#-扩容的触发条件">🚀 扩容的触发条件</a></li>
             <li><a href="#-渐进式迁移">🔄 渐进式迁移</a></li>
@@ -340,6 +339,15 @@
             <li><a href="#-等量扩容">🔃 等量扩容</a></li>
           </ol>
         </li>
+        <li><a href="#-常见操作的运行时行为">⚙️ 常见操作的运行时行为</a>
+          <ol>
+            <li><a href="#-map-的访问原理">🔍 map 的访问原理</a></li>
+            <li><a href="#-map-的赋值原理">✍️ map 的赋值原理</a></li>
+            <li><a href="#-map-的删除原理">🗑️ map 的删除原理</a></li>
+            <li><a href="#-map-的遍历原理">🔁 map 的遍历原理</a></li>
+          </ol>
+        </li>
+        <li><a href="#-补充结论">💡 补充结论</a></li>
       </ol>
     </li>
   </ol>
@@ -410,7 +418,7 @@
 
 
                 <time class="article-time--reading">
-                    阅读时长: 12 分钟
+                    阅读时长: 20 分钟
                 </time>
             </div>
 
@@ -418,7 +426,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：5829 字
+                     字数统计：9656 字
                 </time>
             </div>
 
@@ -1079,7 +1087,7 @@
 </div>
 </div><hr>
 <h2 id="-底层原理">🔬 底层原理
-</h2><h3 id="-底层数据结构">🪣 底层数据结构
+</h2><h3 id="-数据结构与内存布局">🪣 数据结构与内存布局
 </h3><p>在 Go 语言中，map 类型的底层实现就是哈希表，map 类型的变量 本质上是一个指针 <strong><code>*hmap</code></strong> ，指向 <strong><code>hmap</code></strong> 结构体。</p>
 <ul>
 <li>Go map 的底层是一个 <strong><code>buckets</code></strong> 数组</li>
@@ -1120,10 +1128,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><div align="center">
-  <img src="c4fcde87-e22e-4991-8e88-0c054dbafd76.png" alt="hmap结构示意图" width="60%">
-</div>
-<p>Go 使用桶（bucket）存储 kv 信息，对应的数据结构是 bmap</p>
+</div><p>Go 使用桶（bucket）存储 kv 信息，对应的数据结构是 bmap</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -1294,7 +1299,64 @@
   <img src="image-20250705152403075.png" alt="溢出桶结构示意图" width="60%">
 </div>
 <p>实际上如果哈希表要分配的桶的数目大于 $2^4$，就认为使用到溢出桶的几率较大，就会预分配 $2^{B-4}$ 个溢出桶备用，这些溢出桶与常规桶在内存中是连续的，只是前 $2^B$ 个用作常规桶，后面的用作溢出桶。</p>
-<h3 id="-哈希定位原理">🎯 哈希定位原理
+<p><strong>🏗️ Go map 的整体结构图</strong></p>
+<p>Go 运行时里的 map 本质上是一个指向 <code>hmap</code> 的指针，而 <code>hmap</code> 管理整张哈希表，真正存储数据的是桶数组和溢出桶链。</p>
+<p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-8.png"
+	width="1280"
+	height="954"
+	
+	loading="lazy"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="134"
+		data-flex-basis="322px"
+	
+></p>
+<p><strong>📦 mapextra 与预分配溢出桶</strong></p>
+<p>除了 <code>hmap</code> 和 <code>bmap</code>，运行时里还有一个很容易被忽略的结构：<code>mapextra</code>。它主要负责维护溢出桶，尤其是 key/value 不含指针时，运行时会把溢出桶集中挂在这里，避免 GC 扫描遗漏。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">mapextra</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">overflow</span><span class="w">    </span><span class="o">*</span><span class="p">[]</span><span class="o">*</span><span class="nx">bmap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">oldoverflow</span><span class="w"> </span><span class="o">*</span><span class="p">[]</span><span class="o">*</span><span class="nx">bmap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">nextOverflow</span><span class="w"> </span><span class="o">*</span><span class="nx">bmap</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><strong><code>overflow</code></strong>：当前桶数组使用到的溢出桶</li>
+<li><strong><code>oldoverflow</code></strong>：扩容期间旧桶数组对应的溢出桶</li>
+<li><strong><code>nextOverflow</code></strong>：预分配但尚未使用的下一个溢出桶</li>
+</ul>
+<p>这也是为什么 Go map 在发生冲突时，并不总是现场申请一个新桶，而是可能直接复用已经预留好的溢出桶。</p>
+<p><strong>🎯 tophash 与桶内布局补充</strong></p>
+<p>Go 对每个 key 算出 hash 后，并不会一次性把整个 hash 都拿来比较，而是拆成两部分使用：</p>
+<ul>
+<li>低位用于定位桶</li>
+<li>高 8 位用于桶内快速过滤，也就是 <code>tophash</code></li>
+</ul>
+<p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image.png"
+	width="1200"
+	height="234"
+	
+	loading="lazy"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="512"
+		data-flex-basis="1230px"
+	
+></p>
+<p>每个 <code>bmap</code> 会先连续存储 8 个 key，再连续存储 8 个 value，而不是 <code>key/value</code> 交替排列。这样可以减少内存对齐带来的浪费。</p>
+<h3 id="-哈希定位与冲突处理">🎯 哈希定位与冲突处理
 </h3><p>类似于 <strong>Java</strong> 的 <strong>HashMap</strong>，参考<a class="link" href="https://tyritic.github.io/p/java%E4%B8%AD%E7%9A%84hashmap%E7%B1%BB%E5%8F%8A%E5%85%B6%E8%A1%8D%E7%94%9F%E7%B1%BB/#hash%E6%96%B9%E6%B3%95%E7%9A%84%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0:~:text=Copy-,%E6%95%B0%E7%BB%84%E7%B4%A2%E5%BC%95%E8%AE%A1%E7%AE%97%E5%8E%9F%E7%90%86,-%E9%80%9A%E5%B8%B8%E5%9F%BA%E4%BA%8E%E5%93%88"  target="_blank" rel="noopener"
     >往期博客</a> <strong>map</strong> 的哈希方法采用 <strong>与运算：</strong> <strong><code>hash &amp; (m-1)</code></strong> 来定位哈希桶</p>
 <p>需要注意的是，与运算方法如果想确保运算结果落在区间 [0, m-1] 而不会出现空桶，就要限制桶的个数 m 必须是 2 的整数次幂。这样 m 的二进制表示一定只有一位为 1，并且 m-1 的二进制表示一定是低于这一位的所有位均为 1。如果桶的数目不是 2 的整数次幂，就有可能出现有些桶绝对不会被选中的情况。</p>
@@ -1310,6 +1372,32 @@
 <li>桶的位置： <strong><code>bucketIndex = hash &amp; (2^B - 1)</code></strong> ，等价于 <strong><code>hash &amp; mask</code></strong></li>
 <li>桶内位置：使用 hash 的高 8 位（tophash）在桶内快速查找匹配的 key</li>
 </ul>
+<p>这里的两个术语可以顺手说明一下：</p>
+<ul>
+<li><strong>hash 值</strong>：指 key 经过运行时哈希函数计算后的结果。这个值不会被整体直接拿来当桶下标，而是拆开使用。</li>
+<li><strong>掩码（mask）</strong>：指定位桶位置时使用的那个值，通常就是 <strong><code>2^B - 1</code></strong>。</li>
+</ul>
+<p>其中：</p>
+<ul>
+<li>hash 的低位配合掩码来定位桶；</li>
+<li>hash 的高 8 位会放入 <code>tophash</code>，用于桶内快速过滤。</li>
+</ul>
+<p>例如当 <strong><code>B = 3</code></strong> 时，桶数量是 <strong><code>2^3 = 8</code></strong>，那么掩码就是 <strong><code>8 - 1 = 7</code></strong>，二进制写成 <strong><code>111</code></strong>。这时：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">hash = 11010110
+</span></span><span class="line"><span class="cl">mask = 00000111
+</span></span><span class="line"><span class="cl">----------------
+</span></span><span class="line"><span class="cl">hash &amp; mask = 00000110
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>结果是 <code>6</code>，说明这个 key 会落到第 6 号桶。也可以把它理解成：<strong>掩码的作用就是把 hash 的低 B 位“抠出来”，用于快速计算桶下标。</strong></p>
 <p><strong>💡 面试要点：哈希定位过程</strong></p>
 <ol>
 <li>
@@ -1329,8 +1417,47 @@
 </ul>
 </li>
 </ol>
-<h3 id="-哈希冲突">⚔️ 哈希冲突
-</h3><p><strong>Go map</strong> 与 <strong>Java HashMap</strong> 类似，同样使用拉链法</p>
+<p><strong>🔗 Go 为什么选拉链法，而不是开放地址法？</strong></p>
+<p>在理解 Go map 的实现前，先看两种经典的哈希冲突处理方案。</p>
+<p><strong>1. 拉链法</strong></p>
+<p>拉链法的核心思想是：桶数组负责定位，冲突的数据通过额外结构串起来。传统实现常见的是“数组 + 链表”，而 Go 做了优化，不是一个节点只放一个键值对，而是一个桶里先放 8 个键值对，桶满了再通过 <code>overflow</code> 指针挂溢出桶。</p>
+<p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-6.png"
+	width="698"
+	height="582"
+	
+	loading="lazy"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="119"
+		data-flex-basis="287px"
+	
+></p>
+<p><strong>2. 开放地址法</strong></p>
+<p>开放地址法不再额外挂链，而是把元素都直接放在数组里。遇到冲突时，不断向后探测空槽位，直到找到可插入的位置。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">hash(key) = (hash1(key) + i) % len(buckets)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-7.png"
+	width="992"
+	height="565"
+	
+	loading="lazy"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="175"
+		data-flex-basis="421px"
+	
+></p>
+<p>**Go 最终选择的是“桶 + 溢出桶”的变种拉链法。**这样既能把冲突控制在桶和溢出桶链上，又能兼顾缓存友好性和扩容迁移效率。</p>
+<p><strong>⚔️ 哈希冲突</strong></p>
+<p><strong>Go map</strong> 与 <strong>Java HashMap</strong> 类似，同样使用拉链法</p>
 <div align="center">
   <img src="image-20250629230701915.png" alt="哈希冲突拉链法示意图" width="60%">
 </div>
@@ -1347,7 +1474,7 @@
 <li>查找时依次遍历链表上的所有桶</li>
 <li>为了避免链表过长导致性能下降，当链表太长时会触发扩容</li>
 </ul>
-<h3 id="-扩容机制">📈 扩容机制
+<h3 id="-扩容与迁移">📈 扩容与迁移
 </h3><h4 id="-扩容的触发条件">🚀 扩容的触发条件
 </h4><ol>
 <li>负载因子超过 6.5 时，触发 <strong>翻倍扩容</strong>（kv 数量 / 桶的数量 &gt; 6.5 时，桶的数量翻倍）</li>
@@ -1406,6 +1533,18 @@
 <p>在哈希表每次读写操作时，如果检测到当前处于扩容阶段，就完成一部分键值对的迁移任务，直到所有的 “旧桶” 迁移完成，“旧桶” 不再使用才算真正完成了一次哈希表的扩容。把键值对迁移的时间分摊到多次哈希表操作中的方式，就是 “渐进式扩容” 了，可以避免一次性扩容带来的性能瞬时抖动。</p>
 <h4 id="-翻倍扩容">✨ 翻倍扩容
 </h4><p>当负载因子大于 6.5，即 map 元素个数 / 桶个数 &gt; 6.5 时，就会触发翻倍扩容</p>
+<p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-2.png"
+	width="824"
+	height="316"
+	
+	loading="lazy"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="260"
+		data-flex-basis="625px"
+	
+></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -1442,6 +1581,18 @@
 <li>当常规桶数量不大于 $2^{15}$ 时（B &lt;= 15），此时如果溢出桶总数 &gt;= 常规桶总数（<strong><code>noverflow</code></strong> &gt;= $2^B$），则认为溢出桶过多，就会触发等量扩容。</li>
 <li>当常规桶数量大于 $2^{15}$ 时（B &gt; 15），此时直接与 $2^{15}$ 比较，当溢出桶总数 &gt;= $2^{15}$ 时（<strong><code>noverflow</code></strong> &gt;= $2^{15}$），即认为溢出桶太多了，也会触发等量扩容。</li>
 </ol>
+<p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-3.png"
+	width="888"
+	height="556"
+	
+	loading="lazy"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="159"
+		data-flex-basis="383px"
+	
+></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -1499,6 +1650,259 @@
 </ul>
 </li>
 </ol>
+<hr>
+<h3 id="-常见操作的运行时行为">⚙️ 常见操作的运行时行为
+</h3><h4 id="-map-的访问原理">🔍 map 的访问原理
+</h4><p>对 map 的读取，表面上只有两种写法：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">v</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">m</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nx">v</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">m</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>这两种写法的返回形式不同，运行时走到的访问路径也不完全一样，但核心查找流程是一致的。</p>
+<p>但运行时内部会做更多事情：</p>
+<ol>
+<li>先判断 map 是否为 <code>nil</code> 或元素数量是否为 0。</li>
+<li>做一次 <strong>map 写检测</strong>。如果当前 map 正处于写状态，运行时会直接报 <code>fatal error</code>，避免读写并发把哈希表状态破坏掉。</li>
+<li>计算 key 的哈希值和掩码，并用低位确定桶的位置。</li>
+<li>如果当前 map 正在扩容，需要先判断目标桶是否已经迁移：
+<ul>
+<li>已迁移，就到新桶里找。</li>
+<li>未迁移，就先到旧桶里找。</li>
+</ul>
+</li>
+<li>进入目标桶后，先用哈希值高 8 位的 <code>tophash</code> 做一次快速过滤，再决定是否继续比较真正的 key。</li>
+<li>遍历当前桶中的 8 个槽位：
+<ul>
+<li><code>tophash</code> 相同，就继续比较 key 本身。</li>
+<li>key 也相同，就直接返回对应 value。</li>
+<li><code>tophash</code> 不同，则继续看下一个槽位。</li>
+<li>如果遇到表示“后续为空”的状态位，可以直接提前结束查找，因为后面不可能再有这个 key。</li>
+</ul>
+</li>
+<li>当前桶没找到，就沿着 <code>overflow</code> 指针继续遍历溢出桶，重复同样的查找过程。</li>
+<li>全部找完仍未命中时，返回 value 类型的零值；双返回值形式下，<code>ok</code> 为 <code>false</code>。</li>
+</ol>
+<p>访问流程示意图：</p>
+<p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-1.png"
+	width="1280"
+	height="717"
+	
+	loading="lazy"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="178"
+		data-flex-basis="428px"
+	
+></p>
+<p>这里有两个容易忽略的细节：</p>
+<ul>
+<li><strong>读操作虽然不会修改 map 的逻辑内容，但在扩容阶段，访问旧桶时依然可能顺手触发部分桶迁移。</strong> 这也是 Go 渐进式扩容的重要特征。</li>
+<li>查找时并不是一上来就对每个 key 做完整比较，而是先看 <code>tophash</code>，只有高 8 位匹配时才继续比对真正的 key，这样可以明显降低桶内比较成本。</li>
+</ul>
+<h4 id="-map-的赋值原理">✍️ map 的赋值原理
+</h4><p>赋值入口看起来很简单：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">m</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">value</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>但运行时内部会依次完成这些动作：</p>
+<ol>
+<li>检查 map 是否已初始化；对 <code>nil map</code> 赋值会直接 <code>panic</code>。</li>
+<li>检查写标志位，避免并发写破坏哈希表状态。</li>
+<li>计算哈希值，找到目标桶。</li>
+<li>如果目标桶处于扩容区间，先触发该桶迁移。</li>
+<li>在主桶和溢出桶里按 <code>tophash -&gt; key</code> 的顺序查找。</li>
+<li>找到同 key 就覆盖 value；找不到且有空槽就插入；都满了就挂新的溢出桶。</li>
+</ol>
+<p>补充了一个很适合面试时说的点：Go runtime 会维护一个写标志位 <code>hashWriting</code>。当一个 goroutine 正在写 map 时，另一个 goroutine 再写或者与读并发冲突，就可能触发：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">fatal error: concurrent map read and map write
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>所以 Go 的普通 map 从设计上就是<strong>非并发安全</strong>的。</p>
+<h4 id="-map-的删除原理">🗑️ map 的删除原理
+</h4><p><code>delete(m, key)</code> 的行为比很多人想象得更“温和”：</p>
+<ul>
+<li>删除不存在的 key，不报错。</li>
+<li>对 <code>nil map</code> 执行 <code>delete</code>，合法但无效果。</li>
+<li>删除元素后，不会立刻归还桶内内存。</li>
+</ul>
+<p>运行时内部删除时，会把对应槽位标成空状态。常见的两个状态可以这样理解：</p>
+<ul>
+<li><strong><code>emptyOne</code></strong>：这个位置空了，但后面可能还有元素。</li>
+<li><strong><code>emptyRest</code></strong>：从这个位置往后都可以视为没数据了，查找时可以提前结束。</li>
+</ul>
+<p>删除动作对应的核心逻辑位于 <code>runtime.mapdelete</code>。在真正清空目标槽位之前，前置流程和访问、赋值类似，也会先做写检测、定位 bucket，并找到目标 key 所在的位置。</p>
+<p>清空槽位时，运行时会把 <code>tophash</code> 状态向前收紧，核心代码类似下面这样：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="k">for</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">b</span><span class="p">.</span><span class="nx">tophash</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">emptyRest</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="nx">b</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nx">bOrig</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="k">break</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">c</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">b</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="nx">b</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">bOrig</span><span class="p">;</span><span class="w"> </span><span class="nx">b</span><span class="p">.</span><span class="nf">overflow</span><span class="p">(</span><span class="nx">t</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">c</span><span class="p">;</span><span class="w"> </span><span class="nx">b</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">b</span><span class="p">.</span><span class="nf">overflow</span><span class="p">(</span><span class="nx">t</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">i</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">bucketCnt</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">i</span><span class="o">--</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="nx">b</span><span class="p">.</span><span class="nx">tophash</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">emptyOne</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">break</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>这段逻辑的重点是：</p>
+<ol>
+<li>找到目标 key 后，会先清掉该槽位对应的 key/value。</li>
+<li>如果该槽位后面已经没有有效元素，就把当前位置从 <code>emptyOne</code> 进一步收紧为 <code>emptyRest</code>。</li>
+<li>然后继续向前检查前一个槽位：
+<ul>
+<li>如果前一个槽位也只是普通空位 <code>emptyOne</code>，就继续把它推进成 <code>emptyRest</code>；</li>
+<li>一旦遇到前面还有有效元素，就停止。</li>
+</ul>
+</li>
+</ol>
+<p>这样做的目的，是尽量把“后续已经没有元素”这个事实向前传播。因为在查找时，一旦碰到 <code>emptyRest</code>，运行时就可以直接停止继续扫描当前桶或这段连续槽位，避免无意义比较。</p>
+<p>举个更直观的例子：</p>
+<ul>
+<li>假设当前 map 的状态如第一张图所示。</li>
+<li><code>overflow bucket 2</code> 后面没有继续挂新的溢出桶，或者后续溢出桶里已经没有数据。</li>
+<li>这时 <code>overflow bucket 2</code> 中第 <code>2</code>、<code>3</code>、<code>6</code> 个位置是普通空槽，也就是 <code>emptyOne</code>。</li>
+</ul>
+<p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-4.png"
+	width="1280"
+	height="559"
+	
+	loading="lazy"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="228"
+		data-flex-basis="549px"
+	
+></p>
+<p>如果这时删除了 <code>overflow bucket 1</code> 中的 <code>key2</code>、<code>key4</code>，以及 <code>overflow bucket 2</code> 中的 <code>key7</code>，删除后的状态就会变成第二张图：</p>
+<p><img src="/p/go%E7%9A%84%E6%98%A0%E5%B0%84map/image-5.png"
+	width="1280"
+	height="548"
+	
+	loading="lazy"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="233"
+		data-flex-basis="560px"
+	
+></p>
+<p>这个例子想说明的是：</p>
+<ol>
+<li>删除 key 之后，运行时不会简单地只把当前位置标空就结束。</li>
+<li>它会继续检查这个槽位后面是否还有有效元素。</li>
+<li>如果确认后面已经没有元素，就会把当前位置以及前面一段连续的 <code>emptyOne</code> 尽可能推进成 <code>emptyRest</code>。</li>
+</ol>
+<p>这样处理之后，后续查找一旦扫到这段 <code>emptyRest</code>，就能立刻判断“后面不可能再有数据”，不需要继续往后遍历溢出桶里的剩余槽位。</p>
+<p><strong>图例详解：按删除顺序看状态是怎么变化的</strong></p>
+<p>可以按 <code>key2 -&gt; key4 -&gt; key7</code> 这三个删除动作来理解这两张图。</p>
+<p><strong>第一次删除 <code>key2</code></strong></p>
+<ul>
+<li>运行时先定位到 <code>key2</code> 所在槽位，并把该位置清空。</li>
+<li>但这时 <code>key2</code> 后面通常还挂着别的有效元素，比如后续槽位里的 <code>key4</code>，或者后面的溢出桶里还有 <code>key7</code>。</li>
+<li>所以这个位置虽然空了，但还不能直接认定“后面都没数据了”。</li>
+<li>这时它更可能保持为 <strong><code>emptyOne</code></strong>，意思是：这里空了，但后面可能还有元素，查找还不能停。</li>
+</ul>
+<p><strong>第二次删除 <code>key4</code></strong></p>
+<ul>
+<li>删除 <code>key4</code> 后，运行时会继续判断 <code>key4</code> 后面是否还有有效元素。</li>
+<li>如果这时后续溢出桶里仍然还有 <code>key7</code>，那么查找链路就还没断。</li>
+<li>所以 <code>key4</code> 这个位置也不能直接升级成 <strong><code>emptyRest</code></strong>。</li>
+<li>换句话说，前面虽然越来越空，但只要后面还存在有效元素，前面的空槽就只能算“普通空位”，不能算“尾部全空”。</li>
+</ul>
+<p><strong>第三次删除 <code>key7</code></strong></p>
+<ul>
+<li>这是这个例子里最关键的一步，因为 <code>key7</code> 已经位于后面那段有效元素的尾部。</li>
+<li>当 <code>key7</code> 被删掉后，运行时再往后看，发现后面已经没有任何有效元素了。</li>
+<li>这时 <code>key7</code> 所在位置就可以标成 <strong><code>emptyRest</code></strong>。</li>
+<li>接着，运行时会继续往前回看：
+<ul>
+<li>如果前一个槽位原本只是 <code>emptyOne</code>，但它后面现在也已经彻底没有有效元素了；</li>
+<li>那它也可以从 <code>emptyOne</code> 进一步推进成 <code>emptyRest</code>。</li>
+</ul>
+</li>
+<li>于是就会出现一段连续空槽被“整体收紧”的效果。</li>
+</ul>
+<p>这就是为什么源码里的删除逻辑不是“删完当前槽位就结束”，而是会继续向前扫描。它的目标不是只清空一个位置，而是尽可能把一段连续的普通空位压缩成“后续全空”的状态。</p>
+<p>可以把这两个状态简单理解成：</p>
+<ul>
+<li><strong><code>emptyOne</code></strong>：这里空，但后面也许还有货。</li>
+<li><strong><code>emptyRest</code></strong>：这里开始，后面整段都空了，可以直接停止查找。</li>
+</ul>
+<p>这里再补关键结论：<strong>map 删除 key 采用的是标记为空的策略，不会立即释放对应内存。只有整个 map 不再被引用时，才由 GC 回收。</strong> 这也解释了为什么大量删除后，如果很在意内存占用，通常需要重建一个新的 map。</p>
+<h4 id="-map-的遍历原理">🔁 map 的遍历原理
+</h4><p>Go 对 map 的遍历故意做成“无序”，不是副作用，而是设计目标。</p>
+<p>运行时遍历依赖一个迭代器 <code>hiter</code>，它会记录：</p>
+<ul>
+<li>当前遍历到哪个桶</li>
+<li>从桶内哪个槽位开始</li>
+<li>当前 map 是否处于扩容状态</li>
+<li>当前桶对应的新旧桶信息</li>
+</ul>
+<p>初始化迭代器时，运行时会做两次随机选择：</p>
+<ol>
+<li>随机选一个起始桶 <code>startBucket</code></li>
+<li>随机选一个桶内起始槽位 <code>offset</code></li>
+</ol>
+<p>这就是为什么同一个 map 多次 <code>range</code>，顺序也可能不同。这样做的好处有两个：</p>
+<ul>
+<li>防止开发者错误依赖遍历顺序</li>
+<li>扩容是渐进式的，元素位置本来就可能变化，无序更符合真实语义</li>
+</ul>
+<p>如果在遍历期间遇到还没迁移完的旧桶，运行时会优先从旧桶中筛出本轮应该返回的那部分 key，再继续推进遍历。</p>
+<h3 id="-补充结论">💡 补充结论
+</h3><ul>
+<li><code>map</code> 的冲突处理不是简单链表，而是“一个桶放 8 个 kv + overflow 桶链”。</li>
+<li><code>map</code> 扩容不是一次搬完，而是按访问逐步迁移。</li>
+<li>读操作在扩容期间也可能触发迁移，这一点很容易被忽略。</li>
+<li><code>delete</code> 只是标空，不会立刻释放桶内内存。</li>
+<li>普通 <code>map</code> 的并发读写会被运行时直接判定为致命错误。</li>
+</ul>
 
 </section>
 
@@ -1520,7 +1924,7 @@
 
 
         <span>
-            最后更新于 2026-03-20 15:40 UTC
+            最后更新于 2026-03-23 03:07 UTC
         </span>
     </section></footer>
 
@@ -1576,6 +1980,19 @@
             
                 
 <article class="">
+    <a href="/p/go%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E5%92%8C%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Go的内存管理和垃圾回收</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
     <a href="/p/go%E7%9A%84context/">
         
         
@@ -1608,19 +2025,6 @@
 
         <div class="article-details">
             <h2 class="article-title">Go的泛型</h2>
-        </div>
-    </a>
-</article>
-
-            
-                
-<article class="">
-    <a href="/p/go%E7%9A%84channel/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">Go的Channel</h2>
         </div>
     </a>
 </article>
