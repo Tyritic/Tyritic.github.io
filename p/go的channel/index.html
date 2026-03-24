@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en-us" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="深入理解Go语言中的Channel：channel的定义、初始化、操作、读取方式、双向与单向channel、以及如何利用channel实现并发安全">
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="深入理解 Go 语言中的 Channel：Channel 的定义、初始化、操作、底层实现、select 机制，以及如何利用 Channel 实现并发安全">
 <title>Go的Channel</title>
 
 <link rel='canonical' href='https://Tyritic.github.io/p/go%E7%9A%84channel/'>
 
 <link rel="stylesheet" href="/scss/style.min.dad0e2c2229a75c496b5a934967d99a61e8005c32f24fb55c6333e1a66ab1d8b.css"><meta property='og:title' content="Go的Channel">
-<meta property='og:description' content="深入理解Go语言中的Channel：channel的定义、初始化、操作、读取方式、双向与单向channel、以及如何利用channel实现并发安全">
+<meta property='og:description' content="深入理解 Go 语言中的 Channel：Channel 的定义、初始化、操作、底层实现、select 机制，以及如何利用 Channel 实现并发安全">
 <meta property='og:url' content='https://Tyritic.github.io/p/go%E7%9A%84channel/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开放' /><meta property='article:published_time' content='2026-03-19T10:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-03-23T05:36:30&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开放' /><meta property='article:published_time' content='2026-03-19T10:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-03-24T05:58:14&#43;00:00'/>
 <meta name="twitter:title" content="Go的Channel">
-<meta name="twitter:description" content="深入理解Go语言中的Channel：channel的定义、初始化、操作、读取方式、双向与单向channel、以及如何利用channel实现并发安全">
+<meta name="twitter:description" content="深入理解 Go 语言中的 Channel：Channel 的定义、初始化、操作、底层实现、select 机制，以及如何利用 Channel 实现并发安全">
     <link rel="shortcut icon" href="/favicon.ico" />
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -309,105 +309,113 @@
             <nav id="TableOfContents">
   <ol>
     <li><a href="#-前言">🧠 前言</a></li>
-    <li><a href="#-channel是什么">📡 Channel是什么</a></li>
-    <li><a href="#-channel底层原理">🔍 Channel底层原理</a>
-      <ol>
-        <li><a href="#-hchan结构体">📦 hchan结构体</a></li>
-        <li><a href="#-关键字段说明">📋 关键字段说明</a></li>
-      </ol>
-    </li>
-    <li><a href="#-channel的实现位置">⚙️ Channel的实现位置</a>
+    <li><a href="#-channel-是什么">📡 Channel 是什么</a></li>
+    <li><a href="#-channel-的实现位置">⚙️ Channel 的实现位置</a>
       <ol>
         <li><a href="#-用户态实现的优势">✨ 用户态实现的优势</a></li>
         <li><a href="#-性能意义">🚀 性能意义</a></li>
       </ol>
     </li>
-    <li><a href="#-channel初始化">🔧 Channel初始化</a>
+    <li><a href="#-有缓冲-channel-与无缓冲-channel">⚖️ 有缓冲 Channel 与无缓冲 Channel</a>
       <ol>
-        <li><a href="#-声明方式">📝 声明方式</a></li>
-        <li><a href="#-初始化方式">🛠️ 初始化方式</a></li>
+        <li><a href="#-无缓冲-channel">🔒 无缓冲 Channel</a></li>
+        <li><a href="#-有缓冲-channel">📦 有缓冲 Channel</a></li>
       </ol>
     </li>
-    <li><a href="#-channel操作">🔄 Channel操作</a></li>
-    <li><a href="#-channel读取方式">📖 Channel读取方式</a>
+    <li><a href="#-channel-底层原理">🔍 Channel 底层原理</a>
       <ol>
+        <li><a href="#-底层数据结构">🧱 底层数据结构</a></li>
+        <li><a href="#-关键字段说明">📋 关键字段说明</a></li>
+        <li><a href="#-等待队列与-sudog">🧩 等待队列与 <code>sudog</code></a></li>
+        <li><a href="#-线程安全性">🔐 线程安全性</a>
+          <ol>
+            <li><a href="#-锁保护机制">🔒 锁保护机制</a></li>
+            <li><a href="#-等待队列保护">📌 等待队列保护</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#-channel-基础操作">🔧 Channel 基础操作</a>
+      <ol>
+        <li><a href="#-声明与初始化">📝 声明与初始化</a></li>
+        <li><a href="#-发送数据">📤 发送数据</a></li>
+        <li><a href="#-读取数据">📥 读取数据</a></li>
         <li><a href="#-判定读取">🔍 判定读取</a></li>
-        <li><a href="#-for-range读取">🔁 for range读取</a></li>
+        <li><a href="#-for-range-读取">🔁 <code>for range</code> 读取</a></li>
+        <li><a href="#-关闭管道">🔒 关闭管道</a></li>
       </ol>
     </li>
-    <li><a href="#-双向channel和单向channel">🔀 双向Channel和单向Channel</a>
+    <li><a href="#-channel-操作的底层原理">🏗️ Channel 操作的底层原理</a>
       <ol>
-        <li><a href="#-定义单向读channel">📥 定义单向读Channel</a></li>
-        <li><a href="#-定义单向写channel">📤 定义单向写Channel</a></li>
+        <li><a href="#-运行时初始化">🧱 运行时初始化</a></li>
+        <li><a href="#-channel-发送流程">📤 Channel 发送流程</a></li>
+        <li><a href="#-channel-接收流程">📥 Channel 接收流程</a></li>
+        <li><a href="#-channel-关闭流程">🔒 Channel 关闭流程</a></li>
+      </ol>
+    </li>
+    <li><a href="#-双向-channel-和单向-channel">🔀 双向 Channel 和单向 Channel</a>
+      <ol>
+        <li><a href="#-定义单向读-channel">📥 定义单向读 Channel</a></li>
+        <li><a href="#-定义单向写-channel">📤 定义单向写 Channel</a></li>
+        <li><a href="#-使用说明">💡 使用说明</a></li>
         <li><a href="#-代码示例">💻 代码示例</a></li>
       </ol>
     </li>
-    <li><a href="#-有缓冲channel与无缓冲channel">⚖️ 有缓冲Channel与无缓冲Channel</a>
-      <ol>
-        <li><a href="#-无缓冲channel">🔒 无缓冲Channel</a></li>
-        <li><a href="#-有缓冲channel">📦 有缓冲Channel</a></li>
-      </ol>
-    </li>
-    <li><a href="#-无缓冲channel的状态转换">🔄 无缓冲Channel的状态转换</a>
+    <li><a href="#-无缓冲-channel-的状态转换">🔄 无缓冲 Channel 的状态转换</a>
       <ol>
         <li><a href="#-读写阻塞机制">🚦 读写阻塞机制</a></li>
-        <li><a href="#-状态转换过程">🔄 状态转换过程</a></li>
+        <li><a href="#-状态转换过程">🔁 状态转换过程</a></li>
         <li><a href="#-关键特点">🎯 关键特点</a></li>
       </ol>
     </li>
-    <li><a href="#-channel实现锁操作">🔒 Channel实现锁操作</a></li>
-    <li><a href="#-channel的死锁场景">⚠️ Channel的死锁场景</a>
+    <li><a href="#-channel-与锁">🔐 Channel 与锁</a>
+      <ol>
+        <li><a href="#-用-channel-实现锁操作">🧱 用 Channel 实现锁操作</a></li>
+      </ol>
+    </li>
+    <li><a href="#-channel-的死锁场景">⚠️ Channel 的死锁场景</a>
       <ol>
         <li><a href="#-典型死锁示例">💀 典型死锁示例</a></li>
         <li><a href="#-常见死锁场景">📋 常见死锁场景</a></li>
         <li><a href="#-如何避免死锁">🛡️ 如何避免死锁</a></li>
       </ol>
     </li>
-    <li><a href="#-channel与协程通信示例">📊 Channel与协程通信示例</a></li>
-    <li><a href="#-select语句">🔀 select语句</a>
+    <li><a href="#-channel-与协程通信示例">📊 Channel 与协程通信示例</a></li>
+    <li><a href="#-select-语句">🔀 <code>select</code> 语句</a>
       <ol>
-        <li><a href="#-select是什么">📖 select是什么</a></li>
-        <li><a href="#-select与io多路复用">🔀 select与IO多路复用</a>
+        <li><a href="#-select-是什么">📖 <code>select</code> 是什么</a></li>
+        <li><a href="#-select-与-io-多路复用">🔁 <code>select</code> 与 I/O 多路复用</a>
           <ol>
-            <li><a href="#-传统阻塞io">🔄 传统阻塞IO</a></li>
-            <li><a href="#-io多路复用">⚡ IO多路复用</a></li>
+            <li><a href="#-传统阻塞-io">🔄 传统阻塞 I/O</a></li>
+            <li><a href="#-io-多路复用">⚡ I/O 多路复用</a></li>
           </ol>
         </li>
         <li><a href="#-基本语法">📝 基本语法</a></li>
         <li><a href="#-核心特性">⭐ 核心特性</a></li>
         <li><a href="#-使用场景详解">🎯 使用场景详解</a>
           <ol>
-            <li><a href="#-空select永久阻塞">🚫 空select永久阻塞</a></li>
-            <li><a href="#-没有default且case无法执行的select">⚠️ 没有default且case无法执行的select</a></li>
-            <li><a href="#-有单一case和default的select">✅ 有单一case和default的select</a></li>
-            <li><a href="#-有多个case和default的select">🎯 有多个case和default的select</a></li>
+            <li><a href="#-空-select-永久阻塞">🚫 空 <code>select</code> 永久阻塞</a></li>
+            <li><a href="#-没有-default-且所有-case-都不可执行">⚠️ 没有 <code>default</code> 且所有 <code>case</code> 都不可执行</a></li>
+            <li><a href="#-单一-case-加-default">✅ 单一 <code>case</code> 加 <code>default</code></a></li>
+            <li><a href="#-多个-case-加-default">🎯 多个 <code>case</code> 加 <code>default</code></a></li>
           </ol>
         </li>
-        <li><a href="#-select的随机性">🎲 select的随机性</a></li>
+        <li><a href="#-select-的随机性">🎲 <code>select</code> 的随机性</a></li>
         <li><a href="#-超时控制示例">⏱️ 超时控制示例</a></li>
         <li><a href="#-非阻塞操作">🚀 非阻塞操作</a></li>
         <li><a href="#-性能特点">📊 性能特点</a></li>
       </ol>
     </li>
-    <li><a href="#-小结">📝 小结</a>
+    <li><a href="#-channel-与-context">🔗 Channel 与 Context</a>
       <ol>
-        <li><a href="#-基本注意事项">⚠️ 基本注意事项</a></li>
-        <li><a href="#-channel的线程安全性详解">🔐 Channel的线程安全性详解</a>
-          <ol>
-            <li><a href="#-锁保护机制">🔒 锁保护机制</a></li>
-            <li><a href="#-等待队列保护">📋 等待队列保护</a></li>
-          </ol>
-        </li>
-      </ol>
-    </li>
-    <li><a href="#-channel与context">🔗 Channel与Context</a>
-      <ol>
-        <li><a href="#-context的done方法">📋 Context的Done方法</a></li>
-        <li><a href="#-取消机制实现">🔧 取消机制实现</a></li>
+        <li><a href="#-done-方法">📋 <code>Done</code> 方法</a></li>
+        <li><a href="#-取消机制实现">🛠️ 取消机制实现</a></li>
         <li><a href="#-取消流程">🔄 取消流程</a></li>
         <li><a href="#-超时控制">⏰ 超时控制</a></li>
       </ol>
     </li>
+    <li><a href="#-基本注意事项">⚠️ 基本注意事项</a></li>
+    <li><a href="#-小结">📝 小结</a></li>
   </ol>
 </nav>
         </div>
@@ -440,7 +448,7 @@
     
         
         <h3 class="article-subtitle">
-            深入理解Go语言中的Channel：channel的定义、初始化、操作、读取方式、双向与单向channel、以及如何利用channel实现并发安全
+            深入理解 Go 语言中的 Channel：Channel 的定义、初始化、操作、底层实现、select 机制，以及如何利用 Channel 实现并发安全
         </h3>
         
     </div>
@@ -484,7 +492,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：6860 字
+                     字数统计：6888 字
                 </time>
             </div>
 
@@ -503,20 +511,61 @@
     
     
     <h2 id="-前言">🧠 前言
-</h2><p>我们知道可以通过 <code>go</code> 关键字来开启一个 <code>goroutine</code>，我们的样例代码逻辑很简单，都是在各个 <code>goroutine</code> 各自处理自己的逻辑，但有时候我们需要不同的 <code>goroutine</code> 之间能够通信，这里就要用到 <strong><code>Channel</code></strong>。</p>
-<p>Go 语言中有个重要思想：<strong>不以共享内存来通信，而以通信来共享内存</strong>。说得更直接点，协程之间可以利用 <code>Channel</code> 来传递数据，实现goroutine之间的通信与同步。</p>
+</h2><p>可以通过 <code>go</code> 关键字开启一个 <code>goroutine</code>，让不同任务并发执行。但仅有并发还不够，真正困难的是让多个 <code>goroutine</code> 之间安全地交换数据、协调执行顺序，而这正是 <strong><code>Channel</code></strong> 的价值所在。</p>
+<p>Go 语言强调的核心理念是：<strong>不要通过共享内存来通信，而要通过通信来共享内存</strong>。<code>Channel</code> 就是这一理念最直接的体现，它让 <code>goroutine</code> 之间的数据传递、同步与协作变得清晰、自然且安全。</p>
 <hr>
-<h2 id="-channel是什么">📡 Channel是什么
-</h2><p><strong>官方定义</strong>：Channels are a typed conduit through which you can send and receive values with the channel operator.</p>
-<p><strong>Channel</strong> 是一个可以收发数据的管道，它是 Go 语言实现并发编程的核心组件之一。</p>
+<h2 id="-channel-是什么">📡 Channel 是什么
+</h2><p>Go 官方对 <code>Channel</code> 的定义是：</p>
+<blockquote>
+<p>Channels are a typed conduit through which you can send and receive values with the channel operator.</p>
+</blockquote>
+<p>可以把 <strong><code>Channel</code></strong> 理解为一个带类型的通信管道。发送方通过它写入数据，接收方通过它读取数据，<code>goroutine</code> 之间借此完成通信。</p>
+<p><code>Channel</code> 的几个关键特征如下：</p>
+<ul>
+<li><strong>带类型</strong>：<code>chan int</code>、<code>chan string</code>、<code>chan User</code> 都只能传递对应类型的数据。</li>
+<li><strong>可同步</strong>：无缓冲 <code>Channel</code> 天生具备同步语义。</li>
+<li><strong>可缓冲</strong>：有缓冲 <code>Channel</code> 可以在一定程度上解耦发送方和接收方。</li>
+<li><strong>并发安全</strong>：多个 <code>goroutine</code> 可以同时操作同一个 <code>Channel</code>。</li>
+</ul>
 <hr>
-<h2 id="-channel底层原理">🔍 Channel底层原理
-</h2><p>Channel 在 Go 语言中是通过 <code>hchan</code> 结构体来实现的，了解其底层结构有助于我们更好地理解 Channel 的工作机制。</p>
+<h2 id="-channel-的实现位置">⚙️ Channel 的实现位置
+</h2><p><code>Channel</code> 完全由 Go 运行时在<strong>用户态</strong>实现，这是 Go 并发模型高效的重要原因之一。</p>
+<h3 id="-用户态实现的优势">✨ 用户态实现的优势
+</h3><ul>
+<li><strong>避免内核态切换</strong>：<code>Channel</code> 操作本身不依赖系统调用。</li>
+<li><strong>调度成本更低</strong>：阻塞和唤醒由 Go 调度器完成。</li>
+<li><strong>通信更轻量</strong>：相比内核级管道、<code>socket</code> 等机制开销更小。</li>
+<li><strong>缓冲区在堆上</strong>：底层缓冲区由 Go 运行时分配和管理。</li>
+</ul>
+<h3 id="-性能意义">🚀 性能意义
+</h3><p>由于 <code>Channel</code> 的阻塞、唤醒、排队、数据拷贝等逻辑都在运行时内部完成，所以 Go 能用更低成本支撑大量协程并发执行。</p>
+<hr>
+<h2 id="-有缓冲-channel-与无缓冲-channel">⚖️ 有缓冲 Channel 与无缓冲 Channel
+</h2><p><code>Channel</code> 主要分为两类：<strong>无缓冲 <code>Channel</code></strong> 和 <strong>有缓冲 <code>Channel</code></strong>。</p>
+<h3 id="-无缓冲-channel">🔒 无缓冲 Channel
+</h3><p>无缓冲 <code>Channel</code> 可以理解为<strong>同步通信</strong>。发送方写入数据时，如果没有接收方准备好，就会立刻阻塞；接收方读取数据时，如果没有发送方，也会阻塞。</p>
+<h3 id="-有缓冲-channel">📦 有缓冲 Channel
+</h3><p>有缓冲 <code>Channel</code> 可以理解为<strong>异步通信</strong>。只要缓冲区未满，发送方就可以继续写入，而不必马上等待接收方读取。</p>
+<p>先看正常写入时的状态：</p>
 <div align="center">
-  <img src="channel的底层原理.png" alt="有缓冲Channel" width="60%">
+  <img src="channel1.png" alt="有缓冲 Channel 的正常写入状态" width="60%">
 </div>
-<h3 id="-hchan结构体">📦 hchan结构体
-</h3><div class="highlight"><div class="chroma">
+<p>当缓冲区被写满之后，发送方同样会阻塞：</p>
+<div align="center">
+  <img src="channel2.png" alt="有缓冲 Channel 队列写满后的状态" width="60%">
+</div>
+<p>因此，有缓冲 <code>Channel</code> 只是把阻塞点后移，而不是完全消除阻塞。</p>
+<hr>
+<h2 id="-channel-底层原理">🔍 Channel 底层原理
+</h2><h3 id="-底层数据结构">🧱 底层数据结构
+</h3><p><code>Channel</code> 在 Go 运行时中由 <code>runtime.hchan</code> 表示。调用 <code>make(chan T, size)</code> 时，运行时会在堆上分配一个 <code>hchan</code> 结构，并返回对它的引用，因此 <code>Channel</code> 本质上是<strong>引用类型</strong>。</p>
+<p>之所以分配在堆上，而不是栈上，是因为 <code>Channel</code> 通常需要在多个 <code>goroutine</code> 之间共享，其生命周期往往超过某一个函数调用栈的范围。</p>
+<p>先看整体结构示意图：</p>
+<div align="center">
+  <img src="channel的底层原理.png" alt="Channel 的整体底层结构" width="60%">
+</div>
+<p><code>hchan</code> 的定义如下：</p>
+<div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
@@ -534,72 +583,35 @@
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">hchan</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">qcount</span><span class="w">   </span><span class="kt">uint</span><span class="w">           </span><span class="c1">// 当前队列中元素个数</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">dataqsiz</span><span class="w"> </span><span class="kt">uint</span><span class="w">           </span><span class="c1">// 缓冲区大小（0 表示无缓冲）</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">buf</span><span class="w">      </span><span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span><span class="w"> </span><span class="c1">// 循环队列（ring buffer）</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">elemsize</span><span class="w"> </span><span class="kt">uint16</span><span class="w">         </span><span class="c1">// 每个元素大小</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">closed</span><span class="w">   </span><span class="kt">uint32</span><span class="w">         </span><span class="c1">// 是否关闭</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">elemtype</span><span class="w"> </span><span class="o">*</span><span class="nx">_type</span><span class="w">         </span><span class="c1">// 元素类型（反射使用）</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">sendx</span><span class="w">    </span><span class="kt">uint</span><span class="w">           </span><span class="c1">// 发送索引（环形队列下标）</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">recvx</span><span class="w">    </span><span class="kt">uint</span><span class="w">           </span><span class="c1">// 接收索引</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">recvq</span><span class="w">    </span><span class="nx">waitq</span><span class="w">          </span><span class="c1">// 等待接收的 goroutine 队列</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">sendq</span><span class="w">    </span><span class="nx">waitq</span><span class="w">          </span><span class="c1">// 等待发送的 goroutine 队列</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">lock</span><span class="w">     </span><span class="nx">mutex</span><span class="w">          </span><span class="c1">// 互斥锁</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">qcount</span><span class="w">   </span><span class="kt">uint</span><span class="w">           </span><span class="c1">// 循环队列中的数据总数</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">dataqsiz</span><span class="w"> </span><span class="kt">uint</span><span class="w">           </span><span class="c1">// 循环队列大小</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">buf</span><span class="w">      </span><span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span><span class="w"> </span><span class="c1">// 指向循环队列的指针</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">elemsize</span><span class="w"> </span><span class="kt">uint16</span><span class="w">         </span><span class="c1">// 每个元素的大小</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">closed</span><span class="w">   </span><span class="kt">uint32</span><span class="w">         </span><span class="c1">// 标记 channel 是否关闭</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">elemtype</span><span class="w"> </span><span class="o">*</span><span class="nx">_type</span><span class="w">         </span><span class="c1">// 元素类型</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">sendx</span><span class="w">    </span><span class="kt">uint</span><span class="w">           </span><span class="c1">// 发送索引</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">recvx</span><span class="w">    </span><span class="kt">uint</span><span class="w">           </span><span class="c1">// 接收索引</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">recvq</span><span class="w">    </span><span class="nx">waitq</span><span class="w">          </span><span class="c1">// 等待接收的 sudog 队列</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">sendq</span><span class="w">    </span><span class="nx">waitq</span><span class="w">          </span><span class="c1">// 等待发送的 sudog 队列</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">lock</span><span class="w">     </span><span class="nx">mutex</span><span class="w">          </span><span class="c1">// 互斥锁</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
 </div><h3 id="-关键字段说明">📋 关键字段说明
 </h3><ul>
-<li><strong><code>qcount</code></strong>：当前缓冲区中已有的元素数量</li>
-<li><strong><code>dataqsiz</code></strong>：缓冲区的容量大小，无缓冲 Channel 该值为 0</li>
-<li><strong><code>buf</code></strong>：指向环形缓冲区的指针，用于存储数据</li>
-<li><strong><code>elemsize</code></strong>：每个元素的大小，用于内存拷贝</li>
-<li><strong><code>closed</code></strong>：标识 Channel 是否已关闭，0 表示未关闭，1 表示已关闭</li>
-<li><strong><code>elemtype</code></strong>：元素类型信息，用于类型检查和垃圾回收</li>
-<li><strong><code>sendx</code>/<code>recvx</code></strong>：环形缓冲区的发送和接收索引</li>
-<li><strong><code>recvq</code>/<code>sendq</code></strong>：等待队列，存储阻塞的 goroutine</li>
-<li><strong><code>lock</code></strong>：互斥锁，保证并发安全</li>
+<li><strong><code>qcount</code></strong>：当前缓冲区中已有的元素数量。</li>
+<li><strong><code>dataqsiz</code></strong>：缓冲区容量，无缓冲 <code>Channel</code> 该值为 <code>0</code>。</li>
+<li><strong><code>buf</code></strong>：指向底层环形缓冲区。</li>
+<li><strong><code>elemsize</code></strong>：单个元素的大小。</li>
+<li><strong><code>closed</code></strong>：标识 <code>Channel</code> 是否已关闭。</li>
+<li><strong><code>elemtype</code></strong>：元素类型信息，供运行时和 GC 使用。</li>
+<li><strong><code>sendx</code> / <code>recvx</code></strong>：环形队列中的写入索引和读取索引。</li>
+<li><strong><code>sendq</code> / <code>recvq</code></strong>：保存阻塞发送者和阻塞接收者。</li>
+<li><strong><code>lock</code></strong>：保证并发操作安全。</li>
 </ul>
-<hr>
-<h2 id="-channel的实现位置">⚙️ Channel的实现位置
-</h2><p><strong>Channel 是纯粹的</strong> <strong>用户态实现</strong>，这是 Go 能够实现高并发性能的重要原因之一。</p>
-<h3 id="-用户态实现的优势">✨ 用户态实现的优势
-</h3><ul>
-<li><strong>避免内核态切换</strong>：Channel 操作不涉及系统调用，避免了频繁的内核态-用户态切换</li>
-<li><strong>高效调度</strong>：通过 Go 调度器在用户空间高效地管理 Goroutine 的阻塞和唤醒</li>
-<li><strong>轻量级通信</strong>：比内核级通信（如管道、socket）轻量得多</li>
-<li><strong>缓冲区位置</strong>：Channel 的缓冲区分配在用户态的 Go 堆内存中，不依赖操作系统内核</li>
-</ul>
-<h3 id="-性能意义">🚀 性能意义
-</h3><p>由于 Channel 完全由 Go 运行时（runtime）在用户态实现，使得并发编程既安全又高效，这是 Go 语言高并发能力的核心支撑之一。</p>
-<hr>
-<h2 id="-channel初始化">🔧 Channel初始化
-</h2><h3 id="-声明方式">📝 声明方式
-</h3><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">channel_name</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="nx">channel_type</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">channel_name</span><span class="w"> </span><span class="p">[</span><span class="nx">size</span><span class="p">]</span><span class="kd">chan</span><span class="w"> </span><span class="nx">channel_type</span><span class="w">  </span><span class="c1">// 声明一个channel，其容量大小为size</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p>声明之后的管道，并没有进行初始化为其分配空间，其值是 <code>nil</code>，我们要使用还要配合 <code>make</code> 函数来对其初始化，之后才可以在程序中使用该管道。</p>
-<h3 id="-初始化方式">🛠️ 初始化方式
-</h3><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">channel_name</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="nx">channel_type</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="nx">channel_name</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="nx">channel_type</span><span class="p">,</span><span class="w"> </span><span class="nx">size</span><span class="p">)</span><span class="w"> </span><span class="cp">//创建带有缓存的管道，size为缓存大小</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="-channel操作">🔄 Channel操作
-</h2><p>Channel的操作主要有以下几种：</p>
+<h3 id="-等待队列与-sudog">🧩 等待队列与 <code>sudog</code>
+</h3><p>阻塞中的 <code>goroutine</code> 不会直接挂在 <code>Channel</code> 上，而是会被封装成 <code>sudog</code> 节点，再进入 <code>sendq</code> 或 <code>recvq</code> 等待队列。</p>
+<p><code>waitq</code> 的结构如下：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -608,14 +620,13 @@
 </span><span class="lnt">4
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">ch</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">         </span><span class="c1">// 创建一个管道ch</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="nx">ch</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nx">v</span><span class="w">                      </span><span class="c1">// 向管道ch中发送数据v.</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="nx">v</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ch</span><span class="w">                    </span><span class="c1">// 从管道中读取数据存储到变量v</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="nb">close</span><span class="p">(</span><span class="nx">ch</span><span class="p">)</span><span class="w">                    </span><span class="c1">// 关闭管道ch</span><span class="w">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">waitq</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">first</span><span class="w"> </span><span class="o">*</span><span class="nx">sudog</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">last</span><span class="w">  </span><span class="o">*</span><span class="nx">sudog</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><p>在这里需要注意 <code>close(ch)</code> 这个操作，管道用完了，需要对其进行关闭，避免程序一直在等待以及资源的浪费。但是关闭的管道，仍然可以从中接收数据，只是接收到的的数据永远是零值。</p>
-<p>看下面例子：</p>
+</div><p><code>sudog</code> 的核心结构如下：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -633,55 +644,99 @@
 </span><span class="lnt">13
 </span><span class="lnt">14
 </span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;fmt&#34;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;time&#34;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nb">close</span><span class="p">(</span><span class="nx">ch</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">v</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ch</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;v=%d\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">sudog</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">g</span><span class="w"> </span><span class="o">*</span><span class="nx">g</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">next</span><span class="w"> </span><span class="o">*</span><span class="nx">sudog</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">prev</span><span class="w"> </span><span class="o">*</span><span class="nx">sudog</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">elem</span><span class="w"> </span><span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">acquiretime</span><span class="w"> </span><span class="kt">int64</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">releasetime</span><span class="w"> </span><span class="kt">int64</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">ticket</span><span class="w">      </span><span class="kt">uint32</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">isSelect</span><span class="w">    </span><span class="kt">bool</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">success</span><span class="w">     </span><span class="kt">bool</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">parent</span><span class="w">   </span><span class="o">*</span><span class="nx">sudog</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">waitlink</span><span class="w"> </span><span class="o">*</span><span class="nx">sudog</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">waittail</span><span class="w"> </span><span class="o">*</span><span class="nx">sudog</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">   </span><span class="nx">c</span><span class="w">        </span><span class="o">*</span><span class="nx">hchan</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><p><strong>运行结果</strong>：</p>
+</div><p>这里最关键的字段是 <code>elem</code>：</p>
+<ul>
+<li><strong>发送时</strong>：<code>elem</code> 指向待发送的数据。</li>
+<li><strong>接收时</strong>：<code>elem</code> 指向接收结果写入的位置。</li>
+</ul>
+<p>再看一张更直观的结构示意图：</p>
+<div align="center">
+  <img src="image.png" alt="Channel 底层缓冲区与索引示意图" width="60%">
+</div>
+<p>在这张图里，缓冲区容量是 <code>8</code>，当前已有 <code>4</code> 个元素，因此 <code>sendx</code> 指向下一个写入位置，<code>recvx</code> 指向下一个读取位置。</p>
+<h3 id="-线程安全性">🔐 线程安全性
+</h3><p><code>Channel</code> 是多 <code>goroutine</code> 并发安全的，核心依赖于 <code>hchan</code> 中的 <code>lock</code>。</p>
+<h4 id="-锁保护机制">🔒 锁保护机制
+</h4><ul>
+<li><strong>发送操作</strong>：进入发送逻辑前先加锁，完成后解锁。</li>
+<li><strong>接收操作</strong>：进入接收逻辑前先加锁，完成后解锁。</li>
+<li><strong>关闭操作</strong>：修改 <code>closed</code> 状态前先加锁，处理完成后解锁。</li>
+</ul>
+<h4 id="-等待队列保护">📌 等待队列保护
+</h4><ul>
+<li><strong><code>sendq</code></strong>：保证发送者阻塞与唤醒顺序安全。</li>
+<li><strong><code>recvq</code></strong>：保证接收者阻塞与唤醒顺序安全。</li>
+<li><strong>缓冲区</strong>：通过锁保护 <code>buf</code>、<code>sendx</code>、<code>recvx</code> 和 <code>qcount</code>，避免并发写乱序。</li>
+</ul>
+<hr>
+<h2 id="-channel-基础操作">🔧 Channel 基础操作
+</h2><h3 id="-声明与初始化">📝 声明与初始化
+</h3><p>先声明，再通过 <code>make</code> 初始化：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">v=1
-</span></span><span class="line"><span class="cl">v=0
-</span></span><span class="line"><span class="cl">v=0
-</span></span><span class="line"><span class="cl">v=0
-</span></span><span class="line"><span class="cl">v=0
-</span></span></code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">channelName</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">channelArray</span><span class="w"> </span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
 </div>
-</div><p>创建一个缓存为 <code>5</code> 的 <code>int</code> 类型的管道，向管道里写入一个 <code>1</code> 之后，将管道关闭，然后开启一个 <code>goroutine</code> 从管道读取数据，读取 <code>5</code> 次，可以看到即便管道关闭之后，它仍然可以读取数据，在读完数据之后，将一直读取零值。</p>
-<hr>
-<h2 id="-channel读取方式">📖 Channel读取方式
-</h2><h3 id="-判定读取">🔍 判定读取
-</h3><p>有时候我们需要往 <code>Channel</code> 里写入零值，然后用另一个 <code>goroutine</code> 读取，此时我们就无法区分两种情况（是否还有数据、是否已关闭）。这时候可以使用 <strong>ok 判断句式</strong> 来读取：</p>
+</div><p>此时 <code>channelName</code> 的值是 <code>nil</code>，还不能直接使用，需要进一步初始化：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">ch1</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nx">ch2</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><strong><code>make(chan int)</code></strong>：创建无缓冲 <code>Channel</code>。</li>
+<li><strong><code>make(chan int, 3)</code></strong>：创建容量为 <code>3</code> 的有缓冲 <code>Channel</code>。</li>
+</ul>
+<h3 id="-发送数据">📤 发送数据
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">ch</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nx">v</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="-读取数据">📥 读取数据
+</h3><p>最常见的读取方式如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">v</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ch</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="-判定读取">🔍 判定读取
+</h3><p>当我们需要区分“读到的是零值”还是“<code>Channel</code> 已关闭”时，可以使用 <code>ok</code> 判断：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -707,6 +762,8 @@
 </span><span class="lnt">21
 </span><span class="lnt">22
 </span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
@@ -720,16 +777,18 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">1</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nb">close</span><span class="p">(</span><span class="nx">ch</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">v</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ch</span><span class="w"> </span><span class="c1">// 判断句式读取</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">v</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ch</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;v=%d\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;channel数据已读完，v=%d\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;channel 数据已读完，v=%d\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
@@ -744,17 +803,16 @@
 </span><span class="lnt">5
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">v=1
-</span></span><span class="line"><span class="cl">channel数据已读完，v=0
-</span></span><span class="line"><span class="cl">channel数据已读完，v=0
-</span></span><span class="line"><span class="cl">channel数据已读完，v=0
-</span></span><span class="line"><span class="cl">channel数据已读完，v=0
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">v=1
+</span></span><span class="line"><span class="cl">channel 数据已读完，v=0
+</span></span><span class="line"><span class="cl">channel 数据已读完，v=0
+</span></span><span class="line"><span class="cl">channel 数据已读完，v=0
+</span></span><span class="line"><span class="cl">channel 数据已读完，v=0
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>在读取 <code>Channel</code> 数据的时候，用 <code>ok</code> 做了判断，当管道内还有数据能读取的时候，<code>ok</code> 为 <code>true</code>，当管道关闭后，<code>ok</code> 为 <code>false</code>。</p>
-<hr>
-<h3 id="-for-range读取">🔁 for range读取
-</h3><p>在很多场景下，我们并不明确读取次数，只需要在 <code>Channel</code> 的一端读取数据，有数据就读，直到另一端关闭了这个 <code>Channel</code>，这时候可以使用 <strong><code>for range</code></strong> 这种优雅的方式来读取 <code>Channel</code> 中的数据：</p>
+</div><p>当 <code>ok</code> 为 <code>true</code> 时，表示本次确实读到了有效数据；当 <code>ok</code> 为 <code>false</code> 时，表示 <code>Channel</code> 已关闭且数据已经读空。</p>
+<h3 id="-for-range-读取">🔁 <code>for range</code> 读取
+</h3><p>如果我们不确定要读取多少次，而是希望“只要有数据就继续读，直到发送方关闭 <code>Channel</code>”，那么 <code>for range</code> 是最自然的写法：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -776,6 +834,8 @@
 </span><span class="lnt">17
 </span><span class="lnt">18
 </span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
@@ -790,11 +850,13 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">1</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">2</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nb">close</span><span class="p">(</span><span class="nx">ch</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">ch</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;v=%d\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
@@ -806,47 +868,90 @@
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">v=1
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">v=1
 </span></span><span class="line"><span class="cl">v=2
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>主 <code>goroutine</code> 往 <code>Channel</code> 里写了两个数据 <code>1</code> 和 <code>2</code>，然后关闭，子 <code>goroutine</code> 也能读取到 <code>1</code> 和 <code>2</code>。这里在主 <code>goroutine</code> 关闭了 <code>Channel</code> 之后，子 <code>goroutine</code> 里的 <code>for range</code> 循环才会结束。</p>
-<hr>
-<h2 id="-双向channel和单向channel">🔀 双向Channel和单向Channel
-</h2><p>Channel 根据其功能又可以分为 <strong>双向 Channel</strong> 和 <strong>单向 Channel</strong>：</p>
-<ul>
-<li><strong>双向 Channel</strong>：即可发送数据又可接收数据</li>
-<li><strong>单向 Channel</strong>：要么只能发送数据，要么只能接收数据</li>
-</ul>
-<h3 id="-定义单向读channel">📥 定义单向读Channel
+</div><h3 id="-关闭管道">🔒 关闭管道
 </h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nb">close</span><span class="p">(</span><span class="nx">ch</span><span class="p">)</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>关闭 <code>Channel</code> 后，接收方仍然可以继续读取已经存在于缓冲区中的数据；只有在数据全部读空之后，后续读取才会得到零值。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;time&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nb">close</span><span class="p">(</span><span class="nx">ch</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">v</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ch</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;v=%d\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>运行结果</strong>：</p>
+<div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">ch</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">RChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="o">&lt;-</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="w">    </span><span class="c1">// 定义类型</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">rec</span><span class="w"> </span><span class="nx">RChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">ch</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">v=1
+</span></span><span class="line"><span class="cl">v=0
+</span></span><span class="line"><span class="cl">v=0
+</span></span><span class="line"><span class="cl">v=0
+</span></span><span class="line"><span class="cl">v=0
+</span></span></code></pre></td></tr></table>
 </div>
-</div><h3 id="-定义单向写channel">📤 定义单向写Channel
-</h3><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">ch</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">SChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kd">chan</span><span class="o">&lt;-</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="c1">// 定义类型</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">send</span><span class="w"> </span><span class="nx">SChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">ch</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>注意</strong>：写 <code>Channel</code> 与读 <code>Channel</code> 在定义的时候只是 <code>&lt;-</code> 的位置不同，前者在 <code>chan</code> 关键字后面，后者在 <code>chan</code> 关键字前面。</p>
-<h3 id="-代码示例">💻 代码示例
-</h3><div class="highlight"><div class="chroma">
+</div><hr>
+<h2 id="-channel-操作的底层原理">🏗️ Channel 操作的底层原理
+</h2><h3 id="-运行时初始化">🧱 运行时初始化
+</h3><p>业务代码调用的是 <code>make(chan T, size)</code>，真正完成初始化的是 <code>runtime.makechan</code>。</p>
+<div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
@@ -876,97 +981,42 @@
 </span><span class="lnt">26
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">makechan</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">chantype</span><span class="p">,</span><span class="w"> </span><span class="nx">size</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">hchan</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">elem</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">t</span><span class="p">.</span><span class="nx">elem</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">mem</span><span class="p">,</span><span class="w"> </span><span class="nx">overflow</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">math</span><span class="p">.</span><span class="nf">MulUintptr</span><span class="p">(</span><span class="nx">elem</span><span class="p">.</span><span class="nx">size</span><span class="p">,</span><span class="w"> </span><span class="nb">uintptr</span><span class="p">(</span><span class="nx">size</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">overflow</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">mem</span><span class="w"> </span><span class="p">&gt;</span><span class="w"> </span><span class="nx">maxAlloc</span><span class="o">-</span><span class="nx">hchanSize</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">size</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nb">panic</span><span class="p">(</span><span class="nf">plainError</span><span class="p">(</span><span class="s">&#34;makechan: size out of range&#34;</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;fmt&#34;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;time&#34;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">hchan</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">switch</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nx">mem</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">c</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">hchan</span><span class="p">)(</span><span class="nf">mallocgc</span><span class="p">(</span><span class="nx">hchanSize</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">c</span><span class="p">.</span><span class="nx">buf</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nf">raceaddr</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nx">elem</span><span class="p">.</span><span class="nx">ptrdata</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">c</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">hchan</span><span class="p">)(</span><span class="nf">mallocgc</span><span class="p">(</span><span class="nx">hchanSize</span><span class="o">+</span><span class="nx">mem</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">c</span><span class="p">.</span><span class="nx">buf</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="nx">unsafe</span><span class="p">.</span><span class="nf">Pointer</span><span class="p">(</span><span class="nx">c</span><span class="p">),</span><span class="w"> </span><span class="nx">hchanSize</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">default</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">c</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">new</span><span class="p">(</span><span class="nx">hchan</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">c</span><span class="p">.</span><span class="nx">buf</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nf">mallocgc</span><span class="p">(</span><span class="nx">mem</span><span class="p">,</span><span class="w"> </span><span class="nx">elem</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">SChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kd">chan</span><span class="o">&lt;-</span><span class="w"> </span><span class="kt">int</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">RChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="o">&lt;-</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">ch</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">  </span><span class="c1">// 创建channel</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kd">var</span><span class="w"> </span><span class="nx">send</span><span class="w"> </span><span class="nx">SChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">ch</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;send: 100&#34;</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">send</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">100</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kd">var</span><span class="w"> </span><span class="nx">rec</span><span class="w"> </span><span class="nx">RChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">ch</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">num</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">rec</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;receive: %d&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">num</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">c</span><span class="p">.</span><span class="nx">elemsize</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">uint16</span><span class="p">(</span><span class="nx">elem</span><span class="p">.</span><span class="nx">size</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">c</span><span class="p">.</span><span class="nx">elemtype</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">elem</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">c</span><span class="p">.</span><span class="nx">dataqsiz</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">uint</span><span class="p">(</span><span class="nx">size</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">lockInit</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">,</span><span class="w"> </span><span class="nx">lockRankHchan</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><p><strong>运行结果</strong>：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">send: 100
-</span></span><span class="line"><span class="cl">receive: 100
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>创建一个 <code>Channel ch</code>，分别定义两个单向 <code>Channel</code> 类型 <code>SChannel</code> 和 <code>RChannel</code>，根据别名类型给 <code>ch</code> 定义两个别名 <code>send</code> 和 <code>rec</code>，一个只用于发送，一个只用于读取。</p>
-<hr>
-<h2 id="-有缓冲channel与无缓冲channel">⚖️ 有缓冲Channel与无缓冲Channel
-</h2><p><code>Channel</code> 又分为两类：<strong>有缓冲 Channel</strong> 和 <strong>无缓冲 Channel</strong>。为了协程安全，无论是有无缓冲的 <code>Channel</code>，内部都会有一把锁来控制并发访问，同时 <code>Channel</code> 底层有一个队列来存储数据。</p>
-<h3 id="-无缓冲channel">🔒 无缓冲Channel
-</h3><p>无缓冲 <code>Channel</code> 可以理解为 <strong>同步模式</strong>，即写入一个，如果没有消费者在消费，写入就会阻塞。</p>
-<h3 id="-有缓冲channel">📦 有缓冲Channel
-</h3><p>有缓冲 <code>Channel</code> 可以理解为 <strong>异步模式</strong>，即写入消息之后，即使还没被消费，只要队列没满，就可继续写入。</p>
-<div align="center">
-  <img src="channel1.png" alt="有缓冲Channel" width="60%">
-</div>
-<p>这里可能会问，如果有缓冲 <code>Channel</code> 队列满了，那不就退化到同步了么？是的，如果队列满了，发送还是会阻塞。</p>
-<div align="center">
-  <img src="channel2.png" alt="Channel队列满" width="60%">
-</div>
-<p>但是我们来反向思考下，如果有缓冲 <code>Channel</code> 长期都处于满队列情况，那何必用有缓冲。所以预期在正常情况下，有缓冲 <code>Channel</code> 都是异步交互的。</p>
-<hr>
-<h2 id="-无缓冲channel的状态转换">🔄 无缓冲Channel的状态转换
-</h2><p>无缓冲 Channel 必须同时有读者和写者才能完成一次发送。没有配对方时，读写双方都会阻塞，并进入特定的 Goroutine 状态。</p>
-<h3 id="-读写阻塞机制">🚦 读写阻塞机制
-</h3><ul>
-<li><strong>写阻塞</strong>：当向无缓冲 Channel 发送数据时，如果没有接收者，发送 goroutine 会阻塞并加入 <code>sendq</code> 等待队列</li>
-<li><strong>读阻塞</strong>：当从无缓冲 Channel 接收数据时，如果没有发送者，接收 goroutine 会阻塞并加入 <code>recvq</code> 等待队列</li>
-</ul>
-<h3 id="-状态转换过程">🔄 状态转换过程
-</h3><ol>
-<li>
-<p><strong>发送操作</strong>：</p>
+</div><p>这里最值得关注的是三种分配策略：</p>
 <ul>
-<li>尝试发送数据时，检查 <code>recvq</code> 是否有等待的接收者</li>
-<li>如果有等待的接收者：直接将数据传递给接收者，双方都变为 <code>runnable</code> 状态</li>
-<li>如果没有等待的接收者：发送者进入 <code>waiting</code> 状态，加入 <code>sendq</code> 队列</li>
+<li><strong>无缓冲 <code>Channel</code></strong>：只分配 <code>hchan</code> 本身。</li>
+<li><strong>有缓冲且元素不含指针</strong>：<code>hchan</code> 与缓冲区连续分配。</li>
+<li><strong>有缓冲且元素含指针</strong>：<code>hchan</code> 与缓冲区分开分配，便于 GC 处理。</li>
 </ul>
-</li>
-<li>
-<p><strong>接收操作</strong>：</p>
-<ul>
-<li>尝试接收数据时，检查 <code>sendq</code> 是否有等待的发送者</li>
-<li>如果有等待的发送者：直接从发送者获取数据，双方都变为 <code>runnable</code> 状态</li>
-<li>如果没有等待的发送者：接收者进入 <code>waiting</code> 状态，加入 <code>recvq</code> 队列</li>
-</ul>
-</li>
-</ol>
-<h3 id="-关键特点">🎯 关键特点
-</h3><ul>
-<li><strong>直接传递</strong>：无缓冲 Channel 的数据直接从发送者复制到接收者，不经过缓冲区</li>
-<li><strong>同步语义</strong>：读写双方必须同时就绪才能完成操作</li>
-<li><strong>状态管理</strong>：阻塞的 goroutine 从 <code>running</code> 变为 <code>waiting</code>，配对成功后变为 <code>runnable</code></li>
-</ul>
-<hr>
-<h2 id="-channel实现锁操作">🔒 Channel实现锁操作
-</h2><p>前面分析了当缓冲队列满了以后，继续往 <code>Channel</code> 里面写数据，就会阻塞，那么利用这个特性，我们可以实现一个 <code>goroutine</code> 之间的锁。</p>
+<h3 id="-channel-发送流程">📤 Channel 发送流程
+</h3><p>发送操作最终会进入 <code>runtime.chansend</code>：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -994,85 +1044,127 @@
 </span><span class="lnt">23
 </span><span class="lnt">24
 </span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;fmt&#34;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;time&#34;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="nx">ch</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="nx">num</span><span class="w"> </span><span class="o">*</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="kc">true</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="o">*</span><span class="nx">num</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="o">*</span><span class="nx">num</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="o">&lt;-</span><span class="nx">ch</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 创建一个size为1的channel</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">num</span><span class="w"> </span><span class="kt">int</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">go</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="nx">ch</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">num</span><span class="p">)</span><span class="w">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">chansend</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">hchan</span><span class="p">,</span><span class="w"> </span><span class="nx">ep</span><span class="w"> </span><span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span><span class="p">,</span><span class="w"> </span><span class="nx">block</span><span class="w"> </span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="nx">callerpc</span><span class="w"> </span><span class="kt">uintptr</span><span class="p">)</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">block</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">gopark</span><span class="p">(</span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">waitReasonChanSendNilChan</span><span class="p">,</span><span class="w"> </span><span class="nx">traceEvGoStop</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">throw</span><span class="p">(</span><span class="s">&#34;unreachable&#34;</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;num 的值：&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">num</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">lock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">closed</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nb">panic</span><span class="p">(</span><span class="nf">plainError</span><span class="p">(</span><span class="s">&#34;send on closed channel&#34;</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">sg</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">recvq</span><span class="p">.</span><span class="nf">dequeue</span><span class="p">();</span><span class="w"> </span><span class="nx">sg</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">send</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">sg</span><span class="p">,</span><span class="w"> </span><span class="nx">ep</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nf">unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">)</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">qcount</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">dataqsiz</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">qp</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">chanbuf</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">sendx</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">typedmemmove</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">elemtype</span><span class="p">,</span><span class="w"> </span><span class="nx">qp</span><span class="p">,</span><span class="w"> </span><span class="nx">ep</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">c</span><span class="p">.</span><span class="nx">sendx</span><span class="o">++</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">sendx</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">dataqsiz</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">c</span><span class="p">.</span><span class="nx">sendx</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">0</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">c</span><span class="p">.</span><span class="nx">qcount</span><span class="o">++</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">block</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 构造 sudog，加入 sendq，挂起当前 goroutine</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="o">...</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><p><strong>运行结果</strong>：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">num 的值： 100
-</span></span></code></pre></td></tr></table>
+</div><p>发送流程可以概括为三条路径：</p>
+<ol>
+<li><strong>直接发送</strong>：如果已有接收者在 <code>recvq</code> 等待，数据直接交给接收方。</li>
+<li><strong>缓冲发送</strong>：如果缓冲区未满，数据写入 <code>buf</code>。</li>
+<li><strong>阻塞发送</strong>：如果没有接收者且缓冲区已满，发送方进入 <code>sendq</code> 等待。</li>
+</ol>
+<p>先看整体发送路径：</p>
+<div align="center">
+  <img src="image-1.png" alt="Channel 发送流程总览" width="60%">
 </div>
-</div><p><code>ch &lt;- true</code> 和 <code>&lt;- ch</code> 就相当于一个锁，将 <code>*num = *num + 1</code> 这个操作锁住了。因为 <code>ch</code> 管道的容量是 <code>1</code>，在每个 <code>add</code> 函数里都会往 <code>Channel</code> 放置一个 <code>true</code>，直到执行完 <code>+1</code> 操作之后才将 <code>Channel</code> 里的 <code>true</code> 取出。由于 <code>Channel</code> 的 <code>size</code> 是 <code>1</code>，所以当一个 <code>goroutine</code> 在执行 <code>add</code> 函数的时候，其他 <code>goroutine</code> 执行 <code>add</code> 函数，执行到 <code>ch &lt;- true</code> 的时候就会阻塞，<code>*num = *num + 1</code> 不会成功，直到前一个 <code>+1</code> 操作完成，<code>&lt;-ch</code>，读出了管道的元素，这样就实现了并发安全。</p>
-<hr>
-<h2 id="-channel的死锁场景">⚠️ Channel的死锁场景
-</h2><p>Channel 产生死锁的典型场景是当所有 goroutine 都在等待 Channel 操作完成，而没有任何 goroutine 执行对应的发送或接收操作来解除阻塞。</p>
-<h3 id="-典型死锁示例">💀 典型死锁示例
-</h3><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">1</span><span class="w">  </span><span class="c1">// 死锁！没有接收者</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="o">&lt;-</span><span class="nx">ch</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
+<p>当发送方因为缓冲区满而阻塞时，运行时会创建一个 <code>sudog</code> 节点，把当前 <code>goroutine</code> 挂到 <code>sendq</code> 上：</p>
+<div align="center">
+  <img src="boxcn9ULtLcD2jviAdDERfbrNNb.png" alt="发送方阻塞并进入等待队列的过程" width="60%">
 </div>
-</div><p><strong>运行结果</strong>：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">fatal error: all goroutines are asleep - deadlock!
-</span></span></code></pre></td></tr></table>
+<p>等到其他 <code>goroutine</code> 消费数据后，运行时会把等待中的发送者重新唤醒：</p>
+<div align="center">
+  <img src="image-2.png" alt="接收方消费数据后唤醒发送方的过程" width="60%">
 </div>
-</div><h3 id="-常见死锁场景">📋 常见死锁场景
-</h3><ol>
-<li>
-<p><strong>无缓冲 Channel 单向阻塞</strong>：</p>
-<ul>
-<li>主 goroutine 向无缓冲 Channel 发送数据，但没有其他 goroutine 接收</li>
-<li>主 goroutine 从无缓冲 Channel 接收数据，但没有其他 goroutine 发送</li>
-</ul>
-</li>
-<li>
-<p><strong>循环等待</strong>：</p>
+<p>完成数据回填与调度恢复之后，发送方会从等待队列中移除：</p>
+<div align="center">
+  <img src="boxcnd31UrNwnvthDJwEnkwotle.png" alt="发送方恢复执行后的队列状态" width="60%">
+</div>
+<p>如果是无缓冲 <code>Channel</code>，数据不会进入 <code>buf</code>，而是直接从发送方拷贝到接收方内存区域，只是调度流程仍然类似。</p>
+<p>针对不同状态，发送结果如下：</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th><strong>操作</strong></th>
+          <th><strong>Channel 状态</strong></th>
+          <th><strong>结果</strong></th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>发送</strong></td>
+          <td><strong><code>nil</code></strong></td>
+          <td><strong>阻塞</strong></td>
+      </tr>
+      <tr>
+          <td><strong>发送</strong></td>
+          <td><strong>有缓冲且未满</strong></td>
+          <td><strong>成功写入缓冲区</strong></td>
+      </tr>
+      <tr>
+          <td><strong>发送</strong></td>
+          <td><strong>无缓冲且无接收者</strong></td>
+          <td><strong>阻塞</strong></td>
+      </tr>
+      <tr>
+          <td><strong>发送</strong></td>
+          <td><strong>有缓冲但已满</strong></td>
+          <td><strong>阻塞</strong></td>
+      </tr>
+      <tr>
+          <td><strong>发送</strong></td>
+          <td><strong>已关闭</strong></td>
+          <td><strong>panic</strong></td>
+      </tr>
+  </tbody>
+</table></div>
+<h3 id="-channel-接收流程">📥 Channel 接收流程
+</h3><p>接收操作最终会进入 <code>runtime.chanrecv</code>：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -1087,41 +1179,418 @@
 </span><span class="lnt">10
 </span><span class="lnt">11
 </span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch1</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch2</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">chanrecv</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">hchan</span><span class="p">,</span><span class="w"> </span><span class="nx">ep</span><span class="w"> </span><span class="nx">unsafe</span><span class="p">.</span><span class="nx">Pointer</span><span class="p">,</span><span class="w"> </span><span class="nx">block</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">selected</span><span class="p">,</span><span class="w"> </span><span class="nx">received</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">block</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">gopark</span><span class="p">(</span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">waitReasonChanReceiveNilChan</span><span class="p">,</span><span class="w"> </span><span class="nx">traceEvGoStop</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">throw</span><span class="p">(</span><span class="s">&#34;unreachable&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="o">&lt;-</span><span class="nx">ch1</span><span class="w">  </span><span class="c1">// 等待 ch1 的数据</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">ch2</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">lock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">closed</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">qcount</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">ep</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nf">typedmemclr</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">elemtype</span><span class="p">,</span><span class="w"> </span><span class="nx">ep</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch1</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">1</span><span class="w">  </span><span class="c1">// 主 goroutine 发送</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="o">&lt;-</span><span class="nx">ch2</span><span class="w">     </span><span class="c1">// 主 goroutine 等待 ch2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">sg</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">sendq</span><span class="p">.</span><span class="nf">dequeue</span><span class="p">();</span><span class="w"> </span><span class="nx">sg</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">recv</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">sg</span><span class="p">,</span><span class="w"> </span><span class="nx">ep</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nf">unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">)</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">qcount</span><span class="w"> </span><span class="p">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">qp</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">chanbuf</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">recvx</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">ep</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nf">typedmemmove</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">elemtype</span><span class="p">,</span><span class="w"> </span><span class="nx">ep</span><span class="p">,</span><span class="w"> </span><span class="nx">qp</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">typedmemclr</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">elemtype</span><span class="p">,</span><span class="w"> </span><span class="nx">qp</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">c</span><span class="p">.</span><span class="nx">recvx</span><span class="o">++</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">recvx</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">dataqsiz</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">c</span><span class="p">.</span><span class="nx">recvx</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">0</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">c</span><span class="p">.</span><span class="nx">qcount</span><span class="o">--</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">block</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 构造 sudog，加入 recvq，挂起当前 goroutine</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="o">...</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div></li>
-<li>
-<p><strong>goroutine 泄漏导致的死锁</strong>：</p>
-<ul>
-<li>启动的 goroutine 因为某些原因阻塞，导致预期的发送/接收操作无法完成</li>
-</ul>
-</li>
+</div><p>接收流程的判断顺序如下：</p>
+<ol>
+<li><strong>已关闭且缓冲区为空</strong>：直接返回零值。</li>
+<li><strong>有等待中的发送者</strong>：优先和发送者直接配对。</li>
+<li><strong>缓冲区中有数据</strong>：从 <code>buf</code> 拷贝数据到接收变量。</li>
+<li><strong>无数据可读</strong>：如果是阻塞模式，当前接收方进入 <code>recvq</code> 等待。</li>
 </ol>
-<h3 id="-如何避免死锁">🛡️ 如何避免死锁
-</h3><ul>
-<li><strong>确保配对</strong>：确保每个发送操作都有对应的接收操作</li>
-<li><strong>使用缓冲</strong>：适当使用有缓冲 Channel 减少阻塞</li>
-<li><strong>超时机制</strong>：使用 <code>select</code> 配合 <code>time.After</code> 设置超时</li>
-<li><strong>正确关闭</strong>：在合适的时机关闭 Channel，通知接收者结束等待</li>
-</ul>
-<hr>
-<h2 id="-channel与协程通信示例">📊 Channel与协程通信示例
-</h2><p>协程之间可以利用 <code>Channel</code> 来传递数据，如下的例子，可以看出父子协程如何通信的，父协程通过 <code>Channel</code> 拿到了子协程执行的结果：</p>
+<p>下面这张图更直观地展示了消费过程：</p>
+<div align="center">
+  <img src="image-3.png" alt="Channel 的接收与消费流程" width="60%">
+</div>
+<p>从行为层面看，可以总结为：</p>
+<ol>
+<li><strong>从空 <code>Channel</code> 接收数据</strong>：当前 <code>goroutine</code> 会阻塞。</li>
+<li><strong>发送队列中已有发送者</strong>：接收方会优先直接取走对应数据。</li>
+<li><strong>缓冲区有数据</strong>：接收方直接从缓冲区读取。</li>
+<li><strong>缓冲区为空且无发送者</strong>：接收方进入等待队列。</li>
+</ol>
+<p>针对不同状态，接收结果如下：</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th><strong>操作</strong></th>
+          <th><strong>Channel 状态</strong></th>
+          <th><strong>结果</strong></th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>接收</strong></td>
+          <td><strong><code>nil</code></strong></td>
+          <td><strong>阻塞</strong></td>
+      </tr>
+      <tr>
+          <td><strong>接收</strong></td>
+          <td><strong>打开且缓冲区有数据</strong></td>
+          <td><strong>读取到正常值</strong></td>
+      </tr>
+      <tr>
+          <td><strong>接收</strong></td>
+          <td><strong>打开但没有数据</strong></td>
+          <td><strong>阻塞</strong></td>
+      </tr>
+      <tr>
+          <td><strong>接收</strong></td>
+          <td><strong>已关闭且数据已读空</strong></td>
+          <td><strong>读取到零值</strong></td>
+      </tr>
+  </tbody>
+</table></div>
+<h3 id="-channel-关闭流程">🔒 Channel 关闭流程
+</h3><p>关闭 <code>Channel</code> 的语法很简单：</p>
 <div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">ch</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nb">close</span><span class="p">(</span><span class="nx">ch</span><span class="p">)</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>运行时实际调用的是 <code>runtime.closechan</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">closechan</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">hchan</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nb">panic</span><span class="p">(</span><span class="nf">plainError</span><span class="p">(</span><span class="s">&#34;close of nil channel&#34;</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">lock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">closed</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nb">panic</span><span class="p">(</span><span class="nf">plainError</span><span class="p">(</span><span class="s">&#34;close of closed channel&#34;</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">c</span><span class="p">.</span><span class="nx">closed</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">glist</span><span class="w"> </span><span class="nx">gList</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">sg</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">recvq</span><span class="p">.</span><span class="nf">dequeue</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">sg</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">break</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">sg</span><span class="p">.</span><span class="nx">success</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">glist</span><span class="p">.</span><span class="nf">push</span><span class="p">(</span><span class="nx">sg</span><span class="p">.</span><span class="nx">g</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">sg</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">sendq</span><span class="p">.</span><span class="nf">dequeue</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nx">sg</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">break</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">sg</span><span class="p">.</span><span class="nx">success</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">glist</span><span class="p">.</span><span class="nf">push</span><span class="p">(</span><span class="nx">sg</span><span class="p">.</span><span class="nx">g</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">!</span><span class="nx">glist</span><span class="p">.</span><span class="nf">empty</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">gp</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">glist</span><span class="p">.</span><span class="nf">pop</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">goready</span><span class="p">(</span><span class="nx">gp</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>关闭时要特别注意以下规则：</p>
+<ul>
+<li><strong>关闭 <code>nil Channel</code> 会 <code>panic</code></strong>。</li>
+<li><strong>重复关闭同一个 <code>Channel</code> 会 <code>panic</code></strong>。</li>
+<li><strong>向已关闭 <code>Channel</code> 发送数据会 <code>panic</code></strong>。</li>
+<li><strong>从已关闭 <code>Channel</code> 接收数据不会 <code>panic</code></strong>，但读空后只会得到零值。</li>
+</ul>
+<style type="text/css">
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+</style><div
+  class="notice tip"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
+  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+    </span>提示</p><p>🧩 为什么关闭会唤醒等待中的协程</p>
+<p>因为等待中的接收者和发送者分别挂在 <code>recvq</code> 与 <code>sendq</code> 上。<code>closechan</code> 会把这些等待节点全部摘下，再重新放入调度队列：</p>
+<ul>
+<li><strong>等待接收的 <code>goroutine</code></strong> 会被唤醒，并感知到 <code>Channel</code> 已关闭。</li>
+<li><strong>等待发送的 <code>goroutine</code></strong> 会被唤醒，但恢复执行后会因为“向已关闭 <code>Channel</code> 发送数据”而触发异常。</li>
+</ul></div>
+
+<hr>
+<h2 id="-双向-channel-和单向-channel">🔀 双向 Channel 和单向 Channel
+</h2><p>从类型角度看，<code>Channel</code> 又可以分成<strong>双向 <code>Channel</code></strong> 与<strong>单向 <code>Channel</code></strong>。</p>
+<ul>
+<li><strong>双向 <code>Channel</code></strong>：既能发送，也能接收。</li>
+<li><strong>单向 <code>Channel</code></strong>：只能发送，或者只能接收。</li>
+</ul>
+<h3 id="-定义单向读-channel">📥 定义单向读 Channel
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">ch</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">RChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="o">&lt;-</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">rec</span><span class="w"> </span><span class="nx">RChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">ch</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="-定义单向写-channel">📤 定义单向写 Channel
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">ch</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">SChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kd">chan</span><span class="o">&lt;-</span><span class="w"> </span><span class="kt">int</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">send</span><span class="w"> </span><span class="nx">SChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">ch</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="-使用说明">💡 使用说明
+</h3><p>读 <code>Channel</code> 和写 <code>Channel</code> 的区别只在 <code>&lt;-</code> 的位置：</p>
+<ul>
+<li><strong><code>&lt;-chan T</code></strong>：只读。</li>
+<li><strong><code>chan&lt;- T</code></strong>：只写。</li>
+</ul>
+<h3 id="-代码示例">💻 代码示例
+</h3><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
@@ -1159,24 +1628,275 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;time&#34;</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">SChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kd">chan</span><span class="o">&lt;-</span><span class="w"> </span><span class="kt">int</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">RChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="o">&lt;-</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">ch</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kd">var</span><span class="w"> </span><span class="nx">send</span><span class="w"> </span><span class="nx">SChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">ch</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;send: 100&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">send</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">100</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kd">var</span><span class="w"> </span><span class="nx">rec</span><span class="w"> </span><span class="nx">RChannel</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">ch</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">num</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">rec</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;receive: %d&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">num</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>运行结果</strong>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">send: 100
+</span></span><span class="line"><span class="cl">receive: 100
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="-无缓冲-channel-的状态转换">🔄 无缓冲 Channel 的状态转换
+</h2><p>无缓冲 <code>Channel</code> 的核心特点是：<strong>发送与接收必须配对发生</strong>。没有匹配对象时，双方都会阻塞。</p>
+<h3 id="-读写阻塞机制">🚦 读写阻塞机制
+</h3><ul>
+<li><strong>写阻塞</strong>：发送时没有接收者，发送方进入 <code>sendq</code>。</li>
+<li><strong>读阻塞</strong>：接收时没有发送者，接收方进入 <code>recvq</code>。</li>
+</ul>
+<h3 id="-状态转换过程">🔁 状态转换过程
+</h3><ol>
+<li>
+<p><strong>发送操作</strong>：</p>
+<ul>
+<li>检查 <code>recvq</code> 是否存在等待接收者。</li>
+<li>如果有，直接把数据交给接收方，双方恢复可运行状态。</li>
+<li>如果没有，发送方进入 <code>waiting</code> 状态。</li>
+</ul>
+</li>
+<li>
+<p><strong>接收操作</strong>：</p>
+<ul>
+<li>检查 <code>sendq</code> 是否存在等待发送者。</li>
+<li>如果有，直接从发送方读取数据，双方恢复可运行状态。</li>
+<li>如果没有，接收方进入 <code>waiting</code> 状态。</li>
+</ul>
+</li>
+</ol>
+<h3 id="-关键特点">🎯 关键特点
+</h3><ul>
+<li><strong>直接传递</strong>：数据直接从发送方交给接收方，不经过缓冲区。</li>
+<li><strong>同步语义</strong>：双方必须同时就绪。</li>
+<li><strong>状态切换清晰</strong>：<code>running</code> -&gt; <code>waiting</code> -&gt; <code>runnable</code>。</li>
+</ul>
+<hr>
+<h2 id="-channel-与锁">🔐 Channel 与锁
+</h2><h3 id="-用-channel-实现锁操作">🧱 用 Channel 实现锁操作
+</h3><p>当缓冲区容量为 <code>1</code> 时，<code>Channel</code> 可以近似实现一个简化版互斥锁：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="s">&#34;time&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="nx">ch</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="nx">num</span><span class="w"> </span><span class="o">*</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="o">*</span><span class="nx">num</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="o">*</span><span class="nx">num</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="o">&lt;-</span><span class="nx">ch</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">num</span><span class="w"> </span><span class="kt">int</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">go</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="nx">ch</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">num</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;num 的值：&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">num</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>运行结果</strong>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">num 的值：100
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里的 <code>ch &lt;- true</code> 相当于加锁，<code>&lt;-ch</code> 相当于解锁。因为缓冲区容量只有 <code>1</code>，所以同一时刻只有一个 <code>goroutine</code> 能顺利进入临界区。</p>
+<hr>
+<h2 id="-channel-的死锁场景">⚠️ Channel 的死锁场景
+</h2><p><code>Channel</code> 产生死锁的典型原因是：所有 <code>goroutine</code> 都在等待 <code>Channel</code> 操作完成，但没有任何一个 <code>goroutine</code> 能继续推进流程。</p>
+<h3 id="-典型死锁示例">💀 典型死锁示例
+</h3><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="o">&lt;-</span><span class="nx">ch</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>运行结果</strong>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">fatal error: all goroutines are asleep - deadlock!
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="-常见死锁场景">📋 常见死锁场景
+</h3><ol>
+<li>
+<p><strong>无缓冲 <code>Channel</code> 单向阻塞</strong>：</p>
+<ul>
+<li>主 <code>goroutine</code> 发送数据，但没有接收者。</li>
+<li>主 <code>goroutine</code> 接收数据，但没有发送者。</li>
+</ul>
+</li>
+<li>
+<p><strong>循环等待</strong>：</p>
+</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch1</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch2</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="o">&lt;-</span><span class="nx">ch1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">ch2</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch1</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="o">&lt;-</span><span class="nx">ch2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li><strong><code>goroutine</code> 泄漏引发阻塞</strong>：
+<ul>
+<li>某个本应发送或接收的协程提前退出，导致另一端永久等待。</li>
+</ul>
+</li>
+</ol>
+<h3 id="-如何避免死锁">🛡️ 如何避免死锁
+</h3><ul>
+<li><strong>确保配对</strong>：每个发送都应有对应接收。</li>
+<li><strong>适当加缓冲</strong>：减轻发送与接收的强耦合。</li>
+<li><strong>使用超时控制</strong>：通过 <code>select</code> 和 <code>time.After</code> 兜底。</li>
+<li><strong>正确关闭 <code>Channel</code></strong>：让接收方有机会退出等待。</li>
+</ul>
+<hr>
+<h2 id="-channel-与协程通信示例">📊 Channel 与协程通信示例
+</h2><p><code>Channel</code> 最常见的用途就是让多个 <code>goroutine</code> 交换结果：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">sum</span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="p">[]</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">sum</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">s</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="nx">v</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">c</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nx">sum</span><span class="w"> </span><span class="c1">// send sum to c</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">c</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nx">sum</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">s</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kt">int</span><span class="p">{</span><span class="mi">7</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">c</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nf">sum</span><span class="p">(</span><span class="nx">s</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="nx">s</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">],</span><span class="w"> </span><span class="nx">c</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="nf">sum</span><span class="p">(</span><span class="nx">s</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="nx">s</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">],</span><span class="w"> </span><span class="nx">c</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="nf">sum</span><span class="p">(</span><span class="nx">s</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="nx">s</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">:],</span><span class="w"> </span><span class="nx">c</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">c</span><span class="w"> </span><span class="c1">// receive from c</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">c</span><span class="p">,</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">c</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span><span class="w"> </span><span class="nx">y</span><span class="p">,</span><span class="w"> </span><span class="nx">x</span><span class="o">+</span><span class="nx">y</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
@@ -1187,34 +1907,34 @@
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">-5 17 12
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">-5 17 12
 </span></span></code></pre></td></tr></table>
 </div>
-</div><hr>
-<h2 id="-select语句">🔀 select语句
-</h2><p><code>select</code> 语句是 Go 语言层面提供的一种 <strong>多路复用机制</strong>，用于检测当前 <code>goroutine</code> 连接的多个 <code>Channel</code> 是否有数据准备完毕，可用于读或写。它是 Go 语言中实现并发控制的核心机制，主要用于多路复用、非阻塞操作和超时控制。</p>
-<h3 id="-select是什么">📖 select是什么
-</h3><p><code>select</code> 可以同时监听多个 Channel 的读写操作，随机选择就绪的 Channel 进行处理，实现高效的并发通信和资源管理。其思想类似于 Linux 的 IO 多路复用模型，用一个或少量线程处理多个 IO 事件。</p>
-<h3 id="-select与io多路复用">🔀 select与IO多路复用
-</h3><p>看到 <code>select</code>，很自然会联想到 Linux 提供的 IO 多路复用模型：<code>select</code>、<code>poll</code>、<code>epoll</code>。Go 语言中的 <code>select</code> 与 Linux 中的 <code>select</code> 有一定区别，但核心思想相同。</p>
-<h4 id="-传统阻塞io">🔄 传统阻塞IO
-</h4><p>对于每一个网络 IO 事件，操作系统都会起一个线程去处理，在 IO 事件没准备好的时候，当前线程就会一直阻塞。</p>
-<p><strong>优缺点</strong>：</p>
+</div><p>这个例子展示了主协程如何通过 <code>Channel</code> 汇总两个子协程的计算结果。</p>
+<hr>
+<h2 id="-select-语句">🔀 <code>select</code> 语句
+</h2><p><code>select</code> 是 Go 层面提供的<strong>多路复用机制</strong>，用于同时监听多个 <code>Channel</code> 的读写事件。</p>
+<h3 id="-select-是什么">📖 <code>select</code> 是什么
+</h3><p><code>select</code> 可以同时等待多个 <code>Channel</code> 操作，只要其中某个 <code>case</code> 就绪，就执行对应分支。如果没有任何分支可执行：</p>
 <ul>
-<li><strong>优点</strong>：逻辑简单，在阻塞等待期间线程会挂起，不会占用 CPU 资源</li>
-<li><strong>缺点</strong>：每个连接需要独立的线程单独处理，当并发请求量大时为了维护程序，内存、线程切换开销较大</li>
+<li><strong>存在 <code>default</code></strong>：执行 <code>default</code>。</li>
+<li><strong>不存在 <code>default</code></strong>：当前 <code>goroutine</code> 阻塞。</li>
 </ul>
-<h4 id="-io多路复用">⚡ IO多路复用
-</h4><p>IO 多路复用通过复用一个线程处理多个 IO 事件，无需对额外过多的线程维护管理。</p>
-<p><strong>优缺点</strong>：</p>
-<ul>
-<li><strong>优点</strong>：资源和效率上都获得了提升</li>
-<li><strong>缺点</strong>：当连接数较少时效率相比多线程+阻塞 I/O 模型效率较低</li>
+<h3 id="-select-与-io-多路复用">🔁 <code>select</code> 与 I/O 多路复用
+</h3><p><code>select</code> 的思想与 Linux 中的 <code>select</code>、<code>poll</code>、<code>epoll</code> 类似，都是“一个执行流同时等待多个事件”。</p>
+<h4 id="-传统阻塞-io">🔄 传统阻塞 I/O
+</h4><ul>
+<li><strong>优点</strong>：逻辑直观。</li>
+<li><strong>缺点</strong>：每个连接都需要独立线程，开销较大。</li>
 </ul>
-<p>Go 语言的 <code>select</code> 语句，是用来起一个 <code>goroutine</code> 监听多个 <code>Channel</code> 的读写事件，提高从多个 <code>Channel</code> 获取信息的效率，相当于也是单线程处理多个 IO 事件。</p>
+<h4 id="-io-多路复用">⚡ I/O 多路复用
+</h4><ul>
+<li><strong>优点</strong>：可以复用一个线程处理多个事件，资源利用率更高。</li>
+<li><strong>缺点</strong>：连接数少时，收益未必明显。</li>
+</ul>
+<p>Go 的 <code>select</code> 并不直接等同于内核 I/O 多路复用，但在思维模型上非常相似。</p>
 <h3 id="-基本语法">📝 基本语法
-</h3><p><code>select</code> 的用法形式类似于 <code>switch</code>，但区别在于 <code>select</code> 各个 <code>case</code> 的表达式必须都是 <code>Channel</code> 的读写操作：</p>
-<div class="highlight"><div class="chroma">
+</h3><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
@@ -1240,32 +1960,28 @@
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><p><code>select</code> 通过多个 <code>case</code> 语句监听多个 <code>Channel</code> 的读写操作是否准备好可以执行，其中任何一个 <code>case</code> 可以执行了则选择该 <code>case</code> 语句执行，如果没有可以执行的 <code>case</code>，则执行 <code>default</code> 语句，如果没有 <code>default</code>，则当前 <code>goroutine</code> 会阻塞。</p>
-<h3 id="-核心特性">⭐ 核心特性
+</div><h3 id="-核心特性">⭐ 核心特性
 </h3><ul>
-<li><strong>随机选择</strong>：<code>select</code> 会随机选择就绪的 <code>case</code>，不能依赖执行顺序</li>
-<li><strong>避免饥饿</strong>：长时间运行的 goroutine 可能被其他 case &ldquo;饿死&rdquo;</li>
-<li><strong>资源管理</strong>：及时关闭不需要的 Channel，避免 goroutine 泄漏</li>
-<li><strong>错误处理</strong>：合理处理所有可能的 case，包括超时和取消</li>
+<li><strong>随机选择</strong>：多个 <code>case</code> 同时就绪时，会随机选一个执行。</li>
+<li><strong>非阻塞控制</strong>：配合 <code>default</code> 可实现非阻塞读写。</li>
+<li><strong>超时控制</strong>：配合 <code>time.After</code> 可实现超时退出。</li>
+<li><strong>取消传播</strong>：配合 <code>context.Done()</code> 可实现协程停止控制。</li>
 </ul>
 <h3 id="-使用场景详解">🎯 使用场景详解
-</h3><h4 id="-空select永久阻塞">🚫 空select永久阻塞
-</h4><p>当一个 <code>select</code> 中什么语句都没有，没有任何 <code>case</code>，将会永久阻塞：</p>
-<div class="highlight"><div class="chroma">
+</h3><h4 id="-空-select-永久阻塞">🚫 空 <code>select</code> 永久阻塞
+</h4><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
 </span><span class="lnt">5
-</span><span class="lnt">6
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">select</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">select</span><span class="w"> </span><span class="p">{}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
@@ -1275,11 +1991,10 @@
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">fatal error: all goroutines are asleep - deadlock!
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">fatal error: all goroutines are asleep - deadlock!
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>程序因为 <code>select</code> 语句导致永久阻塞，当前 <code>goroutine</code> 阻塞之后，由于 Go 语言自带死锁检测机制，发现当前 <code>goroutine</code> 永远不会被唤醒，会报上述死锁错误。</p>
-<h4 id="-没有default且case无法执行的select">⚠️ 没有default且case无法执行的select
+</div><h4 id="-没有-default-且所有-case-都不可执行">⚠️ 没有 <code>default</code> 且所有 <code>case</code> 都不可执行
 </h4><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -1296,6 +2011,7 @@
 </span><span class="lnt">12
 </span><span class="lnt">13
 </span><span class="lnt">14
+</span><span class="lnt">15
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
@@ -1305,6 +2021,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch1</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch2</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">select</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ch1</span><span class="p">:</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;received from ch1&#34;</span><span class="p">)</span><span class="w">
@@ -1320,11 +2037,10 @@
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">fatal error: all goroutines are asleep - deadlock!
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">fatal error: all goroutines are asleep - deadlock!
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>程序中 <code>select</code> 从两个 <code>Channel</code> <code>ch1</code> 和 <code>ch2</code> 中读取数据，但是两个 <code>Channel</code> 都没有数据，且没有 <code>goroutine</code> 往里面写数据，所以不可能读到数据，这两个 <code>case</code> 永远无法执行到，<code>select</code> 也没有 <code>default</code>，所以会出现永久阻塞，报死锁。</p>
-<h4 id="-有单一case和default的select">✅ 有单一case和default的select
+</div><h4 id="-单一-case-加-default">✅ 单一 <code>case</code> 加 <code>default</code>
 </h4><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -1363,11 +2079,10 @@
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">default!!!
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">default!!!
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>执行到 <code>select</code> 语句的时候，由于 <code>ch</code> 中没有数据，且没有 <code>goroutine</code> 往 <code>Channel</code> 中写数据，所以 <code>case</code> 不可能执行到，就会执行 <code>default</code> 语句。</p>
-<h4 id="-有多个case和default的select">🎯 有多个case和default的select
+</div><h4 id="-多个-case-加-default">🎯 多个 <code>case</code> 加 <code>default</code>
 </h4><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -1399,6 +2114,8 @@
 </span><span class="lnt">27
 </span><span class="lnt">28
 </span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
@@ -1411,6 +2128,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch1</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch2</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span><span class="w">
@@ -1425,6 +2143,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch1</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">1</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch2</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">2</span><span class="w">
@@ -1440,14 +2159,13 @@
 </span><span class="lnt">3
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Received from ch1, val = 1
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">Received from ch1, val = 1
 </span></span><span class="line"><span class="cl">Received from ch2, val = 2
 </span></span><span class="line"><span class="cl">default!!!
 </span></span></code></pre></td></tr></table>
 </div>
-</div><p>主 <code>goroutine</code> 中先后往管道 <code>ch1</code> 和 <code>ch2</code> 中发送数据，在子 <code>goroutine</code> 中执行 <code>select</code>，可以看到，在执行 <code>select</code> 的时候，那个 <code>case</code> 准备好了就会执行当下 <code>case</code> 的语句，最后没有数据可接收了，没有 <code>case</code> 可以执行，则执行 <code>default</code> 语句。</p>
-<h3 id="-select的随机性">🎲 select的随机性
-</h3><p><strong>重要</strong>：当多个 <code>case</code> 都准备好了的时候，会 <strong>随机选择一个执行</strong>。</p>
+</div><h3 id="-select-的随机性">🎲 <code>select</code> 的随机性
+</h3><p>如果多个 <code>case</code> 同时就绪，<code>select</code> 会随机选择一个执行，因此不能依赖分支执行顺序：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -1468,6 +2186,7 @@
 </span><span class="lnt">16
 </span><span class="lnt">17
 </span><span class="lnt">18
+</span><span class="lnt">19
 </span></code></pre></td>
 <td class="lntd">
 <pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
@@ -1479,6 +2198,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch2</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch1</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">5</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ch2</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="mi">6</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">select</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ch1</span><span class="p">:</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Received from ch1, val = %d\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">v</span><span class="p">)</span><span class="w">
@@ -1490,17 +2210,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><p><strong>运行结果</strong>（多次执行，2 个 <code>case</code> 都有可能打印）：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Received from ch2, val = 6
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>这就是 <code>select</code> 选择的随机性，不能依赖执行顺序。</p>
-<h3 id="-超时控制示例">⏱️ 超时控制示例
+</div><h3 id="-超时控制示例">⏱️ 超时控制示例
 </h3><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -1540,39 +2250,14 @@
 </div>
 </div><h3 id="-性能特点">📊 性能特点
 </h3><ul>
-<li><strong>随机重排</strong>：每次触发 <code>select</code> 时，底层会对所有 <code>case</code>（对应 Channel）进行随机重排，且仅从&quot;就绪状态&quot;的 Channel 中选择 1 个 <code>case</code> 执行</li>
-<li><strong>自动筛选</strong>：重排前会排除未就绪（为空）的 Channel，仅在可用 Channel 中随机选 1 个</li>
+<li><strong>随机重排</strong>：运行时会对多个 <code>case</code> 做随机化处理，降低饥饿风险。</li>
+<li><strong>只执行一个分支</strong>：一次 <code>select</code> 最多执行一个就绪 <code>case</code>。</li>
+<li><strong>天然适合并发控制</strong>：特别适合超时、取消、优先级选择等场景。</li>
 </ul>
 <hr>
-<h2 id="-小结">📝 小结
-</h2><h3 id="-基本注意事项">⚠️ 基本注意事项
-</h3><ul>
-<li>关闭一个未初始化的 <code>Channel</code> 会产生 <strong><code>panic</code></strong></li>
-<li><code>Channel</code> 只能被关闭一次，对同一个 <code>Channel</code> 重复关闭会产生 <strong><code>panic</code></strong></li>
-<li>向一个已关闭的 <code>Channel</code> 发送消息会产生 <strong><code>panic</code></strong></li>
-<li>从一个已关闭的 <code>Channel</code> 读取消息不会发生 <strong><code>panic</code></strong>，会一直读取所有数据，直到零值</li>
-<li><code>Channel</code> 可以读端和写端都有多个 <code>goroutine</code> 操作，在一端关闭 <code>Channel</code> 的时候，该 <code>Channel</code> 读端的所有 <code>goroutine</code> 都会收到 <code>Channel</code> 已关闭的消息</li>
-<li><code>Channel</code> 是 <strong>并发安全</strong> 的，多个 <code>goroutine</code> 同时读取 <code>Channel</code> 中的数据，不会产生并发安全问题</li>
-</ul>
-<h3 id="-channel的线程安全性详解">🔐 Channel的线程安全性详解
-</h3><p>Channel 是线程安全的，是多 goroutine 并发安全的通信机制。它通过以下机制保证安全：</p>
-<h4 id="-锁保护机制">🔒 锁保护机制
-</h4><p>Channel 的线程安全完全依赖于 <code>hchan</code> 结构体中的 <code>lock</code>（互斥锁），所有对 Channel 的核心操作（发送、接收、关闭）都会先加锁，操作完成后解锁：</p>
-<ul>
-<li><strong>发送操作</strong>（<code>ch &lt;- data</code>）：进入发送逻辑前先调用 <code>lock.Lock()</code>，数据发送完成（或协程阻塞）后调用 <code>lock.Unlock()</code></li>
-<li><strong>接收操作</strong>（<code>data &lt;- ch</code>）：进入接收逻辑前先调用 <code>lock.Lock()</code>，数据接收完成（或协程阻塞）后调用 <code>lock.Unlock()</code></li>
-<li><strong>关闭操作</strong>（<code>close(ch)</code>）：关闭前先调用 <code>lock.Lock()</code>，修改 <code>closed</code> 状态并通知等待协程后，调用 <code>lock.Unlock()</code></li>
-</ul>
-<h4 id="-等待队列保护">📋 等待队列保护
-</h4><ul>
-<li><strong><code>sendq</code> 队列</strong>：保证阻塞顺序和唤醒顺序安全</li>
-<li><strong><code>recvq</code> 队列</strong>：存储等待接收的 goroutine，确保有序唤醒</li>
-<li>锁保护缓冲区和队列，防止多个写 goroutine 同时修改索引或缓冲区数据</li>
-</ul>
-<hr>
-<h2 id="-channel与context">🔗 Channel与Context
-</h2><p>Context 是 Go 语言中用于传递请求范围数据、取消信号和截止时间的机制，它与 Channel 密切相关。</p>
-<h3 id="-context的done方法">📋 Context的Done方法
+<h2 id="-channel-与-context">🔗 Channel 与 Context
+</h2><p><code>Context</code> 常被用来传递取消信号、超时信息和请求范围数据，而它的取消机制底层就离不开 <code>Channel</code>。</p>
+<h3 id="-done-方法">📋 <code>Done</code> 方法
 </h3><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -1591,10 +2276,9 @@
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><p><strong><code>Done()</code> 方法</strong>：返回一个只读的 Channel，当 Context 被取消或超时时，该 Channel 会被关闭。这是 Context 取消机制的核心，goroutine 通过监听这个 Channel 来响应取消信号。</p>
-<h3 id="-取消机制实现">🔧 取消机制实现
-</h3><p>Context 的取消机制基于 Channel 实现：</p>
-<div class="highlight"><div class="chroma">
+</div><p><code>Done()</code> 返回的是一个只读 <code>Channel</code>。当 <code>Context</code> 被取消或超时时，这个 <code>Channel</code> 会被关闭，所有监听 <code>&lt;-ctx.Done()</code> 的 <code>goroutine</code> 都能立刻感知到。</p>
+<h3 id="-取消机制实现">🛠️ 取消机制实现
+</h3><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
@@ -1633,20 +2317,19 @@
 </span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">cancel</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">WithCancel</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">())</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="nf">worker</span><span class="p">(</span><span class="nx">ctx</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    
+</span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">cancel</span><span class="p">()</span><span class="w">  </span><span class="c1">// 取消 context，关闭 done channel</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nf">cancel</span><span class="p">()</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
 </div><h3 id="-取消流程">🔄 取消流程
-</h3><p>当调用 <code>cancel()</code> 时：</p>
-<ol>
-<li>会关闭当前 Context 的 <code>done</code> Channel</li>
-<li>所有监听 <code>&lt;-ctx.Done()</code> 的 goroutine 都会立即返回</li>
-<li>同时递归取消所有子 Context</li>
-<li>从父 context 中解除注册，避免内存泄漏</li>
+</h3><ol>
+<li><strong>关闭 <code>done</code> <code>Channel</code></strong>。</li>
+<li><strong>唤醒所有监听该 <code>Channel</code> 的协程</strong>。</li>
+<li><strong>递归取消子 <code>Context</code></strong>。</li>
+<li><strong>解除与父 <code>Context</code> 的关联，避免内存泄漏</strong>。</li>
 </ol>
 <h3 id="-超时控制">⏰ 超时控制
 </h3><div class="highlight"><div class="chroma">
@@ -1673,7 +2356,26 @@
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div>
+</div><hr>
+<h2 id="-基本注意事项">⚠️ 基本注意事项
+</h2><ul>
+<li><strong>关闭未初始化的 <code>Channel</code> 会 <code>panic</code></strong>。</li>
+<li><strong>同一个 <code>Channel</code> 只能关闭一次</strong>。</li>
+<li><strong>向已关闭的 <code>Channel</code> 发送数据会 <code>panic</code></strong>。</li>
+<li><strong>从已关闭的 <code>Channel</code> 继续读取不会 <code>panic</code></strong>，但数据读空后只能得到零值。</li>
+<li><strong>一个 <code>Channel</code> 可以同时被多个 <code>goroutine</code> 读写</strong>，但关闭时机必须明确。</li>
+<li><strong><code>Channel</code> 是并发安全的</strong>，但业务逻辑上的协作顺序仍然需要开发者自己设计清楚。</li>
+</ul>
+<hr>
+<h2 id="-小结">📝 小结
+</h2><p><code>Channel</code> 不只是一个“管道”，它其实是 Go 并发模型中最核心的抽象之一。理解 <code>Channel</code>，需要同时掌握三层内容：</p>
+<ul>
+<li><strong>语法层</strong>：如何声明、发送、接收、关闭。</li>
+<li><strong>语义层</strong>：无缓冲与有缓冲分别意味着什么。</li>
+<li><strong>运行时层</strong>：底层的 <code>hchan</code>、等待队列、调度与唤醒到底如何工作。</li>
+</ul>
+<p>当你能把这三层联系起来时，很多并发代码中的阻塞、死锁、性能差异和设计取舍都会变得更容易理解。</p>
+
 </section>
 
 
@@ -1696,7 +2398,7 @@
 
 
         <span>
-            最后更新于 2026-03-23 05:36 UTC
+            最后更新于 2026-03-24 05:58 UTC
         </span>
     </section></footer>
 
