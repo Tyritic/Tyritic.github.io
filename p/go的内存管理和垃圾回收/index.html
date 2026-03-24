@@ -10,7 +10,7 @@
 <meta property='og:description' content="从逃逸分析、内存分配到垃圾回收，系统理解 Go 的内存管理机制">
 <meta property='og:url' content='https://Tyritic.github.io/p/go%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E5%92%8C%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开发' /><meta property='article:published_time' content='2026-03-21T00:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-03-24T05:58:14&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='后端开发' /><meta property='article:published_time' content='2026-03-21T00:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-03-24T14:37:13&#43;00:00'/>
 <meta name="twitter:title" content="Go的内存管理和垃圾回收">
 <meta name="twitter:description" content="从逃逸分析、内存分配到垃圾回收，系统理解 Go 的内存管理机制">
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -339,6 +339,7 @@
           </ol>
         </li>
         <li><a href="#-小对象tiny-对象和大对象的分配路径">📌 小对象、Tiny 对象和大对象的分配路径</a></li>
+        <li><a href="#-为什么-channel-这类运行时对象通常在堆上">📌 为什么 channel 这类运行时对象通常在堆上</a></li>
         <li><a href="#-为什么-go-的分配器能降低碎片问题">📌 为什么 Go 的分配器能降低碎片问题</a></li>
         <li><a href="#-代码层面如何减少分配开销">📌 代码层面如何减少分配开销</a></li>
         <li><a href="#-内存对齐为什么也和性能有关">📌 内存对齐为什么也和性能有关</a></li>
@@ -461,7 +462,7 @@
 
 
                 <time class="article-time--reading">
-                    阅读时长: 29 分钟
+                    阅读时长: 31 分钟
                 </time>
             </div>
 
@@ -469,7 +470,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：14251 字
+                     字数统计：15065 字
                 </time>
             </div>
 
@@ -810,7 +811,7 @@
 <p>在性能分析场景里，这个命令很实用，直接看编译器输出比“靠感觉优化”更可靠。</p>
 <p>下面这类编译输出，就是典型的逃逸分析结果：</p>
 <div align="center">
-  <img src="escape-build-output.png" alt="Go 编译器逃逸分析输出示意图" width="60%">
+  <img src="escape-build-output.png" alt="Go 编译器逃逸分析输出示意图" width="82%">
 </div>
 <hr>
 <h2 id="-内存分配go-如何管理堆内存">🧱 内存分配：Go 如何管理堆内存
@@ -825,13 +826,13 @@
 </ul>
 <p>Go 在这个思想基础上，结合自己的调度模型做了改造。</p>
 <div align="center">
-  <img src="tcmalloc-arch.png" alt="TCMalloc 分层缓存结构示意图" width="60%">
+  <img src="tcmalloc-arch.png" alt="TCMalloc 分层缓存结构示意图" width="82%">
 </div>
 <h3 id="-go-内存分配器的核心结构">📌 Go 内存分配器的核心结构
 </h3><p>Go 运行时里，几个最关键的角色分别是 <strong>Page</strong>、<strong>Span</strong>、<strong>mcache</strong>、<strong>mcentral</strong> 和 <strong>mheap</strong>。</p>
 <p>很多同学第一次看到这些名词会觉得有点乱，其实可以先按“本地缓存 -&gt; 中心缓存 -&gt; 堆管理器”这条线来理解，整体结构如下：</p>
 <div align="center">
-  <img src="go-memory-arch.png" alt="Go 内存分配器整体结构图" width="60%">
+  <img src="go-memory-arch.png" alt="Go 内存分配器整体结构图" width="82%">
 </div>
 <h4 id="-page-和-span">🧩 Page 和 Span
 </h4><p><strong>Page</strong> 可以理解为内存管理的基本页单位，而 <strong>Span</strong> 是由一组连续 <strong>Page</strong> 组成的更大管理单元。</p>
@@ -890,6 +891,27 @@
 <li><strong>大对象</strong>：大于 <code>32KB</code> 的对象，通常直接从 <strong>mheap</strong> 分配</li>
 </ul>
 <p>这种分类的意义在于：<strong>对象大小不同，分配策略也不同。</strong></p>
+<p>如果把分配路径画成一张更直观的图，大致可以理解成下面这样：</p>
+<div align="center">
+  <img src="memory-allocator-levels.png" alt="Go 内存分配器中 tiny、小对象和大对象的分层分配路径" width="82%">
+</div>
+<p>再总结成一句更适合面试回答的话：</p>
+<ul>
+<li><strong>Tiny 对象</strong>：优先在当前 <code>P</code> 的 tiny 分配器里复用小块空间，多个微小对象可能共享同一块内存</li>
+<li><strong>小对象</strong>：按照 size class 落到对应的 <code>mspan</code>，优先从 <code>mcache</code> 分配，不够再逐层向 <code>mcentral</code>、<code>mheap</code> 申请</li>
+<li><strong>大对象</strong>：不再走小对象规格池，而是直接向 <code>mheap</code> 申请连续页</li>
+</ul>
+<p>这也是为什么 Go 对“小对象很多”和“大对象很大”这两类场景，优化思路通常完全不同。</p>
+<h3 id="-为什么-channel-这类运行时对象通常在堆上">📌 为什么 channel 这类运行时对象通常在堆上
+</h3><p>有一个很容易被问到的问题是：<strong><code>channel</code> 一般分配在栈上还是堆上？</strong></p>
+<p>更贴近运行时语义的回答是：<strong>通常分配在堆上。</strong></p>
+<p>原因并不复杂：</p>
+<ul>
+<li><code>channel</code> 的生命周期通常会跨越当前函数调用</li>
+<li>它天然用于 <strong>goroutine</strong> 之间通信，引用关系往往不止存在于当前栈帧</li>
+<li>运行时还需要为它维护缓冲区、发送队列、接收队列、锁等内部结构</li>
+</ul>
+<p>所以从编译器和运行时角度看，这类对象天然更适合交给堆来管理，而不是放在当前函数的栈空间里短暂存活。</p>
 <h3 id="-为什么-go-的分配器能降低碎片问题">📌 为什么 Go 的分配器能降低碎片问题
 </h3><p>前面讲常见 GC 算法时经常会提到“内存碎片”问题。Go 之所以没有像很多语言那样强依赖“复制”或“标记整理”来解决碎片，一个重要原因就是它的分配器本身已经在努力降低碎片率。</p>
 <p>原因主要有三点：</p>
@@ -989,7 +1011,7 @@
 <p>栈上的对象会随着函数调用结束自动释放，不需要 GC 介入；真正需要 GC 管理的是那些生命周期更复杂的堆对象。</p>
 <p>下面这张图就很适合建立直觉：有些堆对象虽然已经分配了，但如果已经没有任何根引用能够到达它，它就是 GC 眼里的“垃圾”。</p>
 <div align="center">
-  <img src="gc-reachable-objects.png" alt="GC 中可达对象与垃圾对象示意图" width="60%">
+  <img src="gc-reachable-objects.png" alt="GC 中可达对象与垃圾对象示意图" width="82%">
 </div>
 <h3 id="-为什么-go-需要-gc">📌 为什么 Go 需要 GC
 </h3><p>如果没有 GC，程序员就需要像写 <strong>C/C++</strong> 一样手动释放对象。</p>
@@ -1016,10 +1038,10 @@
 </div>
 </div><p>真实业务里的问题通常更复杂。你以为沿着一条调用链把对象顺序 <code>free</code> 掉就够了，但另一个分支可能还在引用其中某个对象，这时就会把“还在使用的内存”误删掉。</p>
 <div align="center">
-  <img src="image-12.png" alt="手动释放内存时复杂对象引用关系示意图" width="60%">
+  <img src="image-12.png" alt="手动释放内存时复杂对象引用关系示意图" width="82%">
 </div>
 <div align="center">
-  <img src="image-10.png" alt="错误释放对象导致悬挂引用示意图" width="60%">
+  <img src="image-10.png" alt="错误释放对象导致悬挂引用示意图" width="82%">
 </div>
 <p>这也是为什么现代语言更倾向于把“找垃圾”和“回收垃圾”交给运行时，而不是要求开发者手工维护整张对象关系图。</p>
 <h3 id="-栈区对象在-gc-中如何处理">📌 栈区对象在 GC 中如何处理
@@ -1078,11 +1100,11 @@
 <p>这也是很多现代运行时没有把“纯引用计数”作为核心方案的原因之一。</p>
 <p>它的直觉很简单：谁还在引用我，我就把计数加一；没人引用我了，计数归零，就可以回收。</p>
 <div align="center">
-  <img src="image-14.png" alt="引用计数法对象引用计数示意图" width="60%">
+  <img src="image-14.png" alt="引用计数法对象引用计数示意图" width="82%">
 </div>
 <p>真正麻烦的是循环引用。两个对象即使业务上已经不用了，只要它们还彼此引用，单看计数就依然不为零。</p>
 <div align="center">
-  <img src="image-11.png" alt="引用计数法循环引用问题示意图" width="60%">
+  <img src="image-11.png" alt="引用计数法循环引用问题示意图" width="82%">
 </div>
 <h4 id="-标记清除">📖 标记清除
 </h4><p>标记清除分成两步：</p>
@@ -1092,7 +1114,7 @@
 </ol>
 <p>它的优点是实现相对直接，但缺点是容易产生<strong>内存碎片</strong>。</p>
 <div align="center">
-  <img src="image.png" alt="标记清除算法示意图" width="60%">
+  <img src="image.png" alt="标记清除算法示意图" width="82%">
 </div>
 <h4 id="-标记复制">📖 标记复制
 </h4><p>标记复制把内存分成两块，每次只用一块；回收时把存活对象复制到另一块，再整体清理原区域。</p>
@@ -1102,19 +1124,19 @@
 <li>存活对象多时复制成本高</li>
 </ul>
 <div align="center">
-  <img src="image-1.png" alt="复制算法初始状态示意图" width="60%">
+  <img src="image-1.png" alt="复制算法初始状态示意图" width="82%">
 </div>
 <div align="center">
-  <img src="image-2.png" alt="复制算法对象迁移示意图" width="60%">
+  <img src="image-2.png" alt="复制算法对象迁移示意图" width="82%">
 </div>
 <h4 id="-标记整理">📖 标记整理
 </h4><p>标记整理和标记清除类似，但在标记完成后会把存活对象向一端压缩整理，再回收尾部空间。</p>
 <p>这样能缓解碎片问题，但对象移动和引用更新的成本也更高。</p>
 <div align="center">
-  <img src="image-3.png" alt="标记整理算法整理前示意图" width="60%">
+  <img src="image-3.png" alt="标记整理算法整理前示意图" width="82%">
 </div>
 <div align="center">
-  <img src="image-4.png" alt="标记整理算法整理后示意图" width="60%">
+  <img src="image-4.png" alt="标记整理算法整理后示意图" width="82%">
 </div>
 <p>如果再往前推一步，其实还有 <strong>分代 GC</strong> 这条经典路线。它的思路是按对象生命周期分区处理，让短命对象多的区域使用复制算法，长命对象多的区域使用标记清除或标记整理。</p>
 <h3 id="-并发三色标记算法">📌 并发三色标记算法
@@ -1144,7 +1166,7 @@
 </ul>
 <p>可以先看整体对象关系，再看标记后的结果，理解会更直观。</p>
 <div align="center">
-  <img src="tri-color-overview.png" alt="三色标记对象关系初始示意图" width="60%">
+  <img src="tri-color-overview.png" alt="三色标记对象关系初始示意图" width="82%">
 </div>
 <p>标记过程可以概括为：</p>
 <ol>
@@ -1156,31 +1178,31 @@
 <p>这种做法比“直接整体扫描再整体清理”更适合并发执行。</p>
 <p>当灰色对象都处理完成后，整体效果大致如下：</p>
 <div align="center">
-  <img src="tri-color-marking-result.png" alt="三色标记完成后的对象状态示意图" width="60%">
+  <img src="tri-color-marking-result.png" alt="三色标记完成后的对象状态示意图" width="82%">
 </div>
 <p>先看对象关系整体图：</p>
 <div align="center">
-  <img src="image-16.png" alt="三色标记对象关系图" width="60%">
+  <img src="image-16.png" alt="三色标记对象关系图" width="82%">
 </div>
 <p>开始时，所有对象都是白色：</p>
 <div align="center">
-  <img src="image-17.png" alt="三色标记初始全白状态示意图" width="60%">
+  <img src="image-17.png" alt="三色标记初始全白状态示意图" width="82%">
 </div>
 <p>扫描根对象，把第一批可达对象染成灰色：</p>
 <div align="center">
-  <img src="image-18.png" alt="三色标记根扫描后灰色集合示意图" width="60%">
+  <img src="image-18.png" alt="三色标记根扫描后灰色集合示意图" width="82%">
 </div>
 <p>继续处理灰色对象，把它们引用到的白色对象染灰，并把自己染黑：</p>
 <div align="center">
-  <img src="image-19.png" alt="三色标记处理中间状态示意图" width="60%">
+  <img src="image-19.png" alt="三色标记处理中间状态示意图" width="82%">
 </div>
 <p>重复这个过程，直到灰色集合为空：</p>
 <div align="center">
-  <img src="image-20.png" alt="三色标记完成前最终状态示意图" width="60%">
+  <img src="image-20.png" alt="三色标记完成前最终状态示意图" width="82%">
 </div>
 <p>最后剩下的白色对象就是垃圾，统一回收：</p>
 <div align="center">
-  <img src="image-21.png" alt="三色标记完成后回收白色对象示意图" width="60%">
+  <img src="image-21.png" alt="三色标记完成后回收白色对象示意图" width="82%">
 </div>
 <div
   class="notice info"
@@ -1212,19 +1234,19 @@
 <p>这就是并发标记必须解决的核心正确性问题。</p>
 <p>假设某一轮标记进行到下面这个阶段，灰色对象 <code>F</code> 还通过指针 <code>p</code> 指向白色对象 <code>H</code>：</p>
 <div align="center">
-  <img src="image-22.png" alt="并发三色标记中的初始危险状态示意图" width="60%">
+  <img src="image-22.png" alt="并发三色标记中的初始危险状态示意图" width="82%">
 </div>
 <p>这时，已经扫描完的黑色对象 <code>E</code> 新增了一个指向 <code>H</code> 的引用：</p>
 <div align="center">
-  <img src="image-23.png" alt="黑色对象新增对白色对象引用示意图" width="60%">
+  <img src="image-23.png" alt="黑色对象新增对白色对象引用示意图" width="82%">
 </div>
 <p>同时，灰色对象 <code>F</code> 又删掉了原来指向 <code>H</code> 的那条边：</p>
 <div align="center">
-  <img src="image-24.png" alt="灰色对象删除对白色对象引用示意图" width="60%">
+  <img src="image-24.png" alt="灰色对象删除对白色对象引用示意图" width="82%">
 </div>
 <p>结果就是：<code>H</code> 明明还被 <code>E</code> 引用着，但由于它不再处在灰色对象的后续扫描路径里，最终可能会被错误清理掉。</p>
 <div align="center">
-  <img src="image-25.png" alt="并发三色标记发生错误回收示意图" width="60%">
+  <img src="image-25.png" alt="并发三色标记发生错误回收示意图" width="82%">
 </div>
 <p>所以在没有额外保护时，错误回收一般来自两个条件同时成立：</p>
 <ul>
@@ -1282,10 +1304,10 @@
 </ul>
 <p>只要满足其中一种，就能避免对象被错误回收。</p>
 <div align="center">
-  <img src="strong-tricolor-invariant.png" alt="强三色不变性示意图" width="60%">
+  <img src="strong-tricolor-invariant.png" alt="强三色不变性示意图" width="82%">
 </div>
 <div align="center">
-  <img src="weak-tricolor-invariant.png" alt="弱三色不变性示意图" width="60%">
+  <img src="weak-tricolor-invariant.png" alt="弱三色不变性示意图" width="82%">
 </div>
 <p>只要破坏“黑对象挂白对象”和“灰对象失去对白对象保护路径”这两个条件同时成立，错误回收就不会发生。Go 正是通过写屏障去尽量维持这两种不变性。</p>
 <h4 id="-插入写屏障dijistra-insertion-barrier">🛡️ 插入写屏障（Dijistra Insertion Barrier）
@@ -1341,62 +1363,62 @@
 <li>程序初始阶段，所有对象均标记为白色，将所有对象放入到白色集合</li>
 </ol>
 <div align="center">
-  <img src="image-28.png" alt="插入写屏障初始状态示意图" width="60%">
+  <img src="image-28.png" alt="插入写屏障初始状态示意图" width="82%">
 </div>
 <ul>
 <li>根节点开始遍历，把遍历到的对象标记为灰色（只遍历一次），放到灰色标记集合中，如下图所示：</li>
 </ul>
 <div align="center">
-  <img src="image-29.png" alt="插入写屏障下根扫描后的状态示意图" width="60%">
+  <img src="image-29.png" alt="插入写屏障下根扫描后的状态示意图" width="82%">
 </div>
 <ul>
 <li>遍历灰色集合，将可达对象从白色标记为灰色， 放入灰色集合，并将自身标记为黑色放入黑色集合</li>
 </ul>
 <div align="center">
-  <img src="image-30.png" alt="插入写屏障下的并发标记状态示意图" width="60%">
+  <img src="image-30.png" alt="插入写屏障下的并发标记状态示意图" width="82%">
 </div>
 <ul>
 <li>由于是并发进行标记，此时对象E指向一个新的对H，对象A指向一个新的对象I，对象E在堆区，出发插入写屏障，对象A在栈区，不触发插入写屏障</li>
 </ul>
 <div align="center">
-  <img src="image-31.png" alt="插入写屏障触发前的对象关系示意图" width="60%">
+  <img src="image-31.png" alt="插入写屏障触发前的对象关系示意图" width="82%">
 </div>
 <ul>
 <li>插入写屏障的作用（黑色对象添加白色对象，将白色对象标记为灰色），对象H被标记为灰色，由于栈上没有开启写屏障，所以对象I仍然为白色</li>
 </ul>
 <div align="center">
-  <img src="image-32.png" alt="插入写屏障把新对象置灰示意图" width="60%">
+  <img src="image-32.png" alt="插入写屏障把新对象置灰示意图" width="82%">
 </div>
 <ul>
 <li>循环执行上述流程，直到灰色集合没有节点</li>
 </ul>
 <div align="center">
-  <img src="image-33.png" alt="插入写屏障继续标记示意图" width="60%">
+  <img src="image-33.png" alt="插入写屏障继续标记示意图" width="82%">
 </div>
 <p>可以看到出现了黑色对象A指向白色对象I的情况，会出现错误回收，这是由于在栈上没有开启写屏障导致的，所以在全部三色标记扫描之后，要对栈重新进行三色标记扫描, 但这次为了对象不丢失, 要对本次标记扫描启动STW. 直到栈空间的三色标记结束</p>
 <ul>
 <li>在正式开始回收工作之前，此时开启STW，开始重新扫描一次栈上对象</li>
 </ul>
 <div align="center">
-  <img src="image-34.png" alt="插入写屏障需要重新扫描栈示意图" width="60%">
+  <img src="image-34.png" alt="插入写屏障需要重新扫描栈示意图" width="82%">
 </div>
 <ul>
 <li>对栈上的对象进行三色标记，直至没有灰色对象了</li>
 </ul>
 <div align="center">
-  <img src="image-35.png" alt="插入写屏障重新扫描栈进行补标示意图" width="60%">
+  <img src="image-35.png" alt="插入写屏障重新扫描栈进行补标示意图" width="82%">
 </div>
 <ul>
 <li>停止STW，这次STW大约的时间在10~100ms之间，栈重扫完成后，才能安全结束这轮回收。</li>
 </ul>
 <div align="center">
-  <img src="image-36.png" alt="插入写屏障下重新扫描栈后的 STW 状态示意图" width="60%">
+  <img src="image-36.png" alt="插入写屏障下重新扫描栈后的 STW 状态示意图" width="82%">
 </div>
 <ul>
 <li>补标结束以后，剩下的白色对象才真正可以被视为垃圾。将剩余的白色节点全部清除，即可完成这轮回收工作</li>
 </ul>
 <div align="center">
-  <img src="image-37.png" alt="插入写屏障完成回收示意图" width="60%">
+  <img src="image-37.png" alt="插入写屏障完成回收示意图" width="82%">
 </div>
 <h4 id="-删除写屏障yuasa-deletion-barrier">🛡️ 删除写屏障（Yuasa Deletion Barrier）
 </h4><p>删除写屏障的思路是：</p>
@@ -1458,37 +1480,37 @@
 <li>初始阶段，所有对象还是白色。</li>
 </ol>
 <div align="center">
-  <img src="image-38.png" alt="删除写屏障初始状态示意图" width="60%">
+  <img src="image-38.png" alt="删除写屏障初始状态示意图" width="82%">
 </div>
 <ul>
 <li>从根节点开始按照三色标记遍历，标记到如下图所示的状态</li>
 </ul>
 <div align="center">
-  <img src="image-39.png" alt="删除写屏障标记中间态示意图" width="60%">
+  <img src="image-39.png" alt="删除写屏障标记中间态示意图" width="82%">
 </div>
 <ul>
 <li>此时用户程序将原本对象E指向对象F的指针指向对象G，即对象E删除对象F，添加对象；触发删除写屏障，由于对象F已经被标记为灰色，所以不做改变，如下图所示</li>
 </ul>
 <div align="center">
-  <img src="image-40.png" alt="删除写屏障在替换引用时保护旧对象示意图" width="60%">
+  <img src="image-40.png" alt="删除写屏障在替换引用时保护旧对象示意图" width="82%">
 </div>
 <ul>
 <li>用户程序将对象F指向对象G的指针删除，触发删除写屏障，对象G被标记为灰色，如下图所示：</li>
 </ul>
 <div align="center">
-  <img src="image-41.png" alt="删除写屏障在删除引用时标灰旧对象示意图" width="60%">
+  <img src="image-41.png" alt="删除写屏障在删除引用时标灰旧对象示意图" width="82%">
 </div>
 <ul>
 <li>再继续推进三色标记，就能避免错误回收。</li>
 </ul>
 <div align="center">
-  <img src="image-42.png" alt="删除写屏障完成后对象状态示意图" width="60%">
+  <img src="image-42.png" alt="删除写屏障完成后对象状态示意图" width="82%">
 </div>
 <p>它能避免错误回收，但代价是<strong>回收精度更保守</strong>。某些已经逻辑失效的对象，因为在删除引用时被重新染灰，可能会多活一轮 GC。同时注意看上图，对象F其实是一个孤立的对象，不会再使用了，却最终被标记为了黑色，没有被回收掉，只能通过下一轮GC的时候将其回收，所以，删除写屏障存在回收精度低的问题</p>
 <p>另外，删除写屏障也不是完全不需要 <strong>STW</strong>。删除写屏障又叫做基于其实快照的解决方案（snapshot-at-the-begining）。删除写屏障（基于起始快照的写屏障）在使用的时候有一个前提条件，就是必须起始的时候，把整个根部扫描一遍，做一次快照，让所有的可达对象全都在灰色保护下（根对象全为黑，下一级在堆上的对象全灰），之后利用删除写屏障拦截内存写操作，确保弱三色不变式不被破坏，这样就绝对不会有被误回收的对象，就可以保证垃圾回收的正确性。</p>
 <p>经过了STW快照之后的，删除写屏障过程</p>
 <div align="center">
-  <img src="image-43.png" alt="删除写屏障依赖起始快照示意图" width="60%">
+  <img src="image-43.png" alt="删除写屏障依赖起始快照示意图" width="82%">
 </div>
 <p>如果试图一个栈一个栈地暂停，而不是一次性暂停全部 goroutine，也仍然会漏标，因为跨栈引用关系会在你扫描的间隙继续变化。具体例子如下</p>
 <ol>
@@ -1500,7 +1522,7 @@
 </li>
 </ol>
 <div align="center">
-  <img src="image-44.png" alt="逐个暂停 goroutine 栈获取快照的危险状态示意图" width="60%">
+  <img src="image-44.png" alt="逐个暂停 goroutine 栈获取快照的危险状态示意图" width="82%">
 </div>
 <p>问题就在于，另一个 goroutine 还没被扫描完之前，跨栈引用关系已经继续发生变化了。
 此时假设执行以下步骤：</p>
@@ -1508,7 +1530,7 @@
 <p>第二步：删除对象 B 到对象D的引用，由于是栈对象操作，不会触发删除写屏障</p>
 <p>执行完上述两个，结果如下图：</p>
 <div align="center">
-  <img src="image-45.png" alt="逐个暂停栈导致错误回收示意图" width="60%">
+  <img src="image-45.png" alt="逐个暂停栈导致错误回收示意图" width="82%">
 </div>
 <p>所以删除写屏障不是“完全摆脱 STW”，而是把 STW 集中到了起始快照这一步，同时用更保守的回收精度换来了正确性。</p>
 <h4 id="-混合写屏障">🛡️ 混合写屏障
@@ -1594,37 +1616,37 @@
 <li>初始状态下先看整体对象关系。</li>
 </ol>
 <div align="center">
-  <img src="image-46.png" alt="混合写屏障初始状态示意图" width="60%">
+  <img src="image-46.png" alt="混合写屏障初始状态示意图" width="82%">
 </div>
 <ol start="2">
 <li>GC 开始后，逐个扫描栈，将所有栈上可达对象A,B,C标记为黑色</li>
 </ol>
 <div align="center">
-  <img src="image-47.png" alt="混合写屏障下扫描栈对象示意图" width="60%">
+  <img src="image-47.png" alt="混合写屏障下扫描栈对象示意图" width="82%">
 </div>
 <ol start="3">
 <li>GC 期间新出现在栈上的对象，也直接按活跃对象处理。期间栈上新创建的对象K被标记为黑色</li>
 </ol>
 <div align="center">
-  <img src="image-48.png" alt="混合写屏障下新栈对象直接视为存活示意图" width="60%">
+  <img src="image-48.png" alt="混合写屏障下新栈对象直接视为存活示意图" width="82%">
 </div>
 <ol start="4">
 <li>并发标记推进到中间态后，堆上的新旧引用变化都会被屏障捕获。对象E被标记为黑色，对象F被标记为灰色</li>
 </ol>
 <div align="center">
-  <img src="image-49.png" alt="混合写屏障并发标记中间态示意图" width="60%">
+  <img src="image-49.png" alt="混合写屏障并发标记中间态示意图" width="82%">
 </div>
 <ol start="5">
 <li>此时，对象E新增指针指向对象I，对象F删除对对象H的指针引用，触发混合写屏障，对象I标记为灰色，对象H标记为灰色</li>
 </ol>
 <div align="center">
-  <img src="image-50.png" alt="混合写屏障同时标灰旧值和新值示意图" width="60%">
+  <img src="image-50.png" alt="混合写屏障同时标灰旧值和新值示意图" width="82%">
 </div>
 <ol start="6">
 <li>按照三色标记法和混合写屏障的的步骤继续往下执行，最终得到的结果如下图所示：</li>
 </ol>
 <div align="center">
-  <img src="image-51.png" alt="混合写屏障完成后的最终状态示意图" width="60%">
+  <img src="image-51.png" alt="混合写屏障完成后的最终状态示意图" width="82%">
 </div>
 <p>最终垃圾对象为白色对象D,G，将会被垃圾回收器清理掉</p>
 <p>它最终成了 Go 的选择，原因也很直接：</p>
@@ -1733,11 +1755,11 @@
 </div><p>虽然当前切片长度变成了 <code>3</code>，但底层数组仍然还在，后面的元素依然处于可达内存范围内，因此 GC 不会立刻把那部分底层空间单独回收。</p>
 <p>切片最开始会持有底层数组里的 6 个元素：</p>
 <div align="center">
-  <img src="image-5.png" alt="切片缩容前的底层数组示意图" width="60%">
+  <img src="image-5.png" alt="切片缩容前的底层数组示意图" width="82%">
 </div>
 <p>当切片缩成 <code>3</code> 个元素以后，业务上你确实“看不到”后半部分了，但底层数组仍然还挂在切片头上，因此从 <strong>GC</strong> 视角看，它依旧是可达的。</p>
 <div align="center">
-  <img src="image-6.png" alt="切片缩容后底层数组仍可达示意图" width="60%">
+  <img src="image-6.png" alt="切片缩容后底层数组仍可达示意图" width="82%">
 </div>
 <p>类似的问题在真实项目里还有几种很常见的变体：</p>
 <ul>
@@ -1806,6 +1828,21 @@
 <li><strong><code>go tool trace</code></strong>：看运行时事件、调度和 GC 过程</li>
 <li><strong><code>GODEBUG=gctrace=1</code></strong>：直接输出详细 GC 日志</li>
 </ul>
+<p>如果再往“定位内存泄漏”这类实战问题上走，最常用的几类入口是：</p>
+<ul>
+<li><strong><code>go tool pprof http://host:port/debug/pprof/heap</code></strong>：看堆对象到底集中分配在哪些函数</li>
+<li><strong><code>go tool pprof http://host:port/debug/pprof/goroutine</code></strong>：看 goroutine 数量是否异常增长、阻塞在哪里</li>
+<li><strong><code>runtime.ReadMemStats()</code></strong>：观察堆内存、对象数、GC 次数的变化趋势</li>
+<li><strong><code>runtime.NumGoroutine()</code></strong>：快速确认 goroutine 是否存在持续上涨</li>
+</ul>
+<p>很多时候，问题并不在“单次 GC 没收掉”，而在于<strong>对象一直处于可达状态</strong>。这类场景最典型的几个来源包括：</p>
+<ul>
+<li><strong>goroutine 泄漏</strong>：协程没有退出条件，长期阻塞在 <code>select</code>、<code>channel</code>、网络读写上</li>
+<li><strong>channel 泄漏</strong>：生产者结束了，但 channel 没关闭，消费者一直等</li>
+<li><strong>小 slice 持有大数组</strong>：逻辑上只用一小段，但底层整块数组都还活着</li>
+<li><strong>map 曾经很大后来删了很多元素</strong>：逻辑上数据变少了，但桶不会自动缩回去</li>
+<li><strong>定时器或 ticker 没有停止</strong>：运行时结构仍被引用，内存与 goroutine 都可能被拖住</li>
+</ul>
 <p>如果只是想快速确认“程序是不是 GC 太频繁”，<code>gctrace</code> 往往是最直接的入口；如果已经确定有内存热点，再进一步看 <strong>heap profile</strong> 和 <strong>alloc profile</strong>。</p>
 <p>一个很实用的经验判断是：<strong>Go 的 GC 卡顿通常不是出在并发清扫阶段，而主要出现在标记开始前和重新标记这两个 STW 点。</strong></p>
 <p>也就是说，如果你的服务在某些时刻有明显抖动，重点要先怀疑：</p>
@@ -1851,7 +1888,7 @@
 
 
         <span>
-            最后更新于 2026-03-24 05:58 UTC
+            最后更新于 2026-03-24 14:37 UTC
         </span>
     </section></footer>
 
