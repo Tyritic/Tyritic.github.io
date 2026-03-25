@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="深入解析LLM调用外部工具的核心原理，涵盖Function Calling、Prompt Engineering、微调训练三条技术路线，以及MCP协议标准化趋势。">
+<title>Agent的工具调用</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/agent%E7%9A%84%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8/'>
+
+<link rel="stylesheet" href="/scss/style.min.dad0e2c2229a75c496b5a934967d99a61e8005c32f24fb55c6333e1a66ab1d8b.css"><meta property='og:title' content="Agent的工具调用">
+<meta property='og:description' content="深入解析LLM调用外部工具的核心原理，涵盖Function Calling、Prompt Engineering、微调训练三条技术路线，以及MCP协议标准化趋势。">
+<meta property='og:url' content='https://Tyritic.github.io/p/agent%E7%9A%84%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='智能体' /><meta property='article:tag' content='MCP' /><meta property='article:published_time' content='2026-03-25T16:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-03-25T10:18:45&#43;00:00'/>
+<meta name="twitter:title" content="Agent的工具调用">
+<meta name="twitter:description" content="深入解析LLM调用外部工具的核心原理，涵盖Function Calling、Prompt Engineering、微调训练三条技术路线，以及MCP协议标准化趋势。">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_691afbb6233f07b9.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#-llm-为什么工具调用">🔧 LLM 为什么工具调用？</a></li>
+    <li><a href="#-function-calling">📡 Function Calling</a></li>
+    <li><a href="#-prompt-engineering">⚙️ Prompt Engineering</a></li>
+    <li><a href="#-微调训练">🎯 微调训练</a></li>
+    <li><a href="#-工具描述的设计">📝 工具描述的设计</a></li>
+    <li><a href="#-mcp-协议">🔗 MCP 协议</a></li>
+    <li><a href="#-总结">✅ 总结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/agent/" style="background-color: #2a9d8f; color: #fff;">
+                Agent
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/agent%E7%9A%84%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8/">Agent的工具调用</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            深入解析LLM调用外部工具的核心原理，涵盖Function Calling、Prompt Engineering、微调训练三条技术路线，以及MCP协议标准化趋势。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-03-25</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 8 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：3995 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="-llm-为什么工具调用">🔧 LLM 为什么工具调用？
+</h2><p>在讨论&quot;怎么调工具&quot;之前，先要搞清楚&quot;为什么要调工具&quot;。LLM 本质上是一个基于海量文本训练出来的语言模型，它的能力边界由训练数据决定。这意味着它天生有几个硬伤：</p>
+<ul>
+<li><strong>知识有截止日期</strong>：训练数据之后发生的事情它不知道</li>
+<li><strong>不擅长精确计算</strong>：比如让它算 1234×5678 它大概率算不对</li>
+<li><strong>无法与外部系统交互</strong>：它不能发邮件、查数据库、调 API</li>
+</ul>
+<p>工具调用（Tool Use）就是为了弥补这些硬伤而设计的。通过让 LLM &ldquo;学会&quot;在需要的时候调用外部工具——搜索引擎、计算器、数据库、第三方 API 等——它的能力就从&quot;只能说&quot;扩展到了&quot;能说也能做&rdquo;。这也是 Agent 和普通 Chatbot 的本质区别之一。</p>
+<p>但这里有一个关键的认知要先建立：<strong>LLM 并不是真的在&quot;执行&quot;工具调用</strong>。LLM 做的事情只有一件——生成文本。所谓的&quot;调用工具&quot;，实际上是 LLM 生成了一段<strong>结构化的文本</strong>（比如一个 JSON），表达&quot;我想调用某个工具，参数是什么&quot;，然后由外部的<strong>运行时系统</strong>（Agent Runtime / Orchestrator）来解析这段文本、真正执行工具调用、获取结果、再把结果喂回给 LLM。LLM 在这个过程中扮演的是&quot;决策者&quot;而非&quot;执行者&quot;的角色。</p>
+<p>理解了这一点，后面讲的所有方案就都好理解了——它们本质上都是在解决同一个问题：<strong>如何让 LLM 准确地生成符合格式要求的工具调用指令？</strong></p>
+<div align="center">
+  <img src="1-llm-tool-architecture.png" alt="LLM与工具交互架构" width="85%">
+</div>
+<hr>
+<h2 id="-function-calling">📡 Function Calling
+</h2><p>Function Calling 是过去一段时间最主流、效果最好的工具调用方案，由 OpenAI 在 2023 年 6 月率先推出，随后各大模型厂商（Anthropic、Google、国内的通义千问、智谱等）都跟进支持了。</p>
+<p>Function Calling 的核心思路是：<strong>在模型训练阶段就让模型学会&quot;什么时候该调工具、怎么生成调用参数&quot;</strong>，而不是仅仅靠 prompt 在推理阶段去引导。具体来说，模型厂商在训练数据中加入了大量的工具调用样本——这些样本告诉模型&quot;当用户问到这类问题时，你应该输出一个特定格式的工具调用请求&quot;。经过这种训练后，模型原生就具备了工具调用的能力。</p>
+<p>在使用时，开发者需要在 API 请求中通过 <code>tools</code> 参数传入可用工具的定义，每个工具定义包括工具名称、功能描述、以及参数的 JSON Schema。比如：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;tools&#34;</span><span class="p">:</span> <span class="p">[{</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;function&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;function&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;get_weather&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;description&#34;</span><span class="p">:</span> <span class="s2">&#34;获取指定城市的当前天气信息&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;parameters&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;object&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;properties&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">          <span class="nt">&#34;city&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;string&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;description&#34;</span><span class="p">:</span> <span class="s2">&#34;城市名称，如&#39;北京&#39;&#34;</span>
+</span></span><span class="line"><span class="cl">          <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;required&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;city&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}]</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>当模型判断需要调用工具时，它不会输出普通的文本回复，而是输出一个结构化的 <code>tool_calls</code> 对象，里面包含要调用的函数名和参数值。比如 <code>{&quot;name&quot;: &quot;get_weather&quot;, &quot;arguments&quot;: {&quot;city&quot;: &quot;北京&quot;}}</code>。开发者的代码接收到这个对象后，执行实际的 API 调用，拿到结果，再把结果以 <code>tool</code> 类型的消息追加到对话历史中，发送给模型进行下一轮推理。</p>
+<div align="center">
+  <img src="2-function-calling.png" alt="Function Calling流程" width="85%">
+</div>
+<p>Function Calling 的优势非常明显：因为是模型训练阶段内化的能力，所以<strong>格式稳定性极高</strong>，几乎不会出现 JSON 解析错误的情况；同时模型对&quot;什么时候该调工具、什么时候不该调&quot;的判断也更准确，能很好地处理&quot;不需要工具直接回答&quot;和&quot;需要工具辅助&quot;之间的切换。而且现在主流模型都支持<strong>并行工具调用</strong>——一次推理同时调用多个工具，大幅提升效率。</p>
+<hr>
+<h2 id="-prompt-engineering">⚙️ Prompt Engineering
+</h2><p>在 Function Calling 出现之前，或者对于不支持 Function Calling 的模型，开发者主要依靠<strong>精心设计的 Prompt</strong> 来引导 LLM 生成工具调用指令。这也是 ReAct 框架最初采用的方案。</p>
+<p>具体做法是：在 System Prompt 中详细描述每个可用工具的名称、功能和使用格式，并通过 few-shot 示例教模型按照固定格式输出工具调用指令。比如：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">你可以使用以下工具：
+</span></span><span class="line"><span class="cl">1. search(query: str) - 在互联网上搜索信息
+</span></span><span class="line"><span class="cl">2. calculator(expression: str) - 计算数学表达式
+</span></span><span class="line"><span class="cl">3. database_query(sql: str) - 执行 SQL 查询
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">当你需要使用工具时，请严格按照以下格式输出：
+</span></span><span class="line"><span class="cl">Action: 工具名
+</span></span><span class="line"><span class="cl">Action Input: 参数值
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">示例：
+</span></span><span class="line"><span class="cl">用户：2023年中国GDP是多少？
+</span></span><span class="line"><span class="cl">Thought: 我需要搜索最新的中国GDP数据
+</span></span><span class="line"><span class="cl">Action: search
+</span></span><span class="line"><span class="cl">Action Input: 2023年中国GDP总量
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>系统在接收到 LLM 的输出后，通过<strong>正则表达式或字符串解析</strong>来提取 Action 和 Action Input，然后执行对应的工具调用。</p>
+<div align="center">
+  <img src="3-react-framework.png" alt="ReAct框架流程" width="85%">
+</div>
+<p>这种方案的优势是<strong>灵活性极高</strong>——不依赖模型厂商的特定 API，任何模型都能用，而且工具的定义和格式完全由开发者控制。但劣势也很明显：<strong>格式稳定性差</strong>。模型毕竟是在做自由文本生成，它不一定每次都严格遵守你定义的格式——有时候会在 Action 前面多写几句话，有时候参数格式不对，有时候干脆忘了用工具直接瞎编答案。这在工程上需要大量的容错处理和重试逻辑。</p>
+<p>从实际项目经验来看，Prompt 方案适合两种场景：一是模型不支持 Function Calling 时的降级方案；二是需要高度定制化的工具调用格式时（比如 ReAct 的 Thought-Action-Observation 格式本身就承载了推理链信息，这是标准 Function Calling 不容易做到的）。</p>
+<hr>
+<h2 id="-微调训练">🎯 微调训练
+</h2><p>如果你使用的是开源模型（如 LLaMA、Qwen、ChatGLM 等），而且需要非常稳定的工具调用能力，还有一条路是<strong>对模型进行微调</strong>，让它从训练层面学会工具调用。</p>
+<p>微调的核心思路是：构建大量的工具调用训练样本，每个样本包含&quot;用户输入 + 可用工具列表 → 模型应该输出的工具调用指令&quot;，然后用这些数据对模型做有监督微调（SFT）。训练数据的质量和多样性决定了微调效果的上限——数据需要覆盖&quot;需要调工具&quot;和&quot;不需要调工具&quot;两种场景，也需要覆盖单工具调用和多工具调用的情况。</p>
+<p>这个方向上有几个有代表性的工作：</p>
+<ul>
+<li><strong>Gorilla</strong>：UC Berkeley 的研究，专门针对 API 调用场景做了微调，在大量真实 API 文档上训练，使模型能够根据 API 文档准确生成调用代码</li>
+<li><strong>ToolLLM</strong>：构建了一个包含 16000+ 真实 API 的大规模工具调用数据集，并在此基础上微调出了 ToolLLaMA</li>
+<li><strong>Qwen-Agent</strong>：国内的方案，通义千问模型本身就在训练中融入了 Function Calling 能力</li>
+</ul>
+<div align="center">
+  <img src="4-finetune-training.png" alt="微调训练示意" width="85%">
+</div>
+<p>微调方案的优势是<strong>可以深度定制</strong>——你可以让模型学会调用你业务特有的工具集，甚至学会处理复杂的多工具编排逻辑。劣势是<strong>成本高</strong>，需要构建高质量的训练数据、消耗 GPU 资源训练、还需要持续维护和更新。</p>
+<hr>
+<h2 id="-工具描述的设计">📝 工具描述的设计
+</h2><p>不管使用哪种方案，有一个环节对工具调用成功率的影响非常大，但经常被低估——那就是<strong>工具描述（Tool Description）的质量</strong>。</p>
+<p>LLM 是根据工具的描述文本来理解&quot;这个工具能做什么、什么时候该用它&quot;的。如果描述写得模糊或歧义，模型就可能在不该调工具的时候调了，或者该调的时候没调，或者调了错误的工具。</p>
+<p>一个好的工具描述应该包含：</p>
+<ul>
+<li><strong>功能的精确描述</strong>：这个工具做什么，不做什么</li>
+<li><strong>参数的清晰说明</strong>：每个参数是什么含义、什么类型、有什么约束</li>
+<li><strong>使用场景的边界</strong>：什么情况下该用这个工具，什么情况下不该用</li>
+</ul>
+<p>在实际项目中，我们经常需要反复迭代工具描述的措辞，这跟调 prompt 是一样的道理——本质上它就是 prompt 的一部分。</p>
+<p>另外一个工程上的重要考量是<strong>工具数量的控制</strong>。当可用工具数量很多时（比如超过 20 个），全部塞进上下文会消耗大量 token，而且模型在太多工具中做选择时准确率会下降。常见的解决方案是做<strong>工具检索</strong>——先用 embedding 相似度或者分类模型从全量工具库中筛选出与当前任务最相关的几个工具，只把这些工具的描述传给模型。这本质上就是对工具列表做了一次 RAG。</p>
+<hr>
+<h2 id="-mcp-协议">🔗 MCP 协议
+</h2><p>最后值得一提的是目前工具调用领域重要的标准化趋势——<strong>MCP（Model Context Protocol，模型上下文协议）</strong>。MCP 由 Anthropic 在 2024 年底提出，它试图解决的问题是：目前每个模型厂商的 Function Calling 接口格式不一样，每个工具的接入方式也各不相同，导致开发者在切换模型或接入新工具时需要大量的适配工作。</p>
+<p>MCP 定义了一套标准化的协议，让 LLM 和外部工具之间的交互有了统一的&quot;语言&quot;。你可以把它理解为工具调用领域的&quot;USB 接口&quot;——有了这个标准，任何符合 MCP 协议的工具都可以即插即用地接入任何支持 MCP 的模型或 Agent 框架，大幅降低了集成成本。</p>
+<div align="center">
+  <img src="6-mcp-protocol.png" alt="MCP协议架构" width="85%">
+</div>
+<p>在 MCP 的架构中，有三个核心角色：</p>
+<ul>
+<li><strong>MCP Host</strong>：使用工具的应用，比如你的 Agent</li>
+<li><strong>MCP Client</strong>：协议客户端，负责和 Server 通信</li>
+<li><strong>MCP Server</strong>：工具提供方，把自己的 API 包装成 MCP 标准接口暴露出来</li>
+</ul>
+<p>开发者只需要按 MCP 标准实现一次工具的 Server 端，就可以被任何 MCP 兼容的 Agent 直接调用。</p>
+<p>具体细节参见往期博客：</p>
+<ul>
+<li><a class="link" href="https://tyritic.github.io/p/%E6%A8%A1%E5%9E%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%8F%E8%AE%AEmcp/"  target="_blank" rel="noopener"
+    >模型上下文协议（MCP）</a></li>
+</ul>
+<hr>
+<h2 id="-总结">✅ 总结
+</h2><p>LLM 调用外部工具的核心原理，首先要理解一个关键前提：<strong>LLM 本身并不执行任何工具操作，它做的事情只是生成一段结构化的文本指令</strong>，表达&quot;我要调什么工具、传什么参数&quot;，然后由外部的 Agent 运行时系统去解析指令、执行调用、把结果回传给 LLM 继续推理。理解了这个前提之后，赋予 LLM 工具调用能力主要有三条技术路线。</p>
+<p><strong>第一条是 Function Calling</strong>，这是目前效果最好也最主流的方案，OpenAI、Anthropic、通义千问等主流模型都原生支持。它的原理是在模型训练阶段就加入大量工具调用的样本数据，让模型学会根据 tools 参数中的 JSON Schema 工具定义来判断何时需要调用工具，并直接输出结构化的 tool_calls 对象，格式稳定性非常高，还支持并行调用多个工具。</p>
+<p><strong>第二条是 Prompt Engineering</strong>，在模型不支持 Function Calling 时作为降级方案，通过在 System Prompt 中描述工具列表和调用格式，配合 few-shot 示例引导模型按固定格式输出，然后用正则表达式解析。ReAct 框架最初就是这种方案，灵活性高但格式稳定性差，需要大量容错处理。</p>
+<p><strong>第三条是微调训练</strong>，针对开源模型在业务专用的工具调用数据上做 SFT，像 Gorilla 和 ToolLLM 就是这个方向的代表工作。</p>
+<p>除了方案选择之外，实际工程中<strong>工具描述的质量对调用成功率影响极大</strong>，好的描述要精确定义功能边界和参数约束，这和调 prompt 是一样的道理。工具数量多时还需要做工具检索——先用相似度筛选出相关工具再传给模型。最后值得关注的趋势是 <strong>MCP 协议</strong>，它定义了 LLM 和工具之间标准化的通信接口，目标是让工具实现&quot;即插即用&quot;的生态互通，是这个领域从碎片化走向标准化的重要一步。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E6%99%BA%E8%83%BD%E4%BD%93/">智能体</a>
+        
+            <a href="/tags/mcp/">MCP</a>
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026-03-25 10:18 UTC
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E8%A7%84%E5%88%92%E6%A8%A1%E5%9D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的规划模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E8%AE%B0%E5%BF%86%E6%A8%A1%E5%9D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的记忆模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的核心组件</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E6%A6%82%E5%BF%B5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的概念</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E5%AE%89%E5%85%A8%E8%AE%BE%E8%AE%A1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的安全设计</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2026 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.93ec85291de2934df13aa4307b756a6eb93dd4ff935a9810e787a938c351043f.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

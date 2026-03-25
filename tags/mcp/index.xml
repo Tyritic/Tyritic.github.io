@@ -1,0 +1,467 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>MCP on Tyritic</title>
+        <link>https://Tyritic.github.io/tags/mcp/</link>
+        <description>Recent content in MCP on Tyritic</description>
+        <generator>Hugo -- gohugo.io</generator>
+        <language>en-us</language>
+        <copyright>Tyritic</copyright>
+        <lastBuildDate>Wed, 25 Mar 2026 10:18:46 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/mcp/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>Agent的工具调用</title>
+        <link>https://Tyritic.github.io/p/agent%E7%9A%84%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8/</link>
+        <pubDate>Wed, 25 Mar 2026 16:00:00 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/agent%E7%9A%84%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8/</guid>
+        <description>&lt;h2 id=&#34;-llm-为什么工具调用&#34;&gt;🔧 LLM 为什么工具调用？
+&lt;/h2&gt;&lt;p&gt;在讨论&amp;quot;怎么调工具&amp;quot;之前，先要搞清楚&amp;quot;为什么要调工具&amp;quot;。LLM 本质上是一个基于海量文本训练出来的语言模型，它的能力边界由训练数据决定。这意味着它天生有几个硬伤：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;知识有截止日期&lt;/strong&gt;：训练数据之后发生的事情它不知道&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;不擅长精确计算&lt;/strong&gt;：比如让它算 1234×5678 它大概率算不对&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;无法与外部系统交互&lt;/strong&gt;：它不能发邮件、查数据库、调 API&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;工具调用（Tool Use）就是为了弥补这些硬伤而设计的。通过让 LLM &amp;ldquo;学会&amp;quot;在需要的时候调用外部工具——搜索引擎、计算器、数据库、第三方 API 等——它的能力就从&amp;quot;只能说&amp;quot;扩展到了&amp;quot;能说也能做&amp;rdquo;。这也是 Agent 和普通 Chatbot 的本质区别之一。&lt;/p&gt;
+&lt;p&gt;但这里有一个关键的认知要先建立：&lt;strong&gt;LLM 并不是真的在&amp;quot;执行&amp;quot;工具调用&lt;/strong&gt;。LLM 做的事情只有一件——生成文本。所谓的&amp;quot;调用工具&amp;quot;，实际上是 LLM 生成了一段&lt;strong&gt;结构化的文本&lt;/strong&gt;（比如一个 JSON），表达&amp;quot;我想调用某个工具，参数是什么&amp;quot;，然后由外部的&lt;strong&gt;运行时系统&lt;/strong&gt;（Agent Runtime / Orchestrator）来解析这段文本、真正执行工具调用、获取结果、再把结果喂回给 LLM。LLM 在这个过程中扮演的是&amp;quot;决策者&amp;quot;而非&amp;quot;执行者&amp;quot;的角色。&lt;/p&gt;
+&lt;p&gt;理解了这一点，后面讲的所有方案就都好理解了——它们本质上都是在解决同一个问题：&lt;strong&gt;如何让 LLM 准确地生成符合格式要求的工具调用指令？&lt;/strong&gt;&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;1-llm-tool-architecture.png&#34; alt=&#34;LLM与工具交互架构&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-function-calling&#34;&gt;📡 Function Calling
+&lt;/h2&gt;&lt;p&gt;Function Calling 是过去一段时间最主流、效果最好的工具调用方案，由 OpenAI 在 2023 年 6 月率先推出，随后各大模型厂商（Anthropic、Google、国内的通义千问、智谱等）都跟进支持了。&lt;/p&gt;
+&lt;p&gt;Function Calling 的核心思路是：&lt;strong&gt;在模型训练阶段就让模型学会&amp;quot;什么时候该调工具、怎么生成调用参数&amp;quot;&lt;/strong&gt;，而不是仅仅靠 prompt 在推理阶段去引导。具体来说，模型厂商在训练数据中加入了大量的工具调用样本——这些样本告诉模型&amp;quot;当用户问到这类问题时，你应该输出一个特定格式的工具调用请求&amp;quot;。经过这种训练后，模型原生就具备了工具调用的能力。&lt;/p&gt;
+&lt;p&gt;在使用时，开发者需要在 API 请求中通过 &lt;code&gt;tools&lt;/code&gt; 参数传入可用工具的定义，每个工具定义包括工具名称、功能描述、以及参数的 JSON Schema。比如：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;15
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;16
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;17
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;18
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;19
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-json&#34; data-lang=&#34;json&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;#34;tools&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;[{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;function&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;function&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;#34;name&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;get_weather&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;#34;description&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;获取指定城市的当前天气信息&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;#34;parameters&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;object&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;#34;properties&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;          &lt;span class=&#34;nt&#34;&gt;&amp;#34;city&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;nt&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;string&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;nt&#34;&gt;&amp;#34;description&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;城市名称，如&amp;#39;北京&amp;#39;&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;          &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;p&#34;&gt;},&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;#34;required&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;city&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;p&#34;&gt;}]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;当模型判断需要调用工具时，它不会输出普通的文本回复，而是输出一个结构化的 &lt;code&gt;tool_calls&lt;/code&gt; 对象，里面包含要调用的函数名和参数值。比如 &lt;code&gt;{&amp;quot;name&amp;quot;: &amp;quot;get_weather&amp;quot;, &amp;quot;arguments&amp;quot;: {&amp;quot;city&amp;quot;: &amp;quot;北京&amp;quot;}}&lt;/code&gt;。开发者的代码接收到这个对象后，执行实际的 API 调用，拿到结果，再把结果以 &lt;code&gt;tool&lt;/code&gt; 类型的消息追加到对话历史中，发送给模型进行下一轮推理。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;2-function-calling.png&#34; alt=&#34;Function Calling流程&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;Function Calling 的优势非常明显：因为是模型训练阶段内化的能力，所以&lt;strong&gt;格式稳定性极高&lt;/strong&gt;，几乎不会出现 JSON 解析错误的情况；同时模型对&amp;quot;什么时候该调工具、什么时候不该调&amp;quot;的判断也更准确，能很好地处理&amp;quot;不需要工具直接回答&amp;quot;和&amp;quot;需要工具辅助&amp;quot;之间的切换。而且现在主流模型都支持&lt;strong&gt;并行工具调用&lt;/strong&gt;——一次推理同时调用多个工具，大幅提升效率。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-prompt-engineering&#34;&gt;⚙️ Prompt Engineering
+&lt;/h2&gt;&lt;p&gt;在 Function Calling 出现之前，或者对于不支持 Function Calling 的模型，开发者主要依靠&lt;strong&gt;精心设计的 Prompt&lt;/strong&gt; 来引导 LLM 生成工具调用指令。这也是 ReAct 框架最初采用的方案。&lt;/p&gt;
+&lt;p&gt;具体做法是：在 System Prompt 中详细描述每个可用工具的名称、功能和使用格式，并通过 few-shot 示例教模型按照固定格式输出工具调用指令。比如：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;你可以使用以下工具：
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;1. search(query: str) - 在互联网上搜索信息
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;2. calculator(expression: str) - 计算数学表达式
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;3. database_query(sql: str) - 执行 SQL 查询
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;当你需要使用工具时，请严格按照以下格式输出：
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Action: 工具名
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Action Input: 参数值
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;示例：
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;用户：2023年中国GDP是多少？
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Thought: 我需要搜索最新的中国GDP数据
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Action: search
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Action Input: 2023年中国GDP总量
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;系统在接收到 LLM 的输出后，通过&lt;strong&gt;正则表达式或字符串解析&lt;/strong&gt;来提取 Action 和 Action Input，然后执行对应的工具调用。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;3-react-framework.png&#34; alt=&#34;ReAct框架流程&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;这种方案的优势是&lt;strong&gt;灵活性极高&lt;/strong&gt;——不依赖模型厂商的特定 API，任何模型都能用，而且工具的定义和格式完全由开发者控制。但劣势也很明显：&lt;strong&gt;格式稳定性差&lt;/strong&gt;。模型毕竟是在做自由文本生成，它不一定每次都严格遵守你定义的格式——有时候会在 Action 前面多写几句话，有时候参数格式不对，有时候干脆忘了用工具直接瞎编答案。这在工程上需要大量的容错处理和重试逻辑。&lt;/p&gt;
+&lt;p&gt;从实际项目经验来看，Prompt 方案适合两种场景：一是模型不支持 Function Calling 时的降级方案；二是需要高度定制化的工具调用格式时（比如 ReAct 的 Thought-Action-Observation 格式本身就承载了推理链信息，这是标准 Function Calling 不容易做到的）。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-微调训练&#34;&gt;🎯 微调训练
+&lt;/h2&gt;&lt;p&gt;如果你使用的是开源模型（如 LLaMA、Qwen、ChatGLM 等），而且需要非常稳定的工具调用能力，还有一条路是&lt;strong&gt;对模型进行微调&lt;/strong&gt;，让它从训练层面学会工具调用。&lt;/p&gt;
+&lt;p&gt;微调的核心思路是：构建大量的工具调用训练样本，每个样本包含&amp;quot;用户输入 + 可用工具列表 → 模型应该输出的工具调用指令&amp;quot;，然后用这些数据对模型做有监督微调（SFT）。训练数据的质量和多样性决定了微调效果的上限——数据需要覆盖&amp;quot;需要调工具&amp;quot;和&amp;quot;不需要调工具&amp;quot;两种场景，也需要覆盖单工具调用和多工具调用的情况。&lt;/p&gt;
+&lt;p&gt;这个方向上有几个有代表性的工作：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Gorilla&lt;/strong&gt;：UC Berkeley 的研究，专门针对 API 调用场景做了微调，在大量真实 API 文档上训练，使模型能够根据 API 文档准确生成调用代码&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;ToolLLM&lt;/strong&gt;：构建了一个包含 16000+ 真实 API 的大规模工具调用数据集，并在此基础上微调出了 ToolLLaMA&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Qwen-Agent&lt;/strong&gt;：国内的方案，通义千问模型本身就在训练中融入了 Function Calling 能力&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;4-finetune-training.png&#34; alt=&#34;微调训练示意&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;微调方案的优势是&lt;strong&gt;可以深度定制&lt;/strong&gt;——你可以让模型学会调用你业务特有的工具集，甚至学会处理复杂的多工具编排逻辑。劣势是&lt;strong&gt;成本高&lt;/strong&gt;，需要构建高质量的训练数据、消耗 GPU 资源训练、还需要持续维护和更新。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-工具描述的设计&#34;&gt;📝 工具描述的设计
+&lt;/h2&gt;&lt;p&gt;不管使用哪种方案，有一个环节对工具调用成功率的影响非常大，但经常被低估——那就是&lt;strong&gt;工具描述（Tool Description）的质量&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;LLM 是根据工具的描述文本来理解&amp;quot;这个工具能做什么、什么时候该用它&amp;quot;的。如果描述写得模糊或歧义，模型就可能在不该调工具的时候调了，或者该调的时候没调，或者调了错误的工具。&lt;/p&gt;
+&lt;p&gt;一个好的工具描述应该包含：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;功能的精确描述&lt;/strong&gt;：这个工具做什么，不做什么&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;参数的清晰说明&lt;/strong&gt;：每个参数是什么含义、什么类型、有什么约束&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;使用场景的边界&lt;/strong&gt;：什么情况下该用这个工具，什么情况下不该用&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在实际项目中，我们经常需要反复迭代工具描述的措辞，这跟调 prompt 是一样的道理——本质上它就是 prompt 的一部分。&lt;/p&gt;
+&lt;p&gt;另外一个工程上的重要考量是&lt;strong&gt;工具数量的控制&lt;/strong&gt;。当可用工具数量很多时（比如超过 20 个），全部塞进上下文会消耗大量 token，而且模型在太多工具中做选择时准确率会下降。常见的解决方案是做&lt;strong&gt;工具检索&lt;/strong&gt;——先用 embedding 相似度或者分类模型从全量工具库中筛选出与当前任务最相关的几个工具，只把这些工具的描述传给模型。这本质上就是对工具列表做了一次 RAG。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-mcp-协议&#34;&gt;🔗 MCP 协议
+&lt;/h2&gt;&lt;p&gt;最后值得一提的是目前工具调用领域重要的标准化趋势——&lt;strong&gt;MCP（Model Context Protocol，模型上下文协议）&lt;/strong&gt;。MCP 由 Anthropic 在 2024 年底提出，它试图解决的问题是：目前每个模型厂商的 Function Calling 接口格式不一样，每个工具的接入方式也各不相同，导致开发者在切换模型或接入新工具时需要大量的适配工作。&lt;/p&gt;
+&lt;p&gt;MCP 定义了一套标准化的协议，让 LLM 和外部工具之间的交互有了统一的&amp;quot;语言&amp;quot;。你可以把它理解为工具调用领域的&amp;quot;USB 接口&amp;quot;——有了这个标准，任何符合 MCP 协议的工具都可以即插即用地接入任何支持 MCP 的模型或 Agent 框架，大幅降低了集成成本。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;6-mcp-protocol.png&#34; alt=&#34;MCP协议架构&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;在 MCP 的架构中，有三个核心角色：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;MCP Host&lt;/strong&gt;：使用工具的应用，比如你的 Agent&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;MCP Client&lt;/strong&gt;：协议客户端，负责和 Server 通信&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;MCP Server&lt;/strong&gt;：工具提供方，把自己的 API 包装成 MCP 标准接口暴露出来&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;开发者只需要按 MCP 标准实现一次工具的 Server 端，就可以被任何 MCP 兼容的 Agent 直接调用。&lt;/p&gt;
+&lt;p&gt;具体细节参见往期博客：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;https://tyritic.github.io/p/%E6%A8%A1%E5%9E%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%8F%E8%AE%AEmcp/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;模型上下文协议（MCP）&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-总结&#34;&gt;✅ 总结
+&lt;/h2&gt;&lt;p&gt;LLM 调用外部工具的核心原理，首先要理解一个关键前提：&lt;strong&gt;LLM 本身并不执行任何工具操作，它做的事情只是生成一段结构化的文本指令&lt;/strong&gt;，表达&amp;quot;我要调什么工具、传什么参数&amp;quot;，然后由外部的 Agent 运行时系统去解析指令、执行调用、把结果回传给 LLM 继续推理。理解了这个前提之后，赋予 LLM 工具调用能力主要有三条技术路线。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第一条是 Function Calling&lt;/strong&gt;，这是目前效果最好也最主流的方案，OpenAI、Anthropic、通义千问等主流模型都原生支持。它的原理是在模型训练阶段就加入大量工具调用的样本数据，让模型学会根据 tools 参数中的 JSON Schema 工具定义来判断何时需要调用工具，并直接输出结构化的 tool_calls 对象，格式稳定性非常高，还支持并行调用多个工具。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第二条是 Prompt Engineering&lt;/strong&gt;，在模型不支持 Function Calling 时作为降级方案，通过在 System Prompt 中描述工具列表和调用格式，配合 few-shot 示例引导模型按固定格式输出，然后用正则表达式解析。ReAct 框架最初就是这种方案，灵活性高但格式稳定性差，需要大量容错处理。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第三条是微调训练&lt;/strong&gt;，针对开源模型在业务专用的工具调用数据上做 SFT，像 Gorilla 和 ToolLLM 就是这个方向的代表工作。&lt;/p&gt;
+&lt;p&gt;除了方案选择之外，实际工程中&lt;strong&gt;工具描述的质量对调用成功率影响极大&lt;/strong&gt;，好的描述要精确定义功能边界和参数约束，这和调 prompt 是一样的道理。工具数量多时还需要做工具检索——先用相似度筛选出相关工具再传给模型。最后值得关注的趋势是 &lt;strong&gt;MCP 协议&lt;/strong&gt;，它定义了 LLM 和工具之间标准化的通信接口，目标是让工具实现&amp;quot;即插即用&amp;quot;的生态互通，是这个领域从碎片化走向标准化的重要一步。&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>模型上下文协议（MCP）</title>
+        <link>https://Tyritic.github.io/p/%E6%A8%A1%E5%9E%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%8F%E8%AE%AEmcp/</link>
+        <pubDate>Thu, 27 Mar 2025 10:00:39 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/%E6%A8%A1%E5%9E%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%8F%E8%AE%AEmcp/</guid>
+        <description>&lt;h2 id=&#34;-llm-的典型局限&#34;&gt;🤔 LLM 的典型局限
+&lt;/h2&gt;&lt;p&gt;人工智能的迅速发展，尤其是大型语言模型(LLMs)，为生成类人类文本、解决复杂问题和跨行业提升生产力打开了前所未有的潜力。然而，一个持续存在的挑战是:这些模型往往与驱动现代工作流的实时动态数据隔离。在真正落地业务场景时，LLM 虽然已经具备很强的理解和生成能力，但仍然有几个明显短板：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;知识覆盖有限&lt;/strong&gt;：大多数 LLM 基于公开语料训练，对垂直领域知识掌握不足，遇到不熟悉的问题时容易出现“看起来很自信、实际上不准确”的回答。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;知识缺乏实时性&lt;/strong&gt;：模型的知识停留在训练阶段，无法天然知道“今天”的天气、最新政策或最新业务数据。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;缺少主动执行能力&lt;/strong&gt;：LLM 更像一个“规划者”，能够理解和推理，但如果没有外部工具配合，它本身无法主动读取文件、访问网络或执行系统操作。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-传统方案函数调用&#34;&gt;🧰 传统方案：函数调用
+&lt;/h2&gt;&lt;p&gt;Function Call 于 &lt;strong&gt;2023 年&lt;/strong&gt; 由 OpenAI 推出。在此之前，LLM 主要只能通过自然语言回答问题，无法直接触发 API 调用或插件交互。Function Call 的关键能力在于：&lt;strong&gt;模型能够以结构化 JSON 的形式输出函数参数，再交由应用程序执行对应逻辑。&lt;/strong&gt;&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;Function Calling.png&#34; alt=&#34;Function Call&#34; width=&#34;78%&#34;&gt;
+&lt;/div&gt;
+一个典型流程如下：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;识别意图&lt;/strong&gt;：模型根据用户输入判断是否需要调用函数。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;生成参数&lt;/strong&gt;：模型输出结构化 JSON，用于描述目标函数及其参数。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;应用执行&lt;/strong&gt;：业务程序接收参数后调用本地函数或外部接口。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;结果回传&lt;/strong&gt;：函数执行结果再返回给模型，由模型整理成自然语言回答。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;虽然 Function Call 非常重要，但它也存在明显局限：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;平台依赖性强&lt;/strong&gt;：不同 LLM 平台对 Function Call 的实现差异较大。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;迁移成本高&lt;/strong&gt;：从一个模型平台切换到另一个平台时，通常需要重写适配逻辑。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;生态不统一&lt;/strong&gt;：工具描述、参数约定和交互方式都可能不一致，难以形成统一标准。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-mcp-是什么&#34;&gt;🔌 MCP 是什么
+&lt;/h2&gt;&lt;p&gt;MCP 全称是 &lt;strong&gt;Model Context Protocol（模型上下文协议）&lt;/strong&gt;，它由 Anthropic 在2024年11月推出，目标是为 LLM 与外部数据源、工具之间的交互提供一种更标准化的方式，旨在使AI模型，尤其是大型语言模型(LLMs)，能够更容易地与外部数据(如文件、数据库或API)连接。它就像一个通用插头，可以让AI&amp;quot;与”不同的系统交流，而不需要为每个系统进行定制设置。官方文档见：&lt;a class=&#34;link&#34; href=&#34;https://modelcontextprotocol.io/introduction&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;MCP Introduction&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;官方对 MCP 的描述是：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;MCP is an open protocol that standardizes how applications provide context to LLMs.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;可以把 MCP 理解成 AI 应用的 &lt;strong&gt;USB-C 接口&lt;/strong&gt;。就像 USB-C 让不同设备可以通过统一标准连接各种外设一样，MCP 也希望让不同模型、不同工具、不同数据源之间通过统一协议协作。模型上下文协议(MCP)，由Anthropic发起的一种开放标准，就是为了解决这个问题的。MCP承诺通过提供一个通用的、标准化的框架来无缝集成数据，重新定义AI与工具的交互方式。就像 TCP/IP标准化了网络通信或ODBC改变了数据库连接一样，MCP希望成为互联AI生态系统的基础。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;MCP图示.png&#34; alt=&#34;MCP 图示&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;从工程角度看，MCP 的价值在于：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;统一连接方式&lt;/strong&gt;：让模型以一致的方式接入工具、资源和上下文，而不是每个平台都单独定制一套接入协议。具体来说，MCP其实是解决了“MxN”集成问题，其中M个不同的LLM需要与N个不同的工具连接，导致自定义解决方案的组合爆炸。通过提供单一协议，MCP将这种复杂性降低到N+M。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;增强模型能力&lt;/strong&gt;：模型不仅能“思考”，还可以借助外部系统去读取文件、调用服务、获取实时数据。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;提升系统可维护性&lt;/strong&gt;：协议统一之后，组件之间的职责边界会更清晰，适配和维护成本也更低。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如果用一句话总结：&lt;strong&gt;MCP 不是替代 Function Call，而是在它之上进一步标准化模型与外部能力的协作方式。&lt;/strong&gt;&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-mcp-相比-function-call-带来了什么&#34;&gt;🧩 MCP 相比 Function Call 带来了什么
+&lt;/h2&gt;&lt;p&gt;MCP 的核心改进，可以从三个能力对象来理解：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Tool&lt;/strong&gt;：可供模型调用的外部工具。
+&lt;ul&gt;
+&lt;li&gt;服务器定义好工具，例如“发送邮件”“计算距离”“执行查询”等，客户端发现这些工具后，LLM 就可以在合适时机发起调用，结果再返回给模型继续推理。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Resource&lt;/strong&gt;：可供模型读取的数据资源。
+&lt;ul&gt;
+&lt;li&gt;这类资源可以是文件内容、数据库结果、API 响应等。客户端会把这些资源作为上下文提供给模型使用。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Prompt&lt;/strong&gt;：由服务器提供的提示词模板。
+&lt;ul&gt;
+&lt;li&gt;服务器可以预先定义 Prompt 模板，例如“生成产品描述”“排查报错”“总结会议纪要”等，客户端按模板填参后交给模型执行。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;从这个角度看，MCP 不只是“让模型会调函数”，而是把 &lt;strong&gt;工具、资源、提示词模板&lt;/strong&gt; 都纳入了统一的协议体系中。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-核心架构与运行方式&#34;&gt;🏗️ 核心架构与运行方式
+&lt;/h2&gt;&lt;h3 id=&#34;-核心架构&#34;&gt;🏛️ 核心架构
+&lt;/h3&gt;&lt;p&gt;MCP 采用 &lt;strong&gt;客户端 - 服务器架构&lt;/strong&gt;，通信层通常使用 &lt;a class=&#34;link&#34; href=&#34;https://www.jsonrpc.org/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;JSON-RPC 2.0&lt;/a&gt; 来交换消息。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;77afbba7a4543387ddb1f1827dac0b71.png&#34; alt=&#34;MCP 核心架构&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;架构中的关键角色如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;主机（Host）&lt;/strong&gt;：发起连接的 LLM 应用程序，主要是人工智能应用程序(例如，Claude桌面、集成开发环境或Agent 框架)，负责管理MCP&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;客户端（MCP Client）&lt;/strong&gt;：Host内部专门用于与MCP Server建立和维持一对一连接的模块。它负责按照MCP协议的规范发送请求、接收响应和处理数据。简单来说，MCP Client是Host内部处理RPC通信的“代理”，专注于与一个MCP Server进行标准化的数据、工具或prompt的交换&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;MCP Client.png&#34; alt=&#34;MCP Client&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;服务器（MCP Server）&lt;/strong&gt;：对接具体的数据源或工具，向客户端暴露能力。
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Resources&lt;/strong&gt;：提供给 AI 的数据来源，如文件、数据库记录或 API 响应，为 AI 提供上下文信息。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tools&lt;/strong&gt;：可被 LLM 调用的函数式能力，通常需要用户授权。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Prompts&lt;/strong&gt;：预定义的提示模板，帮助用户更高效地完成特定任务。指导 AI 响应或任务的模板消息或工作流，增强互动&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;MCP Server.png&#34; alt=&#34;MCP Server&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;资源来源&lt;/strong&gt;：既可以是本地资源，也可以是远程资源。
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;本地资源&lt;/strong&gt;：数据库、文件、服务等本机可访问对象。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;远程资源&lt;/strong&gt;：互联网上的 API、远端服务或其他在线能力。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-传输模式&#34;&gt;📡 传输模式
+&lt;/h3&gt;&lt;p&gt;MCP 常见有两种运行模式：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Stdio 模式&lt;/strong&gt;：通过标准输入输出流通信，是最常见的本地部署方案。实现简单，适合同机进程间交互，也避免了额外网络开销。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;SSE 模式&lt;/strong&gt;：通过服务器发送事件（Server-Sent Events）通信，更适合远程部署场景，尤其是需要通过 HTTP 与多个客户端交互时。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-mcp-的工作流程&#34;&gt;🔄 MCP 的工作流程
+&lt;/h2&gt;&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;image-20250327140914648.png&#34; alt=&#34;MCP 工作流程&#34; width=&#34;80%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;一个典型的 MCP 请求大致会经过以下步骤：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;初始化&lt;/strong&gt;：主机启动并初始化 MCP Client，每个 Client 与一个 MCP Server 建立连接。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;能力协商&lt;/strong&gt;：Client 和 Server 先确认彼此支持的功能、资源和工具。例如，当天气 API 服务器被调用时，它可以回复可用的“工具”、“提示模板”和其他资源供客户端使用。一旦此交换完成，MCP Client会确认连接成功，并继续进行进一步的消息交换。我们可以把它类比为TCP通信建立握手的过程，在正式传输消息前，TCP有一个三次握手建立连接的过程。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;请求处理&lt;/strong&gt;：Client 根据用户请求或模型推理结果，决定是否向 Server 发起资源读取或工具调用。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;模型决策&lt;/strong&gt;：LLM 根据上下文和工具描述，判断是否需要调用工具，以及该调用哪些能力。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;执行调用&lt;/strong&gt;：MCP Server 负责真正执行工具逻辑，或读取本地 / 远程资源。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;结果整合&lt;/strong&gt;：调用结果返回给模型，由模型将新信息与原问题一起整合，形成最终答案。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;响应返回&lt;/strong&gt;：最终结果再由 Client 传回主机应用程序。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如果从 Agent 视角理解，MCP 的意义在于：&lt;strong&gt;模型不再只是“知道很多”，而是开始具备“按协议接入外部世界”的能力。&lt;/strong&gt;&lt;/p&gt;
+&lt;hr&gt;
+&lt;style type=&#34;text/css&#34;&gt;
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+&lt;/style&gt;&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;MCP为什么需要设计一个功能交换的过程？&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在传统的 API 服务中，如果你的 API Server最初需要两个参数（例如， location 和 date 用于天气服务），用户需要将他们的应用程序集成以发送带有这些确切参数的请求。但假设你想要添加第三个必需参数（比如 unit ，用于温度单位，如摄氏度或华氏度），那么API 的请求协议就会发生变化。这就意味着所有使用你 API Server的用户都必须更新其代码以包含新参数。如果不更新，他们的请求可能会失败、返回错误或提供不完整的结果
+而MCP的这种设计就有效的避免了这种问题，MCP 引入了一种动态且灵活的方法，与传统的 API 形成了鲜明的对比。&lt;/li&gt;
+&lt;li&gt;当客户端（例如，AI 应用程序如 Claude Desktop）连接到 MCP 服务器（例如，你的天气服务）时，它会发送一个初始请求以了解服务器的功能。服务器会响应其可用工具、资源、提示和参数的详细信息。比如，如果你的天气 API 最初支持 location 和 date ，服务器会将其作为功能的一部分进行通信。同样，假设后来你添加了一个 unit 参数，MCP 服务器可以在下一次交换中动态更新其能力描述。客户端不需要硬编码或预先定义这些参数，它只需查询服务器当前的能力并相应地进行调整。这样，客户端就可以根据需要实时调整其行为，使用更新的能力（例如，在其请求中包含单位）而无需重写或重新部署代码&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h2 id=&#34;-安全性设计&#34;&gt;🔐 安全性设计
+&lt;/h2&gt;&lt;p&gt;MCP 的安全设计主要体现在以下几个方面：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;用户授权与控制&lt;/strong&gt;：模型访问工具、资源和提示词时，通常需要经过用户同意。主机负责权限管理和交互确认，避免模型在用户不知情的情况下访问外部能力。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;隔离与沙箱机制&lt;/strong&gt;：具体的工具调用被封装在 MCP Server 中，模型不会直接接触底层敏感系统，从而降低误操作和越权访问的风险。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;传输安全与来源验证&lt;/strong&gt;：协议层支持对请求来源和通信过程进行校验，确保只有可信请求可以访问相应资源。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这也是 MCP 能够走向工程化的重要原因之一。它不是单纯强调“模型更强了”，而是强调 &lt;strong&gt;模型能力扩展必须建立在可控、可审计、可授权的前提下&lt;/strong&gt;。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-小结&#34;&gt;✅ 小结
+&lt;/h2&gt;&lt;p&gt;模型上下文协议（MCP） 的核心意义，在于为 LLM、工具、数据源之间建立了一套更统一的连接规范，通过提供一个标准化的开源框架，MCP 简化了将 LLMs 连接到外部数据源、工具和工作流的过程，消除了复杂的一次性集成的需要。 随着 AI 的不断发展，无缝地与动态的现实世界数据进行交互的能力对于构建真正智能和响应的应用程序至关重要。MCP 为更互联的 AI 生态系统奠定了基础，使开发人员能够以最小的摩擦创建更智能、更强大的 AI 系统。随着越来越多的采用和持续的创新，MCP 有可能成为 AI 工具集成的行业标准，就像 TCP/IP 对网络通信所做的那样。&lt;/p&gt;
+&lt;p&gt;如果说 Function Call 解决的是“模型能不能调用函数”的问题，那么 MCP 进一步解决的是：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;模型如何统一接入外部能力&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;不同工具和数据源如何被标准化暴露&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;整个调用链路如何在安全与可维护的前提下运行&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;对于 Agent 系统来说，MCP 很重要，因为它让模型从“只会生成内容”的角色，逐步走向“能够读取上下文、调用工具并完成任务”的执行型智能体。&lt;/p&gt;
+</description>
+        </item>
+        
+    </channel>
+</rss>

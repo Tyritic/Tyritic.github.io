@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="深入解析多Agent系统，探讨单Agent瓶颈、多Agent协作优势与挑战，以及主流框架选型">
+<title>多Agent系统</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/%E5%A4%9Aagent%E7%B3%BB%E7%BB%9F/'>
+
+<link rel="stylesheet" href="/scss/style.min.dad0e2c2229a75c496b5a934967d99a61e8005c32f24fb55c6333e1a66ab1d8b.css"><meta property='og:title' content="多Agent系统">
+<meta property='og:description' content="深入解析多Agent系统，探讨单Agent瓶颈、多Agent协作优势与挑战，以及主流框架选型">
+<meta property='og:url' content='https://Tyritic.github.io/p/%E5%A4%9Aagent%E7%B3%BB%E7%BB%9F/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='智能体' /><meta property='article:published_time' content='2026-03-25T08:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-03-25T10:18:46&#43;00:00'/>
+<meta name="twitter:title" content="多Agent系统">
+<meta name="twitter:description" content="深入解析多Agent系统，探讨单Agent瓶颈、多Agent协作优势与挑战，以及主流框架选型">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_691afbb6233f07b9.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#-单agent的瓶颈">🧠 单Agent的瓶颈</a></li>
+    <li><a href="#-什么是多智能体系统">🤝 什么是多智能体系统</a></li>
+    <li><a href="#-多agent协作的核心优势">⚡ 多Agent协作的核心优势</a></li>
+    <li><a href="#-主流的多agent协作模式">🔀 主流的多Agent协作模式</a></li>
+    <li><a href="#-多agent引入的新复杂性">⚠️ 多Agent引入的新复杂性</a></li>
+    <li><a href="#-主流框架和工程选型">🛠️ 主流框架和工程选型</a></li>
+    <li><a href="#-总结">📝 总结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/agent/" style="background-color: #2a9d8f; color: #fff;">
+                Agent
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/%E5%A4%9Aagent%E7%B3%BB%E7%BB%9F/">多Agent系统</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            深入解析多Agent系统，探讨单Agent瓶颈、多Agent协作优势与挑战，以及主流框架选型
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-03-25</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 9 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：4270 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="-单agent的瓶颈">🧠 单Agent的瓶颈
+</h2><p>要理解多智能体系统，最好的切入点是先搞清楚：<strong>单个Agent到底在什么时候不够用了？</strong></p>
+<div align="center">
+  <img src="single-agent-bottleneck.png" alt="单Agent瓶颈示意图" width="88%">
+</div>
+<p>回顾单Agent的架构——一个LLM作为中枢大脑，配上工具、记忆、规划能力，通过ReAct等框架来完成任务。这套架构在很多场景下确实好用，但随着任务复杂度的提升，它会遇到几个瓶颈。</p>
+<ul>
+<li>
+<p><strong>第一个瓶颈是角色过载。</strong> 当你让一个Agent同时扮演&quot;需求分析师 + 架构师 + 程序员 + 测试员&quot;时，它的System Prompt会变得又长又复杂，各种角色的指令互相干扰，模型很难在一个上下文里同时保持多种角色的专业能力。就像现实中一个人同时做四份工作，每份都做不精。</p>
+</li>
+<li>
+<p><strong>第二个瓶颈是上下文窗口的压力。</strong> 一个复杂任务涉及大量的工具定义、历史对话、中间推理状态，全部塞进一个Agent的上下文窗口，很快就撑满了。即使窗口够大，信息太多也会导致&quot;Lost in the Middle&quot;问题，关键信息被淹没。</p>
+</li>
+<li>
+<p><strong>第三个瓶颈是串行执行的效率问题。</strong> 单Agent只有一个LLM在推理，所有步骤只能串行执行。如果任务中有可以并行的部分（比如同时分析三个竞品），单Agent也只能一个一个来。</p>
+</li>
+</ul>
+<p>多智能体系统就是为了突破这些瓶颈而出现的。</p>
+<hr>
+<h2 id="-什么是多智能体系统">🤝 什么是多智能体系统
+</h2><p>多智能体系统（Multi-Agent System，MAS）是指<strong>多个具有不同角色、专长或职责的Agent组成一个协作网络，通过互相通信和配合来共同完成一个复杂任务</strong>。</p>
+<p>你可以把它类比为一个公司的团队协作。单Agent就像一个全栈的&quot;独行侠&quot;，什么都自己干。而多智能体系统就像一个有明确分工的项目团队——有产品经理负责理解需求、架构师负责设计方案、程序员负责写代码、测试负责验证质量，每个人都专注于自己最擅长的领域，通过沟通协作来完成整个项目。</p>
+<div align="center">
+  <img src="multi-agent-system.png" alt="多智能体系统架构" width="85%">
+</div>
+<p>在技术实现层面，多智能体系统的每个Agent本质上是LLM驱动的，但每个Agent有自己独立的<strong>System Prompt</strong>（定义角色和职责）、<strong>工具集</strong>（只挂载与自己职责相关的工具）、以及<strong>记忆空间</strong>（可以有私有记忆也可以共享部分记忆）。Agent之间通过某种<strong>通信机制</strong>（消息传递、共享黑板、管道等）来交换信息和协调行动。</p>
+<hr>
+<h2 id="-多agent协作的核心优势">⚡ 多Agent协作的核心优势
+</h2><p>理解了&quot;为什么需要多Agent&quot;之后，优势就很自然了：</p>
+<ul>
+<li>
+<p><strong>专业化分工带来的质量提升</strong>是最大的优势。每个Agent只负责一个明确的角色，它的System Prompt可以写得非常精确和专注，挂载的工具也只需要和它的职责相关。这样LLM在推理时的&quot;认知负荷&quot;大幅降低，做出高质量决策的概率明显提高。就像你不会让一个前端工程师去写数据库优化SQL一样，专业的事交给专业的Agent。实验也验证了这一点——在代码生成任务中，让一个Agent同时写代码和审核代码的效果，明显不如让一个&quot;Coder Agent&quot;写代码然后让一个独立的&quot;Reviewer Agent&quot;做代码审查。因为后者在审查时不会带有&quot;这是我自己写的代码&quot;的认知偏见。</p>
+</li>
+<li>
+<p><strong>上下文隔离带来的效率提升</strong>也非常显著。每个Agent只需要在自己的上下文中保留与自身职责相关的信息，不需要装载其他Agent的工具定义和历史记录。这不仅降低了单个Agent的token消耗，也避免了信息过多导致的注意力分散。</p>
+</li>
+<li>
+<p><strong>并行执行带来的速度提升</strong>在很多场景下都很有价值。多个Agent可以同时处理任务的不同部分——比如在一个数据分析场景中，一个Agent在查询销售数据的同时，另一个Agent可以去查询用户反馈数据，最后由一个汇总Agent把两边的结果合并分析。这比单Agent串行执行两次查询要快得多。</p>
+</li>
+<li>
+<p><strong>容错和鲁棒性</strong>也得到了改善。多个Agent可以互相检查和验证对方的输出——一个Agent写了代码，另一个Agent来测试；一个Agent做了分析，另一个Agent来验证逻辑是否自洽。这种&quot;交叉检验&quot;的机制在单Agent架构中很难实现。</p>
+</li>
+</ul>
+<hr>
+<h2 id="-主流的多agent协作模式">🔀 主流的多Agent协作模式
+</h2><p>在实际工程中，多Agent之间的协作方式不是随意的，而是有几种成熟的模式。理解这些模式对于实际项目设计都很重要。</p>
+<div align="center">
+  <img src="collaboration-patterns.png" alt="多Agent协作模式" width="85%">
+</div>
+<ul>
+<li>
+<p><strong>中心化协调模式（Orchestrator Pattern）</strong> 是最常见的模式。有一个&quot;协调Agent&quot;（也叫Supervisor / Manager）作为中枢，它负责接收用户任务、分配子任务给各个专业Agent、收集结果、做最终汇总。其他Agent不直接互相通信，而是都和协调Agent交互。这种模式结构清晰、容易控制，但协调Agent是单点瓶颈——如果它的判断出错，整个团队都会被带偏。</p>
+</li>
+<li>
+<p><strong>去中心化对话模式（Debate / Discussion Pattern）</strong> 允许多个Agent之间直接对话讨论。比如让一个&quot;正方Agent&quot;和一个&quot;反方Agent&quot;围绕一个问题展开辩论，最后由一个&quot;裁判Agent&quot;做总结。这种模式在需要多角度分析的场景中很有效，但对话管理更复杂。</p>
+</li>
+<li>
+<p><strong>流水线模式（Pipeline Pattern）</strong> 是把任务拆成多个阶段，每个阶段由一个Agent负责，上一个Agent的输出是下一个Agent的输入，形成一条流水线。比如&quot;需求分析Agent → 设计Agent → 编码Agent → 测试Agent&quot;，就是一条典型的软件开发流水线。这种模式适合阶段明确、前后依赖关系清晰的任务。</p>
+</li>
+<li>
+<p><strong>层级模式（Hierarchical Pattern）</strong> 是中心化模式的扩展。顶层有一个总协调Agent，它把任务分配给几个中层Manager Agent，每个Manager再管理自己下属的Worker Agent。这种模式适合规模更大、层次更深的复杂任务。</p>
+</li>
+</ul>
+<hr>
+<h2 id="-多agent引入的新复杂性">⚠️ 多Agent引入的新复杂性
+</h2><p>多Agent不是银弹，它在解决单Agent瓶颈的同时，也引入了一系列单Agent时代完全不存在的新问题。</p>
+<div align="center">
+  <img src="new-complexities.png" alt="多Agent新复杂性" width="85%">
+</div>
+<ul>
+<li>
+<p><strong>通信开销与信息一致性</strong>是第一个大问题。多个Agent之间需要互相传递信息，但传什么、传多少、什么时候传，都需要精心设计。传少了，下游Agent缺乏足够的上下文做出好的决策；传多了，又变成了变相把所有信息塞进一个超大上下文的老问题。更棘手的是<strong>信息一致性</strong>——Agent A在第3步更新了对任务的理解，但Agent B可能还在基于第1步的旧信息工作，这种信息不同步会导致协作混乱。实际项目中，常见的做法是设计一个<strong>共享状态空间（Shared State）</strong>——所有Agent都可以读写的公共黑板。LangGraph中的State就是这个思路，每个Node（Agent）读取State中自己需要的字段、写回自己产出的结果，由图引擎保证状态的一致性。</p>
+</li>
+<li>
+<p><strong>任务分配与协调成本</strong>是第二个问题。谁来决定把哪个子任务分给哪个Agent？分完之后怎么知道各个Agent的执行进度？某个Agent失败了怎么重试或换人？这些在人类团队中靠项目经理和日会来解决的问题，在多Agent系统中需要靠一个可靠的&quot;协调机制&quot;来处理。而这个协调者本身也是一个LLM驱动的Agent，它的决策同样有不确定性——可能分配错任务、可能误判执行进度、可能做出不合理的重新规划。</p>
+</li>
+<li>
+<p><strong>调试难度的指数级增长</strong>是第三个问题，也是在实际项目中感知最强烈的痛点。单Agent的调试已经够难了——推理链长、不可复现、黑箱不透明。多Agent把这个难度又放大了一个量级：你需要追踪多个Agent之间的消息流、理解每个Agent独立的推理链、还要排查它们之间的交互是否正确。当一个多Agent系统给出了错误结果时，可能是Agent A的分析有误、也可能是Agent B在传递信息时丢了关键细节、也可能是协调Agent在汇总时做了错误的判断——定位问题的空间比单Agent大得多。</p>
+</li>
+<li>
+<p><strong>成本控制</strong>也是一个现实挑战。多Agent意味着多次LLM调用，而且Agent之间的通信本身也常常需要LLM来做&quot;翻译&quot;和&quot;理解&quot;。一个3个Agent的系统完成一次任务，总LLM调用次数可能是单Agent的3-5倍甚至更多。在token单价还没有降到足够低的阶段，这在很多B2C场景中是不可接受的成本。</p>
+</li>
+</ul>
+<hr>
+<h2 id="-主流框架和工程选型">🛠️ 主流框架和工程选型
+</h2><p>了解了原理和挑战之后，如果能结合框架来谈就很有说服力了。</p>
+<div align="center">
+  <img src="framework-comparison.png" alt="主流框架对比" width="85%">
+</div>
+<p><strong>CrewAI</strong> 是目前最流行的多Agent框架之一，它用Role-Based的方式定义Agent——每个Agent有自己的Role（角色）、Goal（目标）、Backstory（背景故事），像定义一个角色扮演游戏的角色一样。支持Sequential（流水线）和Hierarchical（层级）两种协作模式，上手非常简单。</p>
+<p><strong>AutoGen</strong>（微软出品）侧重于多Agent对话场景，支持Group Chat模式让多个Agent在一个对话组里讨论问题，非常适合需要多角度探讨的场景。</p>
+<p><strong>LangGraph</strong> 虽然不是专门的多Agent框架，但它的图编排能力天然适合构建多Agent系统——每个Node可以是一个独立的Agent，Node之间的边定义了通信和数据流转，通过State做共享状态管理。它的灵活性最高，但上手门槛也最高。</p>
+<p><strong>选型原则：</strong></p>
+<ul>
+<li>如果任务可以分成几个明确的角色用流水线或层级方式协作，<strong>CrewAI</strong>是最快的选择</li>
+<li>如果需要Agent之间自由讨论辩论，<strong>AutoGen</strong>更合适</li>
+<li>如果需要高度定制的复杂协作流程，<strong>LangGraph</strong>给你最大的控制力</li>
+</ul>
+<hr>
+<h2 id="-总结">📝 总结
+</h2><p>多智能体系统是指多个具有不同角色和专长的Agent组成协作网络，通过通信和分工来共同完成复杂任务。它的出现本质上是为了解决单Agent的三个瓶颈：<strong>角色过载</strong>导致Prompt臃肿、<strong>上下文压力</strong>撑满窗口、<strong>串行瓶颈</strong>无法并行。</p>
+<p>多Agent对应带来了几个核心优势：专业化分工让每个Agent的Prompt精简且专注，决策质量显著提升；上下文隔离让每个Agent只关注自己职责范围内的信息；可并行执行的子任务交给不同Agent同时处理大幅缩短耗时；多个Agent可以互相检查和验证输出。</p>
+<p>但多Agent也引入了新复杂性：<strong>通信层面</strong>传什么信息、如何保持状态一致性需要精心设计；<strong>协调层面</strong>任务怎么分、进度怎么跟、失败怎么重试都依赖协调者判断；<strong>工程层面</strong>调试难度指数级增长；还有<strong>成本问题</strong>——N个Agent通信M轮意味着LLM调用次数成倍增长。</p>
+<p>实际经验是：多Agent不应该是默认选择，而应该是<strong>单Agent确实遇到瓶颈后的升级方案</strong>——能用单Agent搞定的就不要上多Agent，因为复杂性本身就是成本。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E6%99%BA%E8%83%BD%E4%BD%93/">智能体</a>
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026-03-25 10:18 UTC
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E8%A7%84%E5%88%92%E6%A8%A1%E5%9D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的规划模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E8%AE%B0%E5%BF%86%E6%A8%A1%E5%9D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的记忆模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的工具调用</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的核心组件</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E6%A6%82%E5%BF%B5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的概念</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2026 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.93ec85291de2934df13aa4307b756a6eb93dd4ff935a9810e787a938c351043f.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

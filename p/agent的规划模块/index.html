@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="深入解析Agent规划模块，探讨CoT、ToT、GoT等主流规划方法的演进脉络、核心原理及工程实践选型">
+<title>Agent的规划模块</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/agent%E7%9A%84%E8%A7%84%E5%88%92%E6%A8%A1%E5%9D%97/'>
+
+<link rel="stylesheet" href="/scss/style.min.dad0e2c2229a75c496b5a934967d99a61e8005c32f24fb55c6333e1a66ab1d8b.css"><meta property='og:title' content="Agent的规划模块">
+<meta property='og:description' content="深入解析Agent规划模块，探讨CoT、ToT、GoT等主流规划方法的演进脉络、核心原理及工程实践选型">
+<meta property='og:url' content='https://Tyritic.github.io/p/agent%E7%9A%84%E8%A7%84%E5%88%92%E6%A8%A1%E5%9D%97/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='智能体' /><meta property='article:published_time' content='2026-03-25T17:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-03-25T10:18:45&#43;00:00'/>
+<meta name="twitter:title" content="Agent的规划模块">
+<meta name="twitter:description" content="深入解析Agent规划模块，探讨CoT、ToT、GoT等主流规划方法的演进脉络、核心原理及工程实践选型">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_691afbb6233f07b9.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#-为什么规划能力是agent的核心">🧠 为什么规划能力是Agent的核心</a></li>
+    <li><a href="#-面向-llm-的推理方法让模型更会想">🏗️ 面向 LLM 的推理方法：让模型&quot;更会想&quot;</a>
+      <ol>
+        <li><a href="#-chain-of-thoughtcot线性链式推理">🔗 Chain-of-Thought（CoT）：线性链式推理</a></li>
+        <li><a href="#-self-consistency多条链路投票">🗳️ Self-Consistency：多条链路投票</a></li>
+        <li><a href="#-tree-of-thoughttot树状分支探索">🌲 Tree-of-Thought（ToT）：树状分支探索</a></li>
+        <li><a href="#-graph-of-thoughtgot图结构的自由推理">🔄 Graph-of-Thought（GoT）：图结构的自由推理</a></li>
+      </ol>
+    </li>
+    <li><a href="#-面向-agent-的控制策略让系统更会做">⚙️ 面向 Agent 的控制策略：让系统“更会做”</a>
+      <ol>
+        <li><a href="#-react边推理边行动">⚡ ReAct：边推理，边行动</a>
+          <ol>
+            <li><a href="#-react的工作流程">🔄 ReAct的工作流程</a></li>
+            <li><a href="#-thoughtactionobservation各自的角色">🎭 Thought、Action、Observation各自的角色</a></li>
+            <li><a href="#-react与prompt工程的关系">💻 ReAct与Prompt工程的关系</a></li>
+            <li><a href="#-react的优势和局限">⚖️ ReAct的优势和局限</a></li>
+            <li><a href="#-react在现代agent框架中的演进">🔮 ReAct在现代Agent框架中的演进</a></li>
+          </ol>
+        </li>
+        <li><a href="#-plan-and-execute规划-执行分离">📋 Plan-and-Execute（规划-执行分离）</a></li>
+        <li><a href="#-reflexion反思机制">🔁 Reflexion（反思机制）</a></li>
+        <li><a href="#-llmpllm--经典规划器">🤖 LLM+P（LLM + 经典规划器）</a></li>
+      </ol>
+    </li>
+    <li><a href="#-工程选型的思考">⚖️ 工程选型的思考</a></li>
+    <li><a href="#-总结">📝 总结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/agent/" style="background-color: #2a9d8f; color: #fff;">
+                Agent
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/agent%E7%9A%84%E8%A7%84%E5%88%92%E6%A8%A1%E5%9D%97/">Agent的规划模块</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            深入解析Agent规划模块，探讨CoT、ToT、GoT等主流规划方法的演进脉络、核心原理及工程实践选型
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-03-25</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 16 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：7919 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="-为什么规划能力是agent的核心">🧠 为什么规划能力是Agent的核心
+</h2><p>在聊具体方法之前，我们先要理解&quot;规划&quot;在Agent体系中扮演的角色。一个完整的Agent通常包含四大能力模块：<strong>感知（Perception）、规划（Planning）、记忆（Memory）和行动（Action）</strong>。其中规划是真正的&quot;大脑&quot;，它决定了Agent面对一个复杂任务时，应该把任务拆解成哪些子步骤、以什么顺序执行、遇到问题时怎么调整策略。</p>
+<p>如果没有规划能力，Agent就只能做简单的&quot;一问一答&quot;——用户说什么它就做什么，完全不具备处理多步骤复杂任务的能力。你可以把规划能力理解为<strong>Agent和普通Chatbot之间的分水岭</strong>：Chatbot是被动应答，Agent是主动规划并执行。</p>
+<p>而赋予LLM规划能力的核心方法，本质上都是在回答同一个问题：<strong>如何组织LLM的推理过程，使它能够系统地分解和解决复杂问题？</strong> 不同方法的区别在于，它们对&quot;推理过程&quot;的结构化程度不同——从最简单的线性链条，到树状分支，再到任意图结构，复杂度逐步递增，适用场景也各不相同。</p>
+<hr>
+<h2 id="-面向-llm-的推理方法让模型更会想">🏗️ 面向 LLM 的推理方法：让模型&quot;更会想&quot;
+</h2><h3 id="-chain-of-thoughtcot线性链式推理">🔗 Chain-of-Thought（CoT）：线性链式推理
+</h3><p>CoT是一切的起点，由Google在2022年的论文中正式提出。在CoT出现之前，我们让大模型回答问题的方式是&quot;直接给答案&quot;，也就是所谓的Standard Prompting。比如问&quot;Roger有5个网球，又买了2罐，每罐3个，他现在有多少个？&quot;，模型直接输出&quot;11&quot;。这种方式对于简单问题没问题，但遇到需要多步推理的问题就经常出错，因为模型被迫在一次前向传播中完成所有计算。</p>
+<p>CoT的<strong>核心洞察</strong>非常简单但深刻：<strong>让模型把中间推理步骤显式地写出来</strong>。还是刚才那个问题，加上CoT之后模型会输出&quot;Roger一开始有5个球，2罐每罐3个就是6个，5 + 6 = 11&quot;。看起来只是多输出了几句话，但效果提升非常显著，因为每一步中间结果都变成了下一步推理的&quot;垫脚石&quot;，大幅降低了推理难度。</p>
+<p>CoT有两种主要的触发方式：</p>
+<ul>
+<li><strong>Few-shot CoT</strong>：在prompt中给几个带推理过程的示例，模型就会&quot;模仿&quot;这种推理风格</li>
+<li><strong>Zero-shot CoT</strong>：只需要在问题后面加一句&quot;Let&rsquo;s think step by step&quot;，模型就会自动展开推理链</li>
+</ul>
+<p>这说明大模型内部其实已经具备了逐步推理的能力，CoT只是通过prompt把这个能力&quot;激活&quot;了。</p>
+<p>但是CoT有一个<strong>本质局限</strong>：它的推理过程是单条链路的，线性的，不可回退的。模型从第一步开始，一步接一步地往下推，如果中间某一步推错了，后面所有步骤都会跟着错下去，没有任何&quot;纠错&quot;或&quot;换条路试试&quot;的机制。这对于只有一条正确推理路径的简单任务来说够用了，但对于有多种可能解法的复杂任务，就显得力不从心了。</p>
+<div align="center">
+  <img src="cot-illustration.png" alt="CoT线性链式推理示意图" width="85%">
+</div>
+<hr>
+<h3 id="-self-consistency多条链路投票">🗳️ Self-Consistency：多条链路投票
+</h3><p>在CoT的基础上，一个很自然的改进思路是：<strong>既然一条链可能走错，那我多生成几条链，最后投票选最靠谱的不就行了？</strong> 这就是Self-Consistency方法。</p>
+<p>Self-Consistency的做法是：对同一个问题，让模型用CoT的方式生成多条不同的推理链（通过调高temperature来引入随机性），每条链都会得出一个最终答案，然后对所有答案进行<strong>多数投票</strong>，票数最多的答案作为最终输出。</p>
+<p>这个方法的直觉来自于人类解题的经验——如果你用三种不同的方法解一道数学题，三种方法都得到了同一个答案，那这个答案大概率是对的。Self-Consistency用统计的方式提高了推理的鲁棒性，在数学推理和常识推理任务上效果很好。</p>
+<p>但它的<strong>局限也很明显</strong>：多条链之间是完全独立的，不会互相交流信息。也就是说，如果第一条链在某一步发现了一个关键线索，第二条链在推理过程中完全用不到这个线索。每条链都是闷头自己推，最后只是在结果层面做投票聚合。这显然是一种浪费——理想情况下，我们希望不同推理路径之间能够共享中间信息、互相启发。</p>
+<hr>
+<h3 id="-tree-of-thoughttot树状分支探索">🌲 Tree-of-Thought（ToT）：树状分支探索
+</h3><p>ToT就是为了解决CoT&quot;一条路走到黑&quot;和Self-Consistency&quot;多条路互不相干&quot;这两个问题而提出的。它由Yao等人在2023年的论文中正式提出，核心思想是：<strong>把推理过程从一条链变成一棵树，在每一步都可以产生多个分支候选，然后通过评估来选择最有希望的分支继续探索，必要时还可以回溯</strong>。</p>
+<p>具体来说，ToT的工作流程是这样的：在推理的每一步，模型会生成多个可能的&quot;思维节点&quot;（Thought），每个节点代表一种可能的推理方向。然后，模型会对这些候选节点进行<strong>自我评估</strong>（Self-evaluation），判断每个方向的前景如何——是&quot;很有希望&quot;、&ldquo;还行&quot;还是&quot;肯定不对&rdquo;。基于评估结果，系统选择最优的一个或几个节点继续往下展开，形成新的分支。如果某个分支推着推着发现走不通了，还可以<strong>回溯</strong>到之前的节点，换一个方向继续探索。</p>
+<p>这个过程本质上就是经典算法中的<strong>搜索</strong>——你可以用BFS（广度优先搜索）来逐层展开所有可能性，也可以用DFS（深度优先搜索）来沿着一个方向深入探索、走不通再回头。ToT把LLM的推理过程变成了一个可控的搜索问题。</p>
+<p>用一个例子来说明ToT的威力。假设我们让模型做一个&quot;24点游戏&quot;——给定4个数字，用加减乘除组合成24。CoT可能一条路算下去，发现算不出来就卡住了。但ToT会在每一步尝试多种运算组合，评估哪些中间结果更有可能通向24，优先探索那些有希望的分支，走不通就回退换路，直到找到答案。</p>
+<div align="center">
+  <img src="tot-tree.png" alt="ToT树状分支探索示意图" width="85%">
+</div>
+<hr>
+<h3 id="-graph-of-thoughtgot图结构的自由推理">🔄 Graph-of-Thought（GoT）：图结构的自由推理
+</h3><p>如果说CoT是一条线、ToT是一棵树，那GoT就是一张<strong>任意有向图</strong>。GoT由Besta等人在2023年提出，它进一步打破了树结构的层级限制，允许推理节点之间形成更自由、更复杂的连接关系。</p>
+<p>GoT相比ToT最关键的新增能力是<strong>思维的聚合（Aggregation）</strong>。在树结构中，信息只能从父节点流向子节点，不同分支之间是隔离的。但在很多实际推理场景中，我们需要把多个分支的中间结论汇总合并成一个新的结论——这就要求不同分支之间能够&quot;连线&quot;。GoT通过引入聚合操作，允许多个思维节点的输出合并成一个新节点的输入，形成类似DAG（有向无环图）甚至包含环路的图结构。</p>
+<p>举个例子：假设你要分析一篇长文档的核心观点。你可以先用不同的分支分别提取各段落的关键信息（这是ToT也能做的&quot;发散&quot;），然后把各段落的关键信息<strong>聚合</strong>成一个全局摘要（这是GoT独有的&quot;收敛&quot;），最后基于全局摘要再进一步推理。这种&quot;先发散再收敛&quot;的模式在树结构中是做不到的。</p>
+<p>从图论的角度来看，CoT是一条路径（Path），ToT是一棵树（Tree），GoT是一张图（Graph）。路径是树的特例，树是图的特例，所以GoT在理论上的表达能力是最强的。但表达能力强也意味着搜索空间更大、控制更复杂，实际工程中需要更精细的调度策略。</p>
+<div align="center">
+  <img src="got-graph.png" alt="GoT图结构推理示意图" width="85%">
+</div>
+<hr>
+<h2 id="-面向-agent-的控制策略让系统更会做">⚙️ 面向 Agent 的控制策略：让系统“更会做”
+</h2><p>除了上面这条&quot;链→树→图&quot;的主线是针对与大语言模型的规划增强策略，而下面几种方法是针对与Agent的规划增强策略。上面这一条“链 → 树 → 图”的演进脉络，本质上讨论的是 <strong>LLM 的推理结构</strong>。而在真实 Agent 系统中，仅仅“会想”还不够，Agent 还需要解决另一个问题：</p>
+<blockquote>
+<p><strong>推理、工具调用、执行、观察和修正，应该如何组织起来？</strong></p>
+</blockquote>
+<p>下面这些方法是<strong>面向 Agent 的规划与决策实施策略</strong>。</p>
+<h3 id="-react边推理边行动">⚡ ReAct：边推理，边行动
+</h3><p>ReAct是当前Agent工程里最具代表性的控制范式之一。它的全称是<strong>Reasoning + Acting</strong>，核心思想是：<strong>让大模型像人一样，边想边做</strong>。</p>
+<p>在ReAct之前，大模型处理复杂任务主要有两条路线：一条是以CoT为代表的<strong>纯推理路线</strong>，另一条是以WebGPT、SayCan等为代表的<strong>纯行动路线</strong>。</p>
+<ul>
+<li>
+<p><strong>纯推理路线</strong>的问题在于，模型只能依赖自身内部的参数知识来一步步推导，一旦遇到需要实时信息、精确计算或者外部数据的场景，它就容易&quot;幻觉&quot;——比如问&quot;今天北京天气怎么样&quot;，它没有联网能力，只能瞎编一个答案。</p>
+</li>
+<li>
+<p><strong>纯行动路线</strong>的问题则相反，模型直接映射到动作空间去执行操作，但缺少中间的推理过程，导致它不知道&quot;为什么要做这个动作&quot;、&ldquo;做完之后下一步该怎么办&rdquo;。</p>
+</li>
+</ul>
+<p>ReAct的核心思想非常朴素：<strong>想一步、做一步、看一步，根据每一步的反馈来调整下一步的计划</strong>。ReAct就是把这个&quot;交替进行推理和行动&quot;的过程形式化了。</p>
+<div align="center">
+  <img src="react-origin.png" alt="ReAct的由来和核心思想" width="85%">
+</div>
+<hr>
+<h4 id="-react的工作流程">🔄 ReAct的工作流程
+</h4><p>ReAct的工作流程可以用一个循环来概括：<strong>Thought → Action → Observation → Thought → Action → Observation → &hellip; → Finish</strong></p>
+<p>我们用一个具体例子来说明。假设用户问：&quot;《流浪地球》的导演还执导过哪些电影？这些电影中评分最高的是哪一部？&quot;</p>
+<p><strong>第一轮：</strong></p>
+<ul>
+<li><strong>Thought（思考）</strong>：我需要先查一下《流浪地球》的导演是谁。</li>
+<li><strong>Action（行动）</strong>：调用搜索工具，搜索&quot;流浪地球 导演&quot;。</li>
+<li><strong>Observation（观察）</strong>：搜索结果返回——导演是郭帆。</li>
+</ul>
+<p><strong>第二轮：</strong></p>
+<ul>
+<li><strong>Thought（思考）</strong>：好的，导演是郭帆。接下来我需要查一下郭帆还导演过哪些电影。</li>
+<li><strong>Action（行动）</strong>：调用搜索工具，搜索&quot;郭帆 导演 电影作品&quot;。</li>
+<li><strong>Observation（观察）</strong>：郭帆导演的电影有《流浪地球》《流浪地球2》《同桌的你》《李献计历险记》等。</li>
+</ul>
+<p><strong>第三轮：</strong></p>
+<ul>
+<li><strong>Thought（思考）</strong>：现在我知道了他的作品列表，接下来需要比较这些电影的评分，找出最高的。</li>
+<li><strong>Action（行动）</strong>：调用搜索工具，搜索这些电影的评分信息。</li>
+<li><strong>Observation（观察）</strong>：返回评分数据。</li>
+</ul>
+<p><strong>第四轮：</strong></p>
+<ul>
+<li><strong>Thought（思考）</strong>：根据评分数据，《流浪地球2》评分最高。我现在可以给出最终答案了。</li>
+<li><strong>Action（行动）</strong>：Finish，输出最终答案。</li>
+</ul>
+<p>这就是ReAct的精髓——<strong>推理指导行动，行动反馈推理，二者交替螺旋式推进，直到任务完成</strong>。</p>
+<div align="center">
+  <img src="react-workflow.png" alt="ReAct工作流程示意图" width="85%">
+</div>
+<hr>
+<h4 id="-thoughtactionobservation各自的角色">🎭 Thought、Action、Observation各自的角色
+</h4><p>在ReAct的三元组中，每个部分承担着不同的职责：</p>
+<ul>
+<li>
+<p><strong>Thought</strong> 是模型的&quot;内心独白&quot;，它不会被发送给外部工具，而是留在推理链中供模型自己参考。Thought负责分解任务、分析当前进度、决定下一步策略。可以说Thought就是CoT思维链在ReAct中的体现，它让模型的决策过程变得可解释、可追溯。</p>
+</li>
+<li>
+<p><strong>Action</strong> 是模型与外部世界交互的桥梁。Action通常是对某个外部工具的调用，比如搜索引擎、计算器、数据库查询、API调用等。Action的关键在于它是结构化的，通常包含工具名称和调用参数，这样系统才能解析并执行。</p>
+</li>
+<li>
+<p><strong>Observation</strong> 是外部环境给模型的反馈，也就是Action执行后返回的结果。Observation不是模型生成的，而是真实的外部数据，这就保证了模型的推理过程是&quot;接地气&quot;的，基于真实信息而非臆想。</p>
+</li>
+</ul>
+<p>这三者的协同关系，本质上构成了一个<strong>闭环反馈系统</strong>：Thought基于当前上下文做出判断，Action将判断转化为具体操作，Observation将操作结果反馈回来更新上下文，然后新一轮的Thought再基于更新后的上下文继续推理。</p>
+<div align="center">
+  <img src="react-trio.png" alt="Thought-Action-Observation三元组协作示意图" width="85%">
+</div>
+<hr>
+<h4 id="-react与prompt工程的关系">💻 ReAct与Prompt工程的关系
+</h4><p>在实际实现中，ReAct的核心机制是通过精心设计的Prompt来驱动的。一个典型的ReAct Prompt模板大致包含以下几个部分：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-markdown" data-lang="markdown"><span class="line"><span class="cl">你是一个智能助手，可以使用以下工具来回答问题：
+</span></span><span class="line"><span class="cl"><span class="k">1.</span> Search[query] - 搜索相关信息
+</span></span><span class="line"><span class="cl"><span class="k">2.</span> Lookup[term] - 在文档中查找特定内容
+</span></span><span class="line"><span class="cl"><span class="k">3.</span> Finish[answer] - 给出最终答案
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">请按照以下格式交替进行思考和行动：
+</span></span><span class="line"><span class="cl">Thought: 你的思考过程
+</span></span><span class="line"><span class="cl">Action: 工具名[参数]
+</span></span><span class="line"><span class="cl">Observation: 工具返回的结果
+</span></span><span class="line"><span class="cl">...（重复以上过程）
+</span></span><span class="line"><span class="cl">Thought: 我现在可以给出答案了
+</span></span><span class="line"><span class="cl">Action: Finish[最终答案]
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>通过这种Prompt模板，我们实际上是在用few-shot或instruction的方式&quot;教会&quot;大模型按照Thought-Action-Observation的固定格式来输出。模型生成到Action时，系统会截断模型输出、解析Action内容、调用相应工具、获取结果，然后将Observation拼接回上下文，再让模型继续生成下一轮的Thought。</p>
+<p>这也是为什么说ReAct是一个<strong>框架</strong>而非一个模型——它是一种组织大模型推理和行动的协议和流程，可以套用在任何足够强的大模型上。</p>
+<hr>
+<h4 id="-react的优势和局限">⚖️ ReAct的优势和局限
+</h4><p>ReAct的优势主要体现在三个方面：</p>
+<ol>
+<li><strong>可解释性强</strong>：每一步行动之前都有明确的推理过程，出了问题可以回溯到具体是哪一步的思考出了偏差；</li>
+<li><strong>减少幻觉</strong>：通过调用外部工具获取真实数据，而不是让模型凭空编造，大大提高了事实准确性；</li>
+<li><strong>泛化能力好</strong>：同一套ReAct框架可以对接不同的工具集，适用于问答、数据分析、代码生成等多种场景。</li>
+</ol>
+<p>但ReAct也有明显的局限性：</p>
+<ul>
+<li><strong>效率问题</strong>：每一轮Thought-Action-Observation都需要一次LLM调用加一次工具调用，对于简单任务来说开销过大；</li>
+<li><strong>错误累积</strong>：如果中间某一步的推理或工具调用出错，后续步骤可能会在错误的基础上越走越偏；</li>
+<li><strong>对模型能力的依赖</strong>：ReAct需要模型有较强的指令遵循能力和格式控制能力，弱模型很容易输出不符合格式要求的内容导致解析失败。</li>
+</ul>
+<hr>
+<h4 id="-react在现代agent框架中的演进">🔮 ReAct在现代Agent框架中的演进
+</h4><p>现在主流的Agent框架基本都是在ReAct的基础上做了增强和扩展。</p>
+<p>比如<strong>LangChain</strong>中的AgentExecutor就是ReAct的典型实现，它的Agent循环本质就是不断地让LLM生成Thought和Action，然后执行工具获取Observation，直到LLM输出Final Answer。</p>
+<p>更新的框架像<strong>LangGraph</strong>，它把ReAct的线性循环扩展成了<strong>图结构</strong>，允许更复杂的分支和条件跳转，但底层的Thought-Action-Observation三元组逻辑依然没变。</p>
+<p>另外还有一些变体值得关注：</p>
+<ul>
+<li><strong>Reflexion</strong>在ReAct的基础上加入了自我反思机制，当任务失败时模型会回顾整个推理过程并总结经验教训，下次再遇到类似问题时可以避免犯同样的错误</li>
+<li><strong>Plan-and-Execute</strong>则是先做全局规划再分步执行，适合更长链路的复杂任务</li>
+</ul>
+<div align="center">
+  <img src="react-evolution.png" alt="ReAct在现代Agent框架中的演进" width="85%">
+</div>
+<p>从关系上看，ReAct不是CoT、ToT的替代品，而更像是一个<strong>运行框架</strong>。它内部的&quot;Thought&quot;完全可以使用CoT风格来展开，因此可以把它理解成：<strong>CoT负责怎么想，ReAct负责怎么把想和做串起来。</strong></p>
+<h3 id="-plan-and-execute规划-执行分离">📋 Plan-and-Execute（规划-执行分离）
+</h3><p>这是一种偏工程实践的策略。它的思路是把规划和执行拆成两个独立阶段：先让一个&quot;Planner LLM&quot;对任务做全局规划，输出一个完整的步骤清单，然后让一个&quot;Executor LLM&quot;逐步执行每个步骤。这种方法的好处是规划阶段可以纵览全局，不会被执行过程中的细节干扰，适合那些步骤较多但逻辑相对确定的任务，比如&quot;帮我写一篇行业分析报告&quot;这种。LangChain和LangGraph中都有对应的Plan-and-Execute Agent实现。</p>
+<h3 id="-reflexion反思机制">🔁 Reflexion（反思机制）
+</h3><p>则是在规划执行的基础上加入了&quot;复盘&quot;环节。当Agent执行一个任务失败后，它不会简单地重试，而是先回顾整个推理和执行过程，总结出&quot;哪里做错了、下次应该怎么改进&quot;的经验教训，然后把这些反思存入记忆，在下一次尝试中参考。Reflexion本质上赋予了Agent从失败中学习的能力，类似于人类的&quot;吃一堑长一智&quot;。</p>
+<h3 id="-llmpllm--经典规划器">🤖 LLM+P（LLM + 经典规划器）
+</h3><p>是一种混合方法，它把LLM的自然语言理解能力和经典AI规划算法（如PDDL规划器）的严格推理能力结合在一起。LLM负责把用户的自然语言需求转化为结构化的规划问题描述（PDDL格式），然后交给经典规划器去求解最优行动序列，最后LLM再把结果翻译成自然语言返回给用户。这种方法在需要严格逻辑保证的场景（比如机器人路径规划）中有独特优势。</p>
+<div align="center">
+  <img src="other-methods.png" alt="其他规划方法示意图" width="85%">
+</div>
+<hr>
+<h2 id="-工程选型的思考">⚖️ 工程选型的思考
+</h2><p>在实际 Agent 开发中，不同方法并不存在绝对的优劣，关键在于任务类型、延迟预算、可解释性要求和工程复杂度。</p>
+<ul>
+<li>如果只是大多数常见任务，<strong>CoT + ReAct</strong> 往往已经足够好用。它简单、直观、延迟较低，也是目前很多通用 Agent 的默认起点。</li>
+<li>如果任务本身具有明显的多路径探索特征，例如需要试错、搜索、回退，那么 <strong>ToT</strong> 会比单链式 CoT 更有优势，因为它能够显式探索多个候选方向。</li>
+<li>如果任务需要“先发散分析、再聚合结论”，例如多文档总结、多源信息融合，那么 <strong>GoT 的聚合思想</strong>会更有启发意义。尽管目前落地还不如 CoT 和 ReAct 普遍，但它代表了一种更强的推理表达能力。</li>
+<li>如果任务链条较长、步骤稳定、流程相对明确，那么 <strong>Plan-and-Execute</strong> 是一种非常实用的企业级方案。它把规划和执行拆开，便于分别优化、监控和调试。</li>
+<li>如果系统需要在长期运行中持续修正自身行为，那么 <strong>Reflexion</strong> 会更有价值。它的重点不是一次成功，而是越做越好。</li>
+<li>如果业务场景对逻辑正确性和约束满足有极高要求，那么 <strong>LLM + P</strong> 是值得优先考虑的路线，因为它能够借助经典规划器提供更强的形式化保证。</li>
+</ul>
+<p>一个非常实用的经验原则是：</p>
+<blockquote>
+<p><strong>先用最简单的方法跑通，再围绕瓶颈做针对性升级。</strong></p>
+</blockquote>
+<p>因为复杂方法带来的不仅是推理能力提升，也一定伴随着额外成本：更高的时延、更大的 token 开销、更复杂的调试过程，以及更高的系统维护门槛。</p>
+<hr>
+<h2 id="-总结">📝 总结
+</h2><p>如果把 Agent 的规划与决策能力放在一个统一框架里看，可以得到一个比较清晰的结论：</p>
+<ul>
+<li><strong>CoT、Self-Consistency、ToT、GoT</strong> 主要描述的是 <strong>LLM 的推理结构</strong>，解决“模型怎么想”的问题；</li>
+<li><strong>ReAct、Plan-and-Execute、Reflexion、LLM + P</strong> 主要描述的是 <strong>Agent 的控制与执行方式</strong>，解决“系统怎么做”的问题。</li>
+</ul>
+<p>前者偏向推理机制，后者偏向执行框架；前者回答“如何组织思维过程”，后者回答“如何组织任务过程”。两者并不是互斥关系，而是可以互相组合、上下协同。</p>
+<p>例如，ReAct 中的 Thought 往往就可以采用 CoT 风格展开；Plan-and-Execute 中的 Planner 也完全可以借助 ToT 提升规划质量。换句话说，<strong>模型推理方法提供了 Agent 的“思考能力”，而 Agent 控制策略定义了这些能力如何被实际调度和执行。</strong></p>
+<p>从演进脉络来看，相关方法大致可以理解为两条并行路线：</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>类型</th>
+          <th>方法</th>
+          <th>核心特征</th>
+          <th>更适合的场景</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>模型推理方法</td>
+          <td><strong>CoT</strong></td>
+          <td>线性链式推理</td>
+          <td>简单多步问题</td>
+      </tr>
+      <tr>
+          <td>模型推理方法</td>
+          <td><strong>Self-Consistency</strong></td>
+          <td>多链投票，提升鲁棒性</td>
+          <td>数学/常识推理</td>
+      </tr>
+      <tr>
+          <td>模型推理方法</td>
+          <td><strong>ToT</strong></td>
+          <td>树状搜索，可回溯</td>
+          <td>复杂多路径任务</td>
+      </tr>
+      <tr>
+          <td>模型推理方法</td>
+          <td><strong>GoT</strong></td>
+          <td>图结构推理，可聚合</td>
+          <td>多源分析、先分后合</td>
+      </tr>
+      <tr>
+          <td>Agent 控制策略</td>
+          <td><strong>ReAct</strong></td>
+          <td>推理与行动交替</td>
+          <td>工具调用、环境交互</td>
+      </tr>
+      <tr>
+          <td>Agent 控制策略</td>
+          <td><strong>Plan-and-Execute</strong></td>
+          <td>规划执行分离</td>
+          <td>长链路稳定任务</td>
+      </tr>
+      <tr>
+          <td>Agent 控制策略</td>
+          <td><strong>Reflexion</strong></td>
+          <td>基于反馈持续修正</td>
+          <td>长期运行、自我改进</td>
+      </tr>
+      <tr>
+          <td>Agent 控制策略</td>
+          <td><strong>LLM + P</strong></td>
+          <td>结合经典规划器</td>
+          <td>强约束、强逻辑场景</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>归根结底，Agent 的规划能力并不是某一个单点技巧，而是一整套“<strong>如何让系统更会想，也更会做</strong>”的方法集合。理解这些方法之间的层级关系和适用边界，比单纯记住缩写本身更重要。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E6%99%BA%E8%83%BD%E4%BD%93/">智能体</a>
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026-03-25 10:18 UTC
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E8%AE%B0%E5%BF%86%E6%A8%A1%E5%9D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的记忆模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的工具调用</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的核心组件</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E6%A6%82%E5%BF%B5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的概念</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E5%AE%89%E5%85%A8%E8%AE%BE%E8%AE%A1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的安全设计</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2026 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.93ec85291de2934df13aa4307b756a6eb93dd4ff935a9810e787a938c351043f.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

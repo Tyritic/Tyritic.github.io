@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="系统梳理RAG系统的常见瓶颈与优化策略，涵盖查询优化、索引优化、检索优化和后处理优化等关键环节。">
+<title>RAG的优化策略</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/rag%E7%9A%84%E4%BC%98%E5%8C%96%E7%AD%96%E7%95%A5/'>
+
+<link rel="stylesheet" href="/scss/style.min.dad0e2c2229a75c496b5a934967d99a61e8005c32f24fb55c6333e1a66ab1d8b.css"><meta property='og:title' content="RAG的优化策略">
+<meta property='og:description' content="系统梳理RAG系统的常见瓶颈与优化策略，涵盖查询优化、索引优化、检索优化和后处理优化等关键环节。">
+<meta property='og:url' content='https://Tyritic.github.io/p/rag%E7%9A%84%E4%BC%98%E5%8C%96%E7%AD%96%E7%95%A5/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='RAG' /><meta property='article:published_time' content='2025-05-04T19:29:50&#43;08:00'/><meta property='article:modified_time' content='2026-03-25T10:18:46&#43;00:00'/>
+<meta name="twitter:title" content="RAG的优化策略">
+<meta name="twitter:description" content="系统梳理RAG系统的常见瓶颈与优化策略，涵盖查询优化、索引优化、检索优化和后处理优化等关键环节。">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_691afbb6233f07b9.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#-rag-的常见瓶颈">⚠️ RAG 的常见瓶颈</a>
+      <ol>
+        <li><a href="#-基础向量检索的瓶颈">🔍 基础向量检索的瓶颈</a></li>
+        <li><a href="#-rag-本身的局限性">📌 RAG 本身的局限性</a></li>
+      </ol>
+    </li>
+    <li><a href="#-rag-优化策略">🚀 RAG 优化策略</a>
+      <ol>
+        <li><a href="#-查询阶段的优化">💡 查询阶段的优化</a></li>
+        <li><a href="#-索引阶段的优化">🧩 索引阶段的优化</a>
+          <ol>
+            <li><a href="#-选择合适的分块策略">✂️ 选择合适的分块策略</a>
+              <ol>
+                <li><a href="#-文本切块在-rag-中的角色">📌 文本切块在 RAG 中的角色</a></li>
+                <li><a href="#-chunk-size-的权衡">⚖️ Chunk Size 的权衡</a></li>
+                <li><a href="#-overlap-的作用">🔗 Overlap 的作用</a></li>
+                <li><a href="#-常见的切块策略">📋 常见的切块策略</a></li>
+                <li><a href="#-实战调优的步骤">🧪 实战调优的步骤</a></li>
+              </ol>
+            </li>
+            <li><a href="#-设计合理的索引架构">🗃️ 设计合理的索引架构</a>
+              <ol>
+                <li><a href="#-parent-child-索引">🕸️ Parent-Child 索引</a></li>
+                <li><a href="#-文档摘要索引">📄 文档摘要索引</a></li>
+                <li><a href="#-多层级索引">🏗️ 多层级索引</a></li>
+              </ol>
+            </li>
+            <li><a href="#-选取合适的嵌入模型">🧠 选取合适的嵌入模型</a>
+              <ol>
+                <li><a href="#-embedding-模型的角色">🧩 Embedding 模型的角色</a></li>
+                <li><a href="#-选型时的核心因素">⚖️ 选型时的核心因素</a></li>
+                <li><a href="#-评估-embedding-模型的核心指标">📊 评估 Embedding 模型的核心指标</a></li>
+                <li><a href="#-工程实践考量">🔧 工程实践考量</a></li>
+                <li><a href="#-综合考量">🔍 综合考量</a></li>
+              </ol>
+            </li>
+          </ol>
+        </li>
+        <li><a href="#-检索阶段的优化">🔬 检索阶段的优化</a>
+          <ol>
+            <li><a href="#-混合检索与多路召回">🔀 混合检索与多路召回</a></li>
+            <li><a href="#-元数据过滤">🔽 元数据过滤</a></li>
+          </ol>
+        </li>
+        <li><a href="#-后处理阶段的优化">🔧 后处理阶段的优化</a>
+          <ol>
+            <li><a href="#-rerank-重排序">🔄 Rerank 重排序</a></li>
+            <li><a href="#-contextual-compression-上下文压缩">💾 Contextual Compression 上下文压缩</a></li>
+            <li><a href="#-提示词优化">📝 提示词优化</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#-小结">✅ 小结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/agent/" style="background-color: #2a9d8f; color: #fff;">
+                Agent
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/rag%E7%9A%84%E4%BC%98%E5%8C%96%E7%AD%96%E7%95%A5/">RAG的优化策略</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            系统梳理RAG系统的常见瓶颈与优化策略，涵盖查询优化、索引优化、检索优化和后处理优化等关键环节。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2025-05-04</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 22 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：10641 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="-rag-的常见瓶颈">⚠️ RAG 的常见瓶颈
+</h2><p>很多人一开始会把&quot;检索优化&quot;理解成&quot;换一个向量库&quot;或&quot;把 Top-K 从 3 调到 5&quot;。但真正影响效果的，往往是整条检索链路：<strong>查询怎么改写、索引怎么组织、召回怎么融合、候选怎么精排</strong>。</p>
+<h3 id="-基础向量检索的瓶颈">🔍 基础向量检索的瓶颈
+</h3><p>在进入各种优化手段之前，先要看清楚 <strong>基础向量检索本身的瓶颈</strong>。很多问题不是&quot;参数没调好&quot;，而是方案本身就有边界：</p>
+<ul>
+<li><strong>查询和文档之间存在语义鸿沟</strong>：用户提问常常是口语化、问题体，但知识库里的文档往往是陈述句、术语化表达。</li>
+<li><strong>向量检索不擅长精确匹配</strong>：涉及时间、数字、型号、版本号等条件时，单纯做语义相似度很容易把&quot;接近但不正确&quot;的内容一起召回。</li>
+<li><strong>固定切片容易割裂上下文</strong>：如果一个完整结论恰好被切开，返回的 <strong>chunk</strong> 往往只有半段，模型即使看到了也很难稳定作答。</li>
+</ul>
+<div align="center">
+  <img src="rag-vector-retrieval-bottlenecks.png" alt="基础向量检索的瓶颈" width="82%" />
+</div>
+<style type="text/css">
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+</style><div
+  class="notice warning"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="126 76.5 300 300">
+  <path d="M297.431 324.397v-34.255c0-3.245-2.344-5.95-5.358-5.95h-32.146c-3.014 0-5.358 2.705-5.358 5.95v34.255c0 3.245 2.344 5.95 5.358 5.95h32.146c3.014 0 5.358-2.705 5.358-5.95Zm-.335-67.428 3.014-82.753c0-1.081-.502-2.524-1.674-3.425-1.005-.902-2.512-1.983-4.019-1.983h-36.834c-1.507 0-3.014 1.081-4.019 1.983-1.172.901-1.674 2.704-1.674 3.786l2.846 82.392c0 2.344 2.512 4.146 5.693 4.146h30.975c3.013 0 5.525-1.803 5.692-4.146Zm-2.344-168.39L423.34 342.425c3.683 7.032 3.516 15.686-.335 22.717-3.85 7.031-10.883 11.358-18.417 11.358H147.413c-7.534 0-14.566-4.327-18.417-11.358-3.85-7.031-4.018-15.685-.335-22.716L257.248 88.578C260.93 81.188 268.13 76.5 276 76.5c7.87 0 15.069 4.688 18.752 12.08Z"/>
+</svg>
+
+    </span>警告</p>
+  <p>如果底层问题出在&quot;查询表达不清、切块不合理、候选噪声太多&quot;，那么单纯调大 <code>Top-K</code> 往往只会把更多噪声送进模型，而不是稳定提升效果。</p>
+  </div>
+
+<h3 id="-rag-本身的局限性">📌 RAG 本身的局限性
+</h3><p>一个成熟的系统不应该只讲优势而忽略局限。RAG 也有它的短板：</p>
+<ol>
+<li>
+<p><strong>检索质量是天花板</strong>：RAG 的效果高度依赖检索的准确率——如果检索到的文本块和问题不相关甚至矛盾，<strong>LLM</strong> 会基于错误的上下文生成错误的答案，这有时会比没有 RAG 更危险（因为模型&quot;有理有据地说错话&quot;，用户更容易相信）。</p>
+</li>
+<li>
+<p><strong>上下文窗口的瓶颈</strong>：检索出来的文本块要塞进 <strong>Prompt</strong>，受限于 <strong>LLM</strong> 的上下文长度。虽然长上下文模型（128K 甚至更长）在一定程度上缓解了这个问题，但&quot;长上下文 ≠ 好利用&quot;—— <strong>LLM</strong> 对超长上下文中间部分的注意力会下降（<strong>Lost in the Middle</strong> 现象）。</p>
+</li>
+<li>
+<p><strong>不擅长改变模型行为</strong>：RAG 解决的是&quot;知识获取&quot;问题，而不是&quot;行为模式&quot;问题。如果想让模型学会一种新的推理风格或适应特定的输出格式，这些需要微调来解决。</p>
+</li>
+</ol>
+<div
+  class="notice tip"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
+  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+    </span>提示</p>
+  <p>实际上，<strong>RAG 和微调最好的关系是互补而非互斥</strong>。很多生产级系统中，两者是一起用的：先微调让模型具备领域专业能力和特定行为模式，再用 RAG 为它提供实时的、可更新的事实性知识。</p>
+  </div>
+
+<hr>
+<h2 id="-rag-优化策略">🚀 RAG 优化策略
+</h2><h3 id="-查询阶段的优化">💡 查询阶段的优化
+</h3><p>很多时候检索质量差，根源并不在检索引擎，而在用户查询本身。用户的提问可能太模糊、太口语化，或者把多个子问题混在一起。如果能在检索之前先把查询&quot;加工&quot;一下，效果往往会明显提升。</p>
+<p>查询侧最常见的做法包括：</p>
+<ul>
+<li><strong>Query Rewriting</strong>：把口语化、模糊化的问题改写成更适合检索的表达。</li>
+<li><strong>HyDE</strong>：先让模型生成一段&quot;假想答案&quot;，再用这段答案的向量去检索，缩小查询和文档之间的表达鸿沟。</li>
+<li><strong>Multi-Query</strong>：从多个角度生成查询变体，合并结果以提高召回率。</li>
+<li><strong>Sub-Question Decomposition</strong>：把复杂问题拆成多个子问题分别检索，再汇总回答。</li>
+</ul>
+<div align="center">
+  <img src="rag-query-optimization.png" alt="查询侧优化策略" width="82%" />
+</div>
+<h3 id="-索引阶段的优化">🧩 索引阶段的优化
+</h3><p>索引侧优化解决的核心问题是：<strong>知识该如何被切分、编码、组织，才能在查询发生时被更准确地找出来。</strong></p>
+<h4 id="-选择合适的分块策略">✂️ 选择合适的分块策略
+</h4><h5 id="-文本切块在-rag-中的角色">📌 文本切块在 RAG 中的角色
+</h5><p>RAG 的基本流程是：用户提问 → 检索相关文档片段 → 将片段拼入 <strong>Prompt</strong> → <strong>LLM</strong> 基于这些片段生成回答。而&quot;切块&quot;发生在更早的离线阶段——把原始文档切分成小片段，每个片段生成一个 <strong>Embedding</strong> 向量存入向量数据库。用户查询时，查询向量和这些片段向量做相似度匹配，找出最相关的 <strong>Top-K</strong> 片段。</p>
+<p>这意味着切块质量直接决定了两件事：检索能不能找到对的片段，以及找到的片段能不能让 <strong>LLM</strong> 生成好的回答。切得不好，要么检索阶段就漏掉了关键信息，要么检索到了但片段内容残缺不全导致 <strong>LLM</strong> 无法正确理解。可以说，切块是 RAG 系统中&quot;最不起眼但影响最深远&quot;的环节——很多人花大量精力调 <strong>Prompt</strong>、换 <strong>Embedding 模型</strong>、调 <strong>Top-K</strong>，最后发现问题根源其实出在切块策略上。</p>
+<p>分块的本质，是把原始长文本拆成若干个较小但语义相对完整的片段。每个片段通常控制在几百字到上千字之间，比如一个段落、若干段落，或者一个小节。</p>
+<p>之所以要分块，主要有几个原因：</p>
+<ul>
+<li><strong>模型上下文长度有限</strong>：长文本无法一次性完整送入模型，拆分后更容易被处理。</li>
+<li><strong>便于精准定位信息</strong>：用户问题通常只关心文档中的某一小部分内容，分块后能更快检索到相关片段。</li>
+<li><strong>兼顾上下文与检索效率</strong>：块太大，检索不精准；块太小，上下文可能断裂。合理分块能在效果和效率之间取得平衡。</li>
+</ul>
+<p>所以，分块本质上就是把输入文档切成多个粒度可控的语义单元，方便后续的向量检索与生成模块高效协作。</p>
+<div align="center">
+  <img src="切块的影响.png" alt="切块的影响" width="82%" />
+</div>
+<h5 id="-chunk-size-的权衡">⚖️ Chunk Size 的权衡
+</h5><p>从实战调优角度看，分块通常要同时考虑两个参数：<strong><code>chunk size</code></strong> 和 <strong><code>overlap</code></strong>。</p>
+<ul>
+<li><strong>块太小</strong>：每个 <strong>chunk</strong> 的内容非常聚焦，大概率只包含一个知识点。这带来的好处是 <strong>Embedding</strong> 向量更精准地代表那个知识点，检索时更容易被&quot;命中&quot;——也就是检索精度（<strong>Precision</strong>）高。但问题也很明显：一个太小的 <strong>chunk</strong> 很可能缺少必要的上下文。比如原文是&quot;该方法在实验中将准确率提升了 15%，但仅在数据量超过 10 万条时才有效&quot;，如果从&quot;但&quot;字处切开，前半段 <strong>chunk</strong> 只说了&quot;提升 15%&ldquo;而丢失了限制条件，<strong>LLM</strong> 读到这个片段就可能给出一个过于乐观的回答。此外，小 <strong>chunk</strong> 意味着数量多，检索到的 <strong>Top-K</strong> 片段可能来自文档的不同角落，<strong>LLM</strong> 需要整合多个碎片化的信息，增加了理解难度和幻觉风险。</li>
+<li><strong>块太大</strong>：每个 <strong>chunk</strong> 包含更丰富的上下文，语义完整性好，<strong>LLM</strong> 拿到后更容易理解和推理。但大 <strong>chunk</strong> 的 <strong>Embedding</strong> 向量不可避免地变成了多个知识点的&quot;混合体&rdquo;，一个向量要同时代表好几层含义，检索时就容易&quot;模糊匹配&quot;——用户问的是 A，但因为某个 <strong>chunk</strong> 里 A 和 B 混在一起，B 的部分也被捎带检索出来了，稀释了相关性。更实际的问题是，大 <strong>chunk</strong> 意味着每个片段占用更多的 <strong>Prompt</strong> 空间（即 <strong>Context Window</strong>），能放进去的片段数量就更少，可能导致召回率（<strong>Recall</strong>）不够。</li>
+</ul>
+<div align="center">
+  <img src="chunk-size-tradeoff.png" alt="Chunk Size 的权衡" width="82%" />
+</div>
+<p>所以 chunk size 的选择不是一个固定的&quot;最优值&quot;，而是根据具体场景在这两极之间找平衡点。工程实践中的经验是：</p>
+<ul>
+<li><strong>FAQ、事实问答</strong> 适合偏小的块，例如 <code>256 ~ 512 token</code>。因为答案往往在某一段话里，精准检索更重要</li>
+<li><strong>技术文档、法律条款、分析型内容</strong> 更适合偏大的块，例如 <code>512 ~ 1024 token</code>。因为上下文完整性更关键。</li>
+</ul>
+<h5 id="-overlap-的作用">🔗 Overlap 的作用
+</h5><p><code>overlap</code> 的作用，则是缓解块边界处的信息断裂。想象一下，一段连贯的论述横跨了两个 <strong>chunk</strong> 的边界：前一个 <strong>chunk</strong> 的结尾讲了原因，后一个 <strong>chunk</strong> 的开头讲了结论。如果没有重叠，这两个 <strong>chunk</strong> 各自都是&quot;半截话&quot;——前一个有原因没结论，后一个有结论没原因。<strong>Embedding</strong> 分别编码后，两个向量都无法完整代表这段论述的含义，检索时就可能漏掉这条关键信息。此时两个向量都不够完整，召回质量会明显下降。</p>
+<div align="center">
+  <img src="chunk-overlap.png" alt="Overlap 对切块边界的补偿" width="78%" />
+</div>
+<p>常见的经验值是 <code>overlap</code> 设为 <code>chunk size</code> 的 <code>10% ~ 25%</code>。比如 chunk size 是 512 token，overlap 可以设 50-128 token。过小起不到衔接作用，过大又会带来两个副作用：</p>
+<ul>
+<li><strong>存储膨胀</strong>：同一段内容被重复编码多次。向量数据库的体积和索引成本显著增加</li>
+<li><strong>检索重复</strong>：多个 <strong>chunk</strong> 包含大量相同内容，检索时可能返回一堆&quot;长得差不多&quot;的片段，浪费了宝贵的 <strong>Top-K</strong> 配额，等于你明明可以看到 5 条不同信息，结果其中 3 条都在重复同一段话。</li>
+</ul>
+<h5 id="-常见的切块策略">📋 常见的切块策略
+</h5><p>常用切块策略除了固定大小切块（<strong>Fixed-size Chunking</strong>），还有更精细的做法：</p>
+<ul>
+<li>
+<p><strong>语义切块（Semantic Chunking）</strong>：不按固定 token 数切，而是按语义边界切。先把文本按句子分割，然后计算相邻句子之间的 <strong>Embedding</strong> 相似度，当相似度出现明显下降时（说明话题发生了转换），就在那里切一刀。这样每个 <strong>chunk</strong> 自然地对应一个完整的语义单元，不需要 <strong>overlap</strong> 来&quot;缝合&quot;了。</p>
+</li>
+<li>
+<p><strong>基于文档结构的切块</strong>：利用文档自身的结构信息。Markdown 文档有标题层级，HTML 有标签结构，PDF 有段落和章节。按这些天然边界来切块，既简单又有效。比如按 Markdown 的二级标题（<code>##</code>）切，每个 <strong>chunk</strong> 就是一个完整的章节，语义自然完整。这种方法特别适合结构化程度高的文档，例如技术文档、产品手册、法律合同等。</p>
+</li>
+<li>
+<p><strong>递归切块（Recursive Chunking）</strong>：设定一组分隔符优先级（比如先按段落 <code>\n\n</code> 切，太大了再按句子 <code>\n</code> 切，还太大了再按固定长度切），逐级递归直到每个 <strong>chunk</strong> 都在目标大小范围内。它兼顾了结构化和大小控制，是实践中最常用的默认策略。</p>
+</li>
+</ul>
+<h5 id="-实战调优的步骤">🧪 实战调优的步骤
+</h5><ol>
+<li>
+<p><strong>先看数据</strong>：在动手切之前，先抽样看看原始文档长什么样——平均段落长度、内容结构化程度、信息密度。技术文档和闲聊记录显然需要完全不同的策略。</p>
+</li>
+<li>
+<p><strong>建立评估闭环</strong>：准备一组有标准答案的测试问题，跑一轮 RAG 看效果，调整参数后再跑一轮对比。核心指标有两个：检索召回率（相关片段有没有被检索到）和生成准确率（最终回答对不对）。很多时候你会发现检索层面已经召回了正确片段，但因为 <strong>chunk</strong> 太碎导致 <strong>LLM</strong> 无法正确理解，这就是切块的锅。</p>
+</li>
+<li>
+<p><strong>考虑多级索引</strong>：不只存一种粒度的 <strong>chunk</strong>，而是同时维护多个层级：比如用小 <strong>chunk</strong>（256 token）做精准检索，命中后把对应的大 <strong>chunk</strong>（1024 token）或原始段落送给 <strong>LLM</strong>。<strong>LlamaIndex</strong> 中的 <code>SentenceWindowNodeParser</code> 和 <code>HierarchicalNodeParser</code> 就是这个思路的实现。</p>
+</li>
+<li>
+<p><strong>匹配 Embedding 模型能力</strong>：不同 <strong>Embedding 模型</strong> 的最佳输入长度不同——有些模型在短文本上表现更好，有些模型专门针对长文本优化（如 <strong>jina-embeddings-v2</strong> 支持 8192 token）。如果你用的是一个短文本模型却切了很大的 <strong>chunk</strong>，<strong>Embedding</strong> 质量会明显下降。</p>
+</li>
+</ol>
+<p>如果文档结构比较稳定，更进一步的做法是结合 <strong>语义切块、按标题分块、递归分块</strong>，甚至引入 <strong>多级索引</strong>。例如用小块做精确召回，命中后再回溯父块或原始段落给模型，这样检索和生成两端都能拿到更合适的粒度。</p>
+<h4 id="-设计合理的索引架构">🗃️ 设计合理的索引架构
+</h4><div align="center">
+  <img src="rag-index-architectures.png" alt="RAG 中常见的索引架构" width="82%" />
+</div>
+<h5 id="-parent-child-索引">🕸️ Parent-Child 索引
+</h5><p><strong>Parent-Child 索引</strong>是一种非常实用的索引架构。核心思想是：用小 <code>chunk</code> 做检索，但返回大 <code>chunk</code> 给 <strong>LLM</strong>。具体来说，先把文档切成较大的 <code>chunk</code>（比如 <code>2000 token</code>），再把每个大 <code>chunk</code> 进一步切成小的子 <code>chunk</code>（比如 <code>200 token</code>）。检索时用小 <code>chunk</code> 的向量做匹配，小 <code>chunk</code> 语义集中，匹配更精准；命中后，返回它所属的父级大 <code>chunk</code> 给 <strong>LLM</strong>，大 <code>chunk</code> 上下文完整，<strong>LLM</strong> 能更好地理解和利用。这种设计同时兼顾了检索精度和上下文完整性，在实际项目中效果很好。</p>
+<h5 id="-文档摘要索引">📄 文档摘要索引
+</h5><p>对于每篇文档，先用 <strong>LLM</strong> 生成一段摘要，把摘要也做向量化存入索引。检索时，除了匹配原文 <code>chunk</code>，还会匹配摘要。摘要天然是对全文内容的高度凝练，很多时候用户的查询和摘要的匹配度反而比和原文碎片的匹配度更高。命中摘要后，再定位到对应的原文段落，返回详细内容。这种&quot;先粗后细&quot;的两级检索在处理长文档时特别有效。</p>
+<h5 id="-多层级索引">🏗️ 多层级索引
+</h5><p><strong>多层级索引</strong> 不只是文档-chunk 两层，而是构建多层级的索引结构——比如**&ldquo;领域 → 主题 → 文档 → 段落&rdquo;**。查询时先在高层级（如领域、主题）做粗筛，快速定位相关范围，再在低层级（如段落）做精确匹配。这种分层策略在文档量很大（数十万篇以上）时优势明显，因为它避免了在全量向量中做暴力搜索，大幅减少检索范围的同时提高了匹配准确率。</p>
+<h4 id="-选取合适的嵌入模型">🧠 选取合适的嵌入模型
+</h4><p>如果说分块决定了&quot;知识被切成什么样&quot;，那么 <strong>Embedding 模型</strong> 决定的就是&quot;这些知识被表示成什么样&quot;。两者共同决定了检索上限。</p>
+<h5 id="-embedding-模型的角色">🧩 Embedding 模型的角色
+</h5><p>在 <strong>RAG</strong>、语义搜索、推荐系统、文档聚类等场景中，<strong>Embedding 模型</strong>是连接&quot;自然语言&quot;和&quot;数学空间&quot;的桥梁。它把一段文字转化为一个高维向量，使得语义相近的文本在向量空间中彼此靠近，语义不同的文本彼此远离。桥梁质量越高，后续检索、重排、生成的上限就越高。</p>
+<p>这个&quot;桥梁&quot;的质量直接决定了下游任务的天花板。以 <strong>RAG</strong> 为例，如果 <strong>Embedding 模型</strong>不能准确捕捉查询和文档之间的语义关系，那么即使你的 <strong>LLM</strong> 再强大、<strong>Prompt</strong> 写得再好，也无法弥补检索阶段的信息缺失，这就是业界常说的 <strong>Garbage In, Garbage Out</strong>。所以选好 <strong>Embedding 模型</strong>是整个系统的地基，地基不稳，上层建筑再精美也没用。</p>
+<div align="center">
+  <img src="embedding-role.png" alt="Embedding 在 RAG 中的角色" width="80%" />
+</div>
+<h5 id="-选型时的核心因素">⚖️ 选型时的核心因素
+</h5><p>选择嵌入模型时，通常需要重点考虑以下因素：</p>
+<ul>
+<li><strong>语义准确性</strong>：模型能否准确捕捉长句、上下文关系和同义表达，直接影响检索质量。</li>
+<li><strong>模型效率</strong>：推理速度、显存占用和部署成本是否满足业务要求。</li>
+<li><strong>领域适配性</strong>：是否对医疗、金融、法律等垂直领域做过优化，能否理解专业术语。</li>
+<li><strong>多语言支持</strong>：是否覆盖业务需要的语言，以及跨语言语义对齐能力是否足够。</li>
+<li><strong>数据规模匹配</strong>：模型大小与训练数据规模是否匹配当前业务复杂度。</li>
+</ul>
+<p>除了上面这些通用因素，真正做选型时还要额外注意 4 个问题：</p>
+<ul>
+<li><strong>任务类型匹配度</strong>：<strong>Embedding 模型</strong>的训练目标不同，擅长的任务也不同。有些模型是为语义相似度（<strong>Semantic Textual Similarity</strong>）优化的，擅长判断两段文本说的是不是同一件事；有些是为检索（<strong>Retrieval</strong>）优化的，擅长从一堆候选文档中找出和查询最相关的那几篇；还有些是为聚类或分类任务优化的。在 <strong>RAG</strong> 场景中，你需要的核心能力是检索，那就应该优先选在检索任务上表现好的模型，而不是在句子相似度任务上跑分最高的任务。**MTEB 排行榜（Massive Text Embedding Benchmark）**之所以有价值，就是因为它把不同任务类型拆开评估，你可以针对自己的任务类型去看对应的分数。</li>
+<li><strong>语言和领域匹配度</strong>：这一点在国内场景尤为关键。很多在英文上表现优秀的模型，在中文上的效果可能大打折扣。如果你的业务场景是中文为主，就必须选在中文数据上训练过或专门针对中文优化过的模型，比如 <strong>BGE（BAAI General Embedding）</strong> 系列、<strong>M3E</strong>、<strong>Cohere</strong> 的多语言模型等。更进一步，如果是垂直领域（如医疗、法律、金融），通用模型的效果往往不够好，因为这些领域有大量专业术语和特定的语义关系，通用训练数据中覆盖不足。这时候要么选在该领域数据上微调过的模型，要么自己基于开源模型做领域微调。</li>
+<li><strong>是否支持非对称检索</strong>：对称检索指的是查询和文档在形式上是相似的（比如两个句子比较相似度），非对称检索指的是查询和文档形式不同（比如一个短问题去检索一篇长文档）。RAG 场景几乎都是非对称检索——用户的查询通常是一句简短的问题，而候选文档是完整的段落甚至文章。有些模型专门为非对称检索做了优化（比如在训练时使用了 query-document 对，并且对 query 和 document 分别使用不同的前缀指令），在这种场景下效果会明显好于对称模型。<strong>E5</strong> 系列和 <strong>BGE</strong> 系列都支持通过 instruction prefix 来区分 query 和 passage，实际测试中这个小技巧对检索效果的提升不可忽视。</li>
+<li><strong>向量维度与成本的平衡</strong>：维度越高，表达能力通常更强，但索引体积、检索延迟和内存占用也会同步增加。选型不能只看效果，还要考虑实际部署时的约束。API 调用模型（如 <strong>OpenAI</strong>、<strong>Cohere</strong>）使用方便但有持续成本，且数据要发送到第三方；开源模型（如 <strong>BGE</strong>、<strong>E5</strong>、<strong>GTE</strong>）可以自部署，数据不出域，但需要 GPU 资源和运维能力。在实际项目中，还需要考虑模型的推理速度（高并发下能不能扛住）、最大输入长度（你的文档分块策略和模型的 max_tokens 是否匹配）、以及是否支持批量推理等工程细节。</li>
+</ul>
+<div align="center">
+  <img src="embedding-selection-dimensions.png" alt="Embedding 模型选型维度" width="82%" />
+</div>
+<p>一些典型取舍如下：</p>
+<ul>
+<li><strong>轻量模型</strong>：如 <strong>MiniLM</strong>、<strong>DistilBERT</strong>，速度快，更适合在线问答。</li>
+<li><strong>重型模型</strong>：如 <strong>BERT-large</strong> 或更大的 Embedding 模型，表达能力强，更适合离线批处理。</li>
+<li><strong>领域模型或微调方案</strong>：适合对专业术语理解要求较高的场景，也可以通过 <strong>LoRA</strong> 等方式做轻量适配。</li>
+</ul>
+<h5 id="-评估-embedding-模型的核心指标">📊 评估 Embedding 模型的核心指标
+</h5><p>选好了候选模型之后，还需要做评估。</p>
+<p>检索类指标是 RAG 场景下最重要的一组。常用的包括：</p>
+<ul>
+<li><strong>Recall@K（召回率）</strong>：在 Top-K 个检索结果中，有多少个是真正相关的文档。比如 Recall@10 = 0.8 意味着前 10 条检索结果覆盖了 80% 的相关文档。这个指标直接衡量&quot;该找到的有没有找到&quot;，是检索系统最基础的生命线。</li>
+<li><strong>MRR（Mean Reciprocal Rank，平均倒数排名）</strong>：第一个相关文档出现在第几位的倒数的均值。如果第一个相关结果排在第 1 位，MRR 贡献 1；排在第 2 位，贡献 0.5；排在第 3 位，贡献 0.33。MRR 反映的是&quot;用户不想翻页，最相关的结果能不能排在最前面&quot;。</li>
+<li><strong>NDCG@K（Normalized Discounted Cumulative Gain，归一化折损累积增益）</strong>：这是最全面的排序指标，它不仅考虑相关文档有没有被检索到，还考虑相关程度更高的文档是否排在更前面。NDCG 的&quot;折损&quot;机制给排在前面的结果更高的权重，越往后权重衰减越快，这和用户的实际行为是吻合的——没人会翻到第 50 页去找答案。</li>
+<li><strong>MAP（Mean Average Precision，平均精度均值）</strong>：对每个查询计算 Precision 在不同召回点的平均值，再对所有查询求均值。它综合衡量了检索结果的精确度和排序质量。</li>
+</ul>
+<div align="center">
+  <img src="embedding-metrics.png" alt="Embedding 模型评估指标" width="80%" />
+</div>
+<p>公开基准里最常见的是 <strong>MTEB（Massive Text Embedding Benchmark）</strong>。它很适合拿来做候选筛选。第一，总分不能直接拿来做选型依据，因为总分是各任务的平均，一个在检索上表现一般但在聚类上特别好的模型，总分可能和一个检索很强但聚类一般的模型差不多。你需要看和你业务场景对应的那个任务类型的子分数。第二，排行榜上的数据集和你的真实数据分布可能差异很大。一个在 MTEB 英文检索任务上排名第一的模型，在你的中文法律文档检索场景下可能排不进前五。所以 MTEB 是选候选模型的起点，不是终点——最终必须在你自己的数据上做评估。</p>
+<p>更稳妥的做法通常是：先在 MTEB 或同类榜单里筛出 3 到 5 个候选模型，再在自己的标注数据上跑一轮 Recall、NDCG 和线上 A/B 验证。</p>
+<div align="center">
+  <img src="embedding-mteb.png" alt="MTEB 与自有数据评估" width="80%" />
+</div>
+<h5 id="-工程实践考量">🔧 工程实践考量
+</h5><p>在实际项目中，除了模型效果本身，还有一些工程因素对选型影响很大。</p>
+<ul>
+<li><strong>推理性能和吞吐量</strong>：<strong>推理性能和吞吐量</strong>直接影响系统的可用性。如果你的场景是实时检索（用户提交查询后毫秒级返回结果），那 Embedding 模型的推理延迟就是硬约束。一般来说，参数量越小、向量维度越低的模型推理越快。在高并发场景下，还需要考虑模型是否支持高效的批量推理和 GPU 加速。ONNX Runtime 和 TensorRT 等推理优化工具可以显著提升吞吐。</li>
+<li><strong>最大输入长度</strong>：<strong>最大输入长度</strong>是另一个经常被忽视的因素。不同模型支持的最大 token 数差异很大——有些模型只支持 512 tokens，有些支持 8192 甚至更长。这直接影响你的文档分块策略：如果模型只支持 512 tokens 但你的文档块平均 1000 tokens，超出部分就会被截断，等于你精心设计的分块策略白费了一半。反过来，如果模型支持很长的输入，你就有机会使用更大的块来保留更完整的上下文语义，这对于检索质量的提升有时是决定性的。</li>
+<li><strong>Matryoshka</strong>：<strong>Matryoshka</strong>是近期一个很值得关注的技术。传统模型生成固定维度的向量，而 Matryoshka Embedding 允许你在推理后截取前 N 维作为压缩向量使用，不同维度下的效果会渐进衰减但不会断崖式下降。OpenAI 的 text-embedding-3 系列和 Nomic 的 nomic-embed-text 就支持这个特性。它的工程价值在于你可以在同一个模型上灵活调节&quot;效果-成本&quot;的平衡——存储紧张时用低维向量，追求效果时用全维向量。</li>
+</ul>
+<h5 id="-综合考量">🔍 综合考量
+</h5><p>选择 Embedding 模型需要从多个维度综合考量，不能简单看排行榜选分数最高的。首先要匹配任务类型，RAG 场景下应该重点看模型在检索任务上的表现而不是看综合总分，MTEB 排行榜把任务拆得很细，可以针对性地看。其次是语言和领域匹配，中文场景下 BGE、M3E 这类专门做过中文优化的模型通常比纯英文模型效果好很多，垂直领域如果通用模型效果不够还需要做领域微调。第三要关注对称和非对称检索的区别，RAG 是典型的短查询检索长文档的非对称场景，BGE 和 E5 都支持通过 query/passage 前缀来优化这种场景，这个细节在实际中对效果影响很大。工程层面还要考虑向量维度带来的存储和计算成本、模型支持的最大输入长度是否和分块策略匹配、以及推理吞吐能否满足在线服务的延迟要求。</p>
+<p>评估指标方面，检索场景最核心的是 Recall@K、MRR、NDCG@K 和 MAP 这几个。Recall 衡量能不能找全，MRR 衡量第一个相关结果排得准不准，NDCG 综合衡量排序质量，MAP 则综合了精确度和排序。语义相似度任务主要看 Spearman 相关系数。但最关键的一点是，公开基准上的分数只能用来初筛候选，最终一定要在自己的真实数据上做评估，因为 MTEB 的数据分布和你的业务数据可能差异很大。在实际项目中，我的做法是先从 MTEB 筛出 3-5 个候选，然后在自有标注数据上跑 Recall 和 NDCG 做离线对比，最优的模型再通过 A/B 测试在线验证，确认效果后才正式采用。</p>
+<h3 id="-检索阶段的优化">🔬 检索阶段的优化
+</h3><p>检索侧优化解决的核心问题是：<strong>如何在海量候选内容里，把最值得送进模型的那一小部分上下文尽可能稳定地找出来。</strong></p>
+<h4 id="-混合检索与多路召回">🔀 混合检索与多路召回
+</h4><p>单纯的<strong>向量检索</strong>再怎么优化，也有它的能力天花板，因为 <strong>Embedding 模型</strong>本身就有局限。真正在生产环境中效果好的方案，几乎都不是只用向量检索，而是混合多种检索方式。</p>
+<p><strong>Hybrid Search（混合检索）</strong> 是目前工业界最常见的方案。它会同时使用<strong>稀疏检索</strong>（如 <strong>BM25</strong>）和<strong>稠密检索</strong>（向量检索），再通过融合策略合并结果。之所以有效，是因为两种检索方式的能力边界刚好互补：</p>
+<ul>
+<li><strong>向量检索</strong> 擅长理解语义，例如&quot;汽车&quot;和&quot;轿车&quot;字面不同，但向量距离可能很近。</li>
+<li><strong>BM25</strong>  等稀疏检索擅长精确关键词匹配，例如查询 <code>GPT-4o</code> 时，不容易把 <code>GPT-3.5</code> 的结果混进来。</li>
+</ul>
+<p><strong>Rank Fusion</strong> 指的是对初步召回的候选文档再次做融合排序，以提高召回率和准确性。</p>
+<p>其中最常见的方法是 <strong>Reciprocal Rank Fusion（RRF）</strong>。它的逻辑很直接：分别根据候选文档在多路结果中的排名计算得分，再把这些得分加总为最终分数。<strong>RRF</strong> 的优势在于：</p>
+<ul>
+<li><strong>不依赖分数归一化</strong>：BM25 与余弦相似度分数不在同一量纲，直接混合容易失真。</li>
+<li><strong>工程实现简单</strong>：按排名融合更稳健，落地成本低。</li>
+<li><strong>兼容多路召回</strong>：不仅能融合两路，也能扩展到多路检索结果。</li>
+</ul>
+<p><strong>Elasticsearch 8.x</strong> 以及很多向量数据库（如 <strong>Weaviate</strong>、<strong>Qdrant</strong>）都已经对混合检索提供了原生支持。</p>
+<div align="center">
+  <img src="混合检索.png" alt="混合检索和多路召回" width="82%" />
+</div>
+<h4 id="-元数据过滤">🔽 元数据过滤
+</h4><p>元数据过滤是另一个经常被忽视、但非常实用的检索增强手段。它的做法是在向量检索之前或之后，利用文档的元数据（如时间、来源、类别、作者、权限范围）做预过滤。</p>
+<p>例如用户问&quot;最新的产品定价策略&quot;，可以先用元数据过滤出最近 3 个月的文档，再在这个子集内做向量检索。这样有两个直接好处：</p>
+<ul>
+<li><strong>准确率更高</strong>：先把明显不可能相关的数据排除掉。</li>
+<li><strong>检索成本更低</strong>：缩小候选集合后，召回与精排压力都会下降。</li>
+</ul>
+<p>元数据过滤对&quot;<strong>精确条件 + 语义理解</strong>&ldquo;的混合型查询尤其有效，而现实业务中的问题，大多都属于这一类。</p>
+<h3 id="-后处理阶段的优化">🔧 后处理阶段的优化
+</h3><p>检索完成后，在结果送进 <strong>LLM</strong> 之前，还有一个重要的优化环节，就是<strong>后处理</strong>。它的核心价值在于：用更精细的模型对检索结果做&quot;二次筛选&rdquo;，把真正相关的内容留下，把噪声过滤掉。</p>
+<h4 id="-rerank-重排序">🔄 Rerank 重排序
+</h4><p>前面检索阶段的 <strong>Rank Fusion</strong>，其目标通常是<strong>在海量文档中快速筛出一批大致相关的候选结果</strong>，所以它更偏向效率，准确性不是最高。<strong>Rerank</strong> 则会在这批候选结果上继续精排，挑出最匹配的问题上下文，再交给大模型使用。</p>
+<p>典型流程是：先用<strong>向量检索</strong>做粗召回（比如返回 <strong>top-20</strong>），再用专门的 <strong><code>Cross-Encoder</code></strong> 重排序模型对这 20 个结果逐一精排，重新排序后取 <strong>top-5</strong> 送给 <strong>LLM</strong>。</p>
+<p>它的典型流程如下：</p>
+<ul>
+<li><strong>生成候选文档</strong>：先通过向量检索或传统检索得到一批候选结果。</li>
+<li><strong>执行重排序</strong>：使用 <strong>Rerank</strong> 模型对候选结果重新计算匹配得分。</li>
+<li><strong>选取 Top-K</strong>：保留最相关的若干条结果，作为最终生成阶段的输入。</li>
+</ul>
+<p>它之所以有效，是因为向量检索和重排序本质上是两种不同架构：</p>
+<ul>
+<li><strong>向量检索</strong>使用的是 <strong>Bi-Encoder</strong>：查询和文档分别编码成向量，再做相似度计算，优点是快，适合大规模召回。但代价是查询和文档之间没有交互，模型看不到它们的细粒度关联。</li>
+<li><strong>Reranker</strong> 使用的是 <strong>Cross-Encoder</strong>：把查询和文档拼接后一起送进模型，模型能逐 <code>token</code> 地分析查询和文档之间的交叉关系，自然能更准确地判断相关性。优点是准，适合小规模精排。代价是慢（每对 <strong><code>query-doc</code></strong> 都要过一遍模型），所以只能用在候选量较小的重排阶段。</li>
+</ul>
+<p>这就是 <strong>RAG</strong> 里常见的&quot;<strong>粗召回 + 精重排</strong>&ldquo;两阶段架构。第一阶段用速度快但精度一般的 <strong>Bi-Encoder</strong> 做大范围召回，第二阶段用精度高但速度慢的 <strong>Cross-Encoder</strong> 做小范围精排。这个架构在搜索引擎和推荐系统中已经用了很多年，移植到 <strong>RAG</strong> 中同样非常有效。常用的 <strong>Reranker</strong> 模型包括 <strong>Cohere Rerank</strong>、<strong>bge-reranker</strong>，以及基于 <strong>cross-encoder</strong> 架构的各类模型。</p>
+<div align="center">
+  <img src="rag-rerank-two-stage.png" alt="RAG 中的两阶段召回与精排" width="82%" />
+</div>
+<h4 id="-contextual-compression-上下文压缩">💾 Contextual Compression 上下文压缩
+</h4><p>**Contextual Compression（上下文压缩）**是另一种常见的后处理策略。检索回来的 <code>chunk</code> 里，往往会有大量和查询无关的&quot;水分&rdquo;。例如一个 <strong><code>500 token</code></strong> 的 <code>chunk</code> 中，真正与问题强相关的内容可能只有两三句话。</p>
+<p>上下文压缩的思路，就是用 <strong>LLM</strong> 或专门的提取模型，把每个 <code>chunk</code> 中与查询相关的核心信息提取出来，压缩成更精炼的片段。这样做的价值很明确：</p>
+<ul>
+<li><strong>减少输入 <code>token</code> 数量</strong>，从而降低生成成本。</li>
+<li><strong>减少无关信息干扰</strong>，提高回答稳定性。</li>
+<li><strong>让上下文利用率更高</strong>，把宝贵的上下文窗口留给真正重要的信息。</li>
+</ul>
+<p><strong>LangChain</strong> 的 <code>ContextualCompressionRetriever</code> 就提供了开箱即用的实现。</p>
+<p>当你已经把<strong>分块、索引、召回、重排</strong>这些基础能力打磨到位后，再继续往上走，才值得考虑更复杂的增强路线。</p>
+<h4 id="-提示词优化">📝 提示词优化
+</h4><p>高质量的**提示词（Prompt）**设计，可以显著提升 <strong>RAG</strong> 的最终效果。常见做法包括：</p>
+<ul>
+<li><strong>明确角色与任务</strong>：清晰说明模型身份、能力边界与回答目标，例如要求模型只能基于提供资料作答。</li>
+<li><strong>结构化组织输入</strong>：将提示拆成&quot;背景 + 问题 + 输出格式&quot;之类的清晰结构。</li>
+<li><strong>加入上下文约束</strong>：明确禁止模型脱离检索内容自由发挥，减少幻觉。</li>
+<li><strong>设置兜底机制</strong>：如果没有检索到相关资料，就要求模型明确返回&quot;未找到相关内容&quot;。</li>
+</ul>
+<hr>
+<h2 id="-小结">✅ 小结
+</h2><p><strong>RAG</strong> 的核心价值，不是简单地&quot;给大模型加个数据库&quot;，而是通过 <strong>检索能力 + 上下文增强 + 生成能力</strong> 的协同，解决大模型在知识实时性、准确性和可控性上的不足。</p>
+<p>如果从工程视角来看，RAG 的效果往往取决于三个关键点：</p>
+<ul>
+<li><strong>索引是否合理</strong>：文档切分与向量化质量决定了知识底座的可用性。</li>
+<li><strong>检索是否精准</strong>：召回策略与重排序决定了模型能看到什么信息。</li>
+<li><strong>生成是否可控</strong>：提示词设计与上下文约束决定了最终答案的稳定性。</li>
+</ul>
+<div align="center">
+  <img src="RAG的优化分层.png" alt="RAG 的优化分层" width="82%" />
+</div>
+<p>如果继续往进阶方向走，还会逐步接触到 <strong>Graph RAG</strong> 和 <strong>Agentic RAG</strong>。前者强调把实体关系也纳入检索，补足跨文档关系推理；后者强调让 Agent 根据问题复杂度动态决定是否检索、检索几轮、用哪种召回策略。它们本质上都在做同一件事：让 RAG 从&quot;能检索&quot;进化到&quot;会检索、会取舍、会组织上下文&quot;。</p>
+<div
+  class="notice note"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 128 300 300">
+  <path d="M150 128c82.813 0 150 67.188 150 150 0 82.813-67.188 150-150 150C67.187 428 0 360.812 0 278c0-82.813 67.188-150 150-150Zm25 243.555v-37.11c0-3.515-2.734-6.445-6.055-6.445h-37.5c-3.515 0-6.445 2.93-6.445 6.445v37.11c0 3.515 2.93 6.445 6.445 6.445h37.5c3.32 0 6.055-2.93 6.055-6.445Zm-.39-67.188 3.515-121.289c0-1.367-.586-2.734-1.953-3.516-1.172-.976-2.93-1.562-4.688-1.562h-42.968c-1.758 0-3.516.586-4.688 1.563-1.367.78-1.953 2.148-1.953 3.515l3.32 121.29c0 2.734 2.93 4.882 6.64 4.882h36.134c3.515 0 6.445-2.148 6.64-4.883Z"/>
+</svg>
+
+    </span>注解</p>
+  <p>如果要把这篇文章压缩成一条工程建议，可以记住这个顺序：<strong>先把索引质量打牢，再优化召回策略，最后做重排和上下文组织。</strong></p>
+  </div>
+
+<div align="center">
+  <img src="rag-advanced-directions.png" alt="RAG 的进阶方向" width="82%" />
+</div>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/rag/">RAG</a>
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026-03-25 10:18 UTC
+        </span>
+    </section></footer>
+
+
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI&#43;WdtXRGWt2kTvGFasHpSy3SV"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG&#43;vnGctmUb0ZY0l8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"integrity="sha384-&#43;VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4&#43;/RRE05"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+        renderMathInElement(document.body, {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ],
+            ignoredClasses: ["gist"]
+        });})
+</script>
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/rag%E7%9A%84%E5%87%A0%E5%A4%A7%E8%8C%83%E5%BC%8F/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">RAG的几大范式</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/rag%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E5%92%8C%E6%B5%81%E7%A8%8B/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">RAG的基本概念和流程</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/rag%E7%9A%84%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">RAG的评估体系</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E8%A7%84%E5%88%92%E6%A8%A1%E5%9D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的规划模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E8%AE%B0%E5%BF%86%E6%A8%A1%E5%9D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的记忆模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2026 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.93ec85291de2934df13aa4307b756a6eb93dd4ff935a9810e787a938c351043f.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="深入理解Agent的记忆系统设计：短期记忆与长期记忆的原理、策略与工程实现">
+<title>Agent的记忆模块</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/agent%E7%9A%84%E8%AE%B0%E5%BF%86%E6%A8%A1%E5%9D%97/'>
+
+<link rel="stylesheet" href="/scss/style.min.dad0e2c2229a75c496b5a934967d99a61e8005c32f24fb55c6333e1a66ab1d8b.css"><meta property='og:title' content="Agent的记忆模块">
+<meta property='og:description' content="深入理解Agent的记忆系统设计：短期记忆与长期记忆的原理、策略与工程实现">
+<meta property='og:url' content='https://Tyritic.github.io/p/agent%E7%9A%84%E8%AE%B0%E5%BF%86%E6%A8%A1%E5%9D%97/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='智能体' /><meta property='article:published_time' content='2026-03-25T16:20:00&#43;08:00'/><meta property='article:modified_time' content='2026-03-25T10:18:45&#43;00:00'/>
+<meta name="twitter:title" content="Agent的记忆模块">
+<meta name="twitter:description" content="深入理解Agent的记忆系统设计：短期记忆与长期记忆的原理、策略与工程实现">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_691afbb6233f07b9.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#-记忆模块的重要性">🧠 记忆模块的重要性</a></li>
+    <li><a href="#-人类记忆的类比">🔄 人类记忆的类比</a></li>
+    <li><a href="#-短期记忆上下文窗口的管理艺术">📋 短期记忆：上下文窗口的管理艺术</a>
+      <ol>
+        <li><a href="#-上下文窗口的核心挑战">⚠️ 上下文窗口的核心挑战</a></li>
+        <li><a href="#-滑动窗口sliding-window">🔧 滑动窗口（Sliding Window）</a></li>
+        <li><a href="#-对话摘要conversation-summary">📝 对话摘要（Conversation Summary）</a></li>
+        <li><a href="#-token-buffertoken-缓冲区">📐 Token Buffer（Token 缓冲区）</a></li>
+        <li><a href="#-基于重要度的选择性保留">📌 基于重要度的选择性保留</a></li>
+      </ol>
+    </li>
+    <li><a href="#-长期记忆跨会话的持久化知识系统">💾 长期记忆：跨会话的持久化知识系统</a>
+      <ol>
+        <li><a href="#-向量数据库--rag检索增强生成">🔍 向量数据库 + RAG（检索增强生成）</a></li>
+        <li><a href="#-关系型数据库--kv-存储">💾 关系型数据库 / KV 存储</a></li>
+        <li><a href="#知识图谱knowledge-graph">知识图谱（Knowledge Graph）</a></li>
+        <li><a href="#-模型微调fine-tuning">📚 模型微调（Fine-tuning）</a></li>
+      </ol>
+    </li>
+    <li><a href="#-记忆的写入检索与更新机制">⚙️ 记忆的写入、检索与更新机制</a>
+      <ol>
+        <li><a href="#-写入机制">🖊️ 写入机制</a></li>
+        <li><a href="#-检索机制">🔎 检索机制</a></li>
+        <li><a href="#-更新和遗忘机制">🔄 更新和遗忘机制</a></li>
+      </ol>
+    </li>
+    <li><a href="#-实际项目中的三层分层记忆架构">🏗️ 实际项目中的三层分层记忆架构</a>
+      <ol>
+        <li><a href="#-最内层即时上下文">💭 最内层：即时上下文</a></li>
+        <li><a href="#-中间层会话缓存">🗃️ 中间层：会话缓存</a></li>
+        <li><a href="#-最外层持久化存储">🏛️ 最外层：持久化存储</a></li>
+        <li><a href="#-信息流动">🔀 信息流动</a></li>
+      </ol>
+    </li>
+    <li><a href="#-主流框架支持">🛠️ 主流框架支持</a></li>
+    <li><a href="#-总结">📝 总结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/agent/" style="background-color: #2a9d8f; color: #fff;">
+                Agent
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/agent%E7%9A%84%E8%AE%B0%E5%BF%86%E6%A8%A1%E5%9D%97/">Agent的记忆模块</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            深入理解Agent的记忆系统设计：短期记忆与长期记忆的原理、策略与工程实现
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-03-25</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 9 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：4156 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="-记忆模块的重要性">🧠 记忆模块的重要性
+</h2><p>记忆模块是 Agent 四大核心组件之一（其余三个是 LLM 大脑、规划模块、工具使用）。如果说 LLM 是 Agent 的推理引擎，那么记忆模块就是支撑这个引擎持续运转的&quot;燃料仓库&quot;。</p>
+<p>一个没有记忆的 Agent，每次对话都是从零开始的&quot;失忆者&quot;——它不知道用户之前的偏好、不记得上次任务的经验、也无法积累领域知识。而有了记忆模块，Agent 就能表现出&quot;越用越聪明&quot;的特性，成为一个真正有积累的智能助手。</p>
+<hr>
+<h2 id="-人类记忆的类比">🔄 人类记忆的类比
+</h2><p>Agent 的记忆系统设计，其实是从认知科学中借鉴过来的。人类的记忆大致分为两类：</p>
+<ul>
+<li>
+<p><strong>短期记忆（Short-term Memory）</strong>：也叫工作记忆，容量有限，持续时间短。比如你听到一个手机号码，能暂时记住但过一会儿就忘了。</p>
+</li>
+<li>
+<p><strong>长期记忆（Long-term Memory）</strong>：容量几乎无限，能持续很长时间。比如你的名字、骑自行车的技能、上周开会的内容。</p>
+</li>
+</ul>
+<p>把这个类比映射到 Agent 身上就非常自然了：</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>人类记忆</th>
+          <th>Agent记忆</th>
+          <th>核心问题</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>短期记忆</td>
+          <td>当前对话的上下文信息</td>
+          <td>上下文窗口有限怎么办？</td>
+      </tr>
+      <tr>
+          <td>长期记忆</td>
+          <td>跨对话持久化存储的知识</td>
+          <td>信息怎么存、怎么检索、怎么更新？</td>
+      </tr>
+  </tbody>
+</table></div>
+<div align="center">
+  <img src="人类记忆的类比.png" alt="人类记忆的类比" width="75%">
+</div>
+<hr>
+<h2 id="-短期记忆上下文窗口的管理艺术">📋 短期记忆：上下文窗口的管理艺术
+</h2><p>Agent 的短期记忆，最直接的载体就是 LLM 的 <strong>Context Window（上下文窗口）</strong>。每次调用 LLM 时，我们把之前的对话历史、系统提示词、工具调用记录等信息拼接成一个 prompt 发给模型，模型就是基于这些&quot;短期记忆&quot;来理解当前状态并做出决策的。</p>
+<h3 id="-上下文窗口的核心挑战">⚠️ 上下文窗口的核心挑战
+</h3><p>Context Window 的容量是有限的。即使现在的模型已经支持 128K 甚至更长的上下文，在实际 Agent 场景中，上下文很容易就被撑满：</p>
+<ul>
+<li>一个复杂任务可能需要十几轮工具调用</li>
+<li>每轮的 Thought、Action、Observation 加起来可能就有上千 token</li>
+<li>再加上系统提示词和工具定义，上下文窗口很快就不够用了</li>
+</ul>
+<p>而且即使窗口足够大，研究表明模型在处理超长上下文时会出现 <strong>&ldquo;Lost in the Middle&quot;现象</strong>——对上下文中间位置的信息关注度明显下降。</p>
+<p>所以短期记忆的核心挑战是：<strong>如何在有限的上下文窗口里，尽可能保留最有用的信息？</strong></p>
+<hr>
+<h3 id="-滑动窗口sliding-window">🔧 滑动窗口（Sliding Window）
+</h3><p>滑动窗口是最简单粗暴的方案。当对话历史超过窗口限制时，直接截断最早的消息，只保留最近的 N 轮对话。</p>
+<p><strong>优点：</strong> 实现简单</p>
+<p><strong>缺点：</strong> 信息丢失严重——可能用户在第一轮告诉了 Agent 一个关键信息，到了第十轮就被截掉了，Agent 完全&quot;忘&quot;了这件事。</p>
+<hr>
+<h3 id="-对话摘要conversation-summary">📝 对话摘要（Conversation Summary）
+</h3><p>对话摘要是一种更优雅的方案。当对话历史变长时，不是直接截断，而是用 LLM 把较早的对话内容压缩成一段摘要，然后用这段摘要替代原始的冗长历史。</p>
+<p>这种方式既控制了 token 用量，又保留了关键信息。<strong>LangChain</strong> 中的 <code>ConversationSummaryMemory</code> 和 <code>ConversationSummaryBufferMemory</code> 就是这种策略的实现：</p>
+<ul>
+<li>后者更实用一些，它保留最近几轮的原始对话不动</li>
+<li>只对更早的对话做摘要压缩</li>
+<li>兼顾了近期对话的完整性和历史信息的保留</li>
+</ul>
+<hr>
+<h3 id="-token-buffertoken-缓冲区">📐 Token Buffer（Token 缓冲区）
+</h3><p>Token Buffer 则是按 token 数量来精确控制。设置一个 token 上限，比如 4000 token，当历史消息的总 token 数超过这个值时，从最早的消息开始逐条丢弃，直到总量回到阈值以内。</p>
+<p><strong>优点：</strong> 比简单的轮次截断更精确</p>
+<p><strong>缺点：</strong> 本质上还是&quot;先进先出&quot;的淘汰策略，可能丢失重要信息</p>
+<hr>
+<h3 id="-基于重要度的选择性保留">📌 基于重要度的选择性保留
+</h3><p>还有一种更精细的做法——不是简单地按时间顺序淘汰，而是评估每条历史消息的&quot;重要程度&rdquo;。</p>
+<p>比如：</p>
+<ul>
+<li>包含用户需求的消息比闲聊更重要</li>
+<li>工具调用失败的经验比成功的记录更重要</li>
+<li>用户明确纠正 Agent 的信息比普通对话更重要</li>
+</ul>
+<p><strong>优先保留重要的、淘汰次要的。</strong></p>
+<p><strong>优点：</strong> 效果最好，最大化利用有限的上下文窗口</p>
+<p><strong>缺点：</strong> 实现最复杂，通常需要额外的 LLM 调用来做重要度评估</p>
+<hr>
+<h2 id="-长期记忆跨会话的持久化知识系统">💾 长期记忆：跨会话的持久化知识系统
+</h2><p>如果说短期记忆解决的是&quot;当前对话怎么记&quot;的问题，那长期记忆解决的就是&quot;<strong>跨对话怎么记、怎么用</strong>&ldquo;的问题。</p>
+<p>长期记忆让 Agent 可以记住：</p>
+<ul>
+<li>用户的偏好（&ldquo;我喜欢简洁的代码风格&rdquo;）</li>
+<li>历史交互的经验教训</li>
+<li>领域专有知识</li>
+</ul>
+<p>使其表现得更像一个&quot;有积累&quot;的助手，而不是每次对话都从零开始的&quot;失忆者&rdquo;。</p>
+<p>从认知科学的角度，长期记忆又可以细分为两类：</p>
+<ul>
+<li><strong>显式记忆（Explicit Memory）</strong>：可以明确表述的事实和事件，比如&quot;用户 A 喜欢 Python&quot;</li>
+<li><strong>隐式记忆（Implicit Memory）</strong>：内化在模型行为中的模式和技能，对应到 LLM 领域就是通过微调融入模型参数中的知识</li>
+</ul>
+<hr>
+<h3 id="-向量数据库--rag检索增强生成">🔍 向量数据库 + RAG（检索增强生成）
+</h3><p>这是目前最主流的长期记忆方案。</p>
+<p><strong>核心思路：</strong></p>
+<ol>
+<li>把需要长期记忆的信息（对话历史摘要、用户画像、领域文档等）通过 Embedding 模型转化为向量</li>
+<li>存入向量数据库（如 Milvus、Pinecone、Chroma、Weaviate 等）</li>
+<li>当 Agent 需要使用这些记忆时，先把当前问题也转化为向量</li>
+<li>在向量数据库中做相似度检索，找出最相关的记忆片段</li>
+<li>注入到当前的上下文中供 LLM 参考</li>
+</ol>
+<p><strong>本质：</strong> 把长期记忆的&quot;存&quot;和&quot;取&quot;都转化成了向量空间中的操作</p>
+<p><strong>优势：</strong> 检索是语义级别的，即使用户的问法和存储时的原文表述不同，只要语义相近就能检索到</p>
+<hr>
+<h3 id="-关系型数据库--kv-存储">💾 关系型数据库 / KV 存储
+</h3><p>适合存储<strong>结构化</strong>的记忆信息。</p>
+<p>比如用户画像这类高度结构化的数据：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;user_id&#34;</span><span class="p">:</span> <span class="s2">&#34;12345&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;张三&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;preferred_language&#34;</span><span class="p">:</span> <span class="s2">&#34;Python&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;preferred_style&#34;</span><span class="p">:</span> <span class="s2">&#34;简洁&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;history_tasks&#34;</span><span class="p">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span><span class="nt">&#34;task&#34;</span><span class="p">:</span> <span class="s2">&#34;写排序算法&#34;</span><span class="p">,</span> <span class="nt">&#34;result&#34;</span><span class="p">:</span> <span class="s2">&#34;成功&#34;</span><span class="p">,</span> <span class="nt">&#34;time&#34;</span><span class="p">:</span> <span class="s2">&#34;2026-03-20&#34;</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>用关系型数据库存储比向量数据库更合适，因为可以<strong>精确查询</strong>而不是模糊的语义匹配。</p>
+<p><strong>实际项目中：</strong> 往往是向量数据库和关系型数据库配合使用</p>
+<ul>
+<li>结构化信息用 MySQL/PostgreSQL 存</li>
+<li>非结构化的语义信息用向量数据库存</li>
+</ul>
+<hr>
+<h3 id="知识图谱knowledge-graph">知识图谱（Knowledge Graph）
+</h3><p>知识图谱是另一种重要的长期记忆载体，特别适合存储<strong>实体之间的关系</strong>。</p>
+<p>比如：</p>
+<ul>
+<li>&ldquo;张三是产品经理&rdquo;</li>
+<li>&ldquo;张三负责 A 项目&rdquo;</li>
+<li>&ldquo;A 项目依赖 B 服务&rdquo;</li>
+</ul>
+<p>这类关系型知识，用<strong>图结构</strong>来存储比纯文本向量化更自然。Agent 在推理时可以通过图查询来获取结构化的关系信息，辅助决策。</p>
+<p><strong>常用图数据库：</strong> Neo4j、TigerGraph</p>
+<hr>
+<h3 id="-模型微调fine-tuning">📚 模型微调（Fine-tuning）
+</h3><p>模型微调是一种&quot;<strong>隐式</strong>&ldquo;的长期记忆方案。</p>
+<p>通过在特定领域的数据上对模型进行微调，领域知识就被&quot;烧&quot;进了模型参数中，变成了模型的&rdquo;<strong>肌肉记忆</strong>&quot;。</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>方案</th>
+          <th>优点</th>
+          <th>缺点</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>向量数据库+RAG</td>
+          <td>更新灵活、可实时增删</td>
+          <td>推理时需要额外检索步骤</td>
+      </tr>
+      <tr>
+          <td>模型微调</td>
+          <td>推理时不需要额外步骤</td>
+          <td>更新成本高，每次知识更新都需要重新微调</td>
+      </tr>
+  </tbody>
+</table></div>
+<hr>
+<h2 id="-记忆的写入检索与更新机制">⚙️ 记忆的写入、检索与更新机制
+</h2><p>光有存储方案还不够，一个完善的记忆系统还需要设计好三个核心机制：</p>
+<hr>
+<h3 id="-写入机制">🖊️ 写入机制
+</h3><p>最常见的做法是在每轮对话结束后，由一个专门的&quot;<strong>记忆管理模块</strong>&ldquo;来判断当前对话中是否有值得长期保存的信息。</p>
+<p>比如：</p>
+<ul>
+<li>用户明确表达了某个偏好（&ldquo;我喜欢用 Python&rdquo;）</li>
+<li>Agent 完成了一个任务并积累了经验教训</li>
+<li>用户提供了重要的背景信息</li>
+</ul>
+<p><strong>写入之前：</strong> 通常需要做一次摘要提炼，把冗长的对话内容压缩成简洁的记忆条目，避免存储大量冗余信息。</p>
+<hr>
+<h3 id="-检索机制">🔎 检索机制
+</h3><p>最关键的问题是&rdquo;<strong>检索的时机和精度</strong>&quot;。</p>
+<p><strong>时机上：</strong> Agent 在开始处理每个新任务时，都应该先从长期记忆中检索与当前任务相关的历史信息，把它们注入到短期记忆（上下文）中。</p>
+<p><strong>精度上：</strong> 除了基于向量相似度的语义检索，还可以结合：</p>
+<ul>
+<li><strong>元数据过滤</strong>（比如按时间范围、按用户 ID 过滤）</li>
+<li><strong>重排序（Reranking）</strong> 来提高检索质量</li>
+</ul>
+<p><strong>常见组合：</strong> &ldquo;向量检索召回 + 交叉编码器重排序&rdquo;</p>
+<hr>
+<h3 id="-更新和遗忘机制">🔄 更新和遗忘机制
+</h3><p>人的记忆会遗忘，Agent 的记忆也需要。如果长期记忆只增不减：</p>
+<ul>
+<li>存储成本会越来越高</li>
+<li>过期的、错误的记忆还会干扰 Agent 的判断</li>
+</ul>
+<p><strong>常见做法：</strong></p>
+<ul>
+<li>为记忆条目设置<strong>时间衰减权重</strong>（越久远的记忆权重越低）</li>
+<li>定期让 LLM 对记忆库做<strong>整理和去重</strong></li>
+<li>当用户明确纠正某个信息时<strong>主动更新</strong>对应的记忆条目</li>
+</ul>
+<hr>
+<h2 id="-实际项目中的三层分层记忆架构">🏗️ 实际项目中的三层分层记忆架构
+</h2><p>在真实的 Agent 项目中，短期记忆和长期记忆不是孤立运作的，而是协同配合形成一个完整的<strong>分层记忆架构</strong>。</p>
+<h3 id="-最内层即时上下文">💭 最内层：即时上下文
+</h3><p>也就是当前这轮 LLM 调用的 prompt 内容，包括：</p>
+<ul>
+<li>系统提示词</li>
+<li>最近几轮的原始对话</li>
+<li>从长期记忆中检索注入的相关信息</li>
+</ul>
+<p>这是 Agent <strong>&ldquo;当前正在想什么&rdquo;</strong>。</p>
+<h3 id="-中间层会话缓存">🗃️ 中间层：会话缓存
+</h3><p>存储当前整个会话的完整历史（不仅仅是 prompt 中的那几轮），通常用 <strong>Redis</strong> 这类内存数据库来存。</p>
+<p>当上下文窗口装不下全部历史时，就从会话缓存中检索或摘要化处理后注入。</p>
+<h3 id="-最外层持久化存储">🏛️ 最外层：持久化存储
+</h3><p>也就是跨会话的长期记忆，用<strong>向量数据库 + 关系型数据库 + 知识图谱</strong>等方案来承载。</p>
+<p>当 Agent 需要调用历史经验、用户偏好、领域知识时，就从这一层检索。</p>
+<hr>
+<h3 id="-信息流动">🔀 信息流动
+</h3><p>信息在三层之间是可以<strong>双向流动</strong>的：</p>
+<ul>
+<li><strong>沉淀</strong>：对话过程中产生的重要信息会从内层向外层（短期→长期）</li>
+<li><strong>提取</strong>：需要用到的历史知识会从外层向内层（长期→短期）</li>
+</ul>
+<p><strong>这种分层设计既保证了：</strong></p>
+<ul>
+<li>Agent 的实时响应速度</li>
+<li>近乎无限的记忆容量</li>
+</ul>
+<hr>
+<h2 id="-主流框架支持">🛠️ 主流框架支持
+</h2><p>主流框架对这套架构都有很好的支持：</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>框架</th>
+          <th>特点</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>LangChain</strong></td>
+          <td>提供多种 Memory 组件（ConversationBufferMemory、ConversationSummaryBufferMemory、VectorStoreRetrieverMemory 等）</td>
+      </tr>
+      <tr>
+          <td><strong>LlamaIndex</strong></td>
+          <td>更侧重于通过索引结构来组织长期记忆</td>
+      </tr>
+      <tr>
+          <td><strong>Mem0</strong></td>
+          <td>专门做 Agent 记忆管理的开源项目，提供开箱即用的记忆存储、检索、更新和遗忘机制</td>
+      </tr>
+  </tbody>
+</table></div>
+<hr>
+<h2 id="-总结">📝 总结
+</h2><div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>记忆类型</th>
+          <th>存储位置</th>
+          <th>核心挑战</th>
+          <th>主流方案</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>短期记忆</td>
+          <td>LLM Context Window</td>
+          <td>窗口有限、&ldquo;Lost in the Middle&rdquo;</td>
+          <td>滑动窗口、对话摘要、Token Buffer</td>
+      </tr>
+      <tr>
+          <td>长期记忆</td>
+          <td>向量数据库/关系库/知识图谱</td>
+          <td>存/取/更新的完整生命周期</td>
+          <td>向量+RAG、KV存储、知识图谱、微调</td>
+      </tr>
+  </tbody>
+</table></div>
+<p><strong>核心要点：</strong></p>
+<ul>
+<li>短期记忆解决&quot;当前对话怎么记&quot;的问题——通过上下文窗口管理策略</li>
+<li>长期记忆解决&quot;跨对话怎么记、怎么用&quot;的问题——通过向量检索、结构化存储、知识图谱</li>
+<li>完整架构是<strong>三层分层设计</strong>：即时上下文 → 会话缓存 → 持久化存储</li>
+<li>信息在三层之间<strong>双向流动</strong>：沉淀（内→外）和提取（外→内）</li>
+</ul>
+<p>理解并掌握记忆模块的设计，是构建真正&quot;有积累、有经验&quot;的智能 Agent 的关键所在。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E6%99%BA%E8%83%BD%E4%BD%93/">智能体</a>
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026-03-25 10:18 UTC
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E8%A7%84%E5%88%92%E6%A8%A1%E5%9D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的规划模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的工具调用</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的核心组件</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E6%A6%82%E5%BF%B5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的概念</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E5%AE%89%E5%85%A8%E8%AE%BE%E8%AE%A1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的安全设计</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2026 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.93ec85291de2934df13aa4307b756a6eb93dd4ff935a9810e787a938c351043f.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

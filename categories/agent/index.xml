@@ -7,18 +7,1415 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>Tyritic</copyright><atom:link href="https://Tyritic.github.io/categories/agent/index.xml" rel="self" type="application/rss+xml" /><item>
-        <title>检索增强生成（RAG）</title>
-        <link>https://Tyritic.github.io/p/%E6%A3%80%E7%B4%A2%E5%A2%9E%E5%BC%BA%E7%94%9F%E6%88%90rag/</link>
+        <title>Agent的规划模块</title>
+        <link>https://Tyritic.github.io/p/agent%E7%9A%84%E8%A7%84%E5%88%92%E6%A8%A1%E5%9D%97/</link>
+        <pubDate>Wed, 25 Mar 2026 17:00:00 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/agent%E7%9A%84%E8%A7%84%E5%88%92%E6%A8%A1%E5%9D%97/</guid>
+        <description>&lt;h2 id=&#34;-为什么规划能力是agent的核心&#34;&gt;🧠 为什么规划能力是Agent的核心
+&lt;/h2&gt;&lt;p&gt;在聊具体方法之前，我们先要理解&amp;quot;规划&amp;quot;在Agent体系中扮演的角色。一个完整的Agent通常包含四大能力模块：&lt;strong&gt;感知（Perception）、规划（Planning）、记忆（Memory）和行动（Action）&lt;/strong&gt;。其中规划是真正的&amp;quot;大脑&amp;quot;，它决定了Agent面对一个复杂任务时，应该把任务拆解成哪些子步骤、以什么顺序执行、遇到问题时怎么调整策略。&lt;/p&gt;
+&lt;p&gt;如果没有规划能力，Agent就只能做简单的&amp;quot;一问一答&amp;quot;——用户说什么它就做什么，完全不具备处理多步骤复杂任务的能力。你可以把规划能力理解为&lt;strong&gt;Agent和普通Chatbot之间的分水岭&lt;/strong&gt;：Chatbot是被动应答，Agent是主动规划并执行。&lt;/p&gt;
+&lt;p&gt;而赋予LLM规划能力的核心方法，本质上都是在回答同一个问题：&lt;strong&gt;如何组织LLM的推理过程，使它能够系统地分解和解决复杂问题？&lt;/strong&gt; 不同方法的区别在于，它们对&amp;quot;推理过程&amp;quot;的结构化程度不同——从最简单的线性链条，到树状分支，再到任意图结构，复杂度逐步递增，适用场景也各不相同。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-面向-llm-的推理方法让模型更会想&#34;&gt;🏗️ 面向 LLM 的推理方法：让模型&amp;quot;更会想&amp;quot;
+&lt;/h2&gt;&lt;h3 id=&#34;-chain-of-thoughtcot线性链式推理&#34;&gt;🔗 Chain-of-Thought（CoT）：线性链式推理
+&lt;/h3&gt;&lt;p&gt;CoT是一切的起点，由Google在2022年的论文中正式提出。在CoT出现之前，我们让大模型回答问题的方式是&amp;quot;直接给答案&amp;quot;，也就是所谓的Standard Prompting。比如问&amp;quot;Roger有5个网球，又买了2罐，每罐3个，他现在有多少个？&amp;quot;，模型直接输出&amp;quot;11&amp;quot;。这种方式对于简单问题没问题，但遇到需要多步推理的问题就经常出错，因为模型被迫在一次前向传播中完成所有计算。&lt;/p&gt;
+&lt;p&gt;CoT的&lt;strong&gt;核心洞察&lt;/strong&gt;非常简单但深刻：&lt;strong&gt;让模型把中间推理步骤显式地写出来&lt;/strong&gt;。还是刚才那个问题，加上CoT之后模型会输出&amp;quot;Roger一开始有5个球，2罐每罐3个就是6个，5 + 6 = 11&amp;quot;。看起来只是多输出了几句话，但效果提升非常显著，因为每一步中间结果都变成了下一步推理的&amp;quot;垫脚石&amp;quot;，大幅降低了推理难度。&lt;/p&gt;
+&lt;p&gt;CoT有两种主要的触发方式：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Few-shot CoT&lt;/strong&gt;：在prompt中给几个带推理过程的示例，模型就会&amp;quot;模仿&amp;quot;这种推理风格&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Zero-shot CoT&lt;/strong&gt;：只需要在问题后面加一句&amp;quot;Let&amp;rsquo;s think step by step&amp;quot;，模型就会自动展开推理链&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这说明大模型内部其实已经具备了逐步推理的能力，CoT只是通过prompt把这个能力&amp;quot;激活&amp;quot;了。&lt;/p&gt;
+&lt;p&gt;但是CoT有一个&lt;strong&gt;本质局限&lt;/strong&gt;：它的推理过程是单条链路的，线性的，不可回退的。模型从第一步开始，一步接一步地往下推，如果中间某一步推错了，后面所有步骤都会跟着错下去，没有任何&amp;quot;纠错&amp;quot;或&amp;quot;换条路试试&amp;quot;的机制。这对于只有一条正确推理路径的简单任务来说够用了，但对于有多种可能解法的复杂任务，就显得力不从心了。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;cot-illustration.png&#34; alt=&#34;CoT线性链式推理示意图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-self-consistency多条链路投票&#34;&gt;🗳️ Self-Consistency：多条链路投票
+&lt;/h3&gt;&lt;p&gt;在CoT的基础上，一个很自然的改进思路是：&lt;strong&gt;既然一条链可能走错，那我多生成几条链，最后投票选最靠谱的不就行了？&lt;/strong&gt; 这就是Self-Consistency方法。&lt;/p&gt;
+&lt;p&gt;Self-Consistency的做法是：对同一个问题，让模型用CoT的方式生成多条不同的推理链（通过调高temperature来引入随机性），每条链都会得出一个最终答案，然后对所有答案进行&lt;strong&gt;多数投票&lt;/strong&gt;，票数最多的答案作为最终输出。&lt;/p&gt;
+&lt;p&gt;这个方法的直觉来自于人类解题的经验——如果你用三种不同的方法解一道数学题，三种方法都得到了同一个答案，那这个答案大概率是对的。Self-Consistency用统计的方式提高了推理的鲁棒性，在数学推理和常识推理任务上效果很好。&lt;/p&gt;
+&lt;p&gt;但它的&lt;strong&gt;局限也很明显&lt;/strong&gt;：多条链之间是完全独立的，不会互相交流信息。也就是说，如果第一条链在某一步发现了一个关键线索，第二条链在推理过程中完全用不到这个线索。每条链都是闷头自己推，最后只是在结果层面做投票聚合。这显然是一种浪费——理想情况下，我们希望不同推理路径之间能够共享中间信息、互相启发。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-tree-of-thoughttot树状分支探索&#34;&gt;🌲 Tree-of-Thought（ToT）：树状分支探索
+&lt;/h3&gt;&lt;p&gt;ToT就是为了解决CoT&amp;quot;一条路走到黑&amp;quot;和Self-Consistency&amp;quot;多条路互不相干&amp;quot;这两个问题而提出的。它由Yao等人在2023年的论文中正式提出，核心思想是：&lt;strong&gt;把推理过程从一条链变成一棵树，在每一步都可以产生多个分支候选，然后通过评估来选择最有希望的分支继续探索，必要时还可以回溯&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;具体来说，ToT的工作流程是这样的：在推理的每一步，模型会生成多个可能的&amp;quot;思维节点&amp;quot;（Thought），每个节点代表一种可能的推理方向。然后，模型会对这些候选节点进行&lt;strong&gt;自我评估&lt;/strong&gt;（Self-evaluation），判断每个方向的前景如何——是&amp;quot;很有希望&amp;quot;、&amp;ldquo;还行&amp;quot;还是&amp;quot;肯定不对&amp;rdquo;。基于评估结果，系统选择最优的一个或几个节点继续往下展开，形成新的分支。如果某个分支推着推着发现走不通了，还可以&lt;strong&gt;回溯&lt;/strong&gt;到之前的节点，换一个方向继续探索。&lt;/p&gt;
+&lt;p&gt;这个过程本质上就是经典算法中的&lt;strong&gt;搜索&lt;/strong&gt;——你可以用BFS（广度优先搜索）来逐层展开所有可能性，也可以用DFS（深度优先搜索）来沿着一个方向深入探索、走不通再回头。ToT把LLM的推理过程变成了一个可控的搜索问题。&lt;/p&gt;
+&lt;p&gt;用一个例子来说明ToT的威力。假设我们让模型做一个&amp;quot;24点游戏&amp;quot;——给定4个数字，用加减乘除组合成24。CoT可能一条路算下去，发现算不出来就卡住了。但ToT会在每一步尝试多种运算组合，评估哪些中间结果更有可能通向24，优先探索那些有希望的分支，走不通就回退换路，直到找到答案。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;tot-tree.png&#34; alt=&#34;ToT树状分支探索示意图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-graph-of-thoughtgot图结构的自由推理&#34;&gt;🔄 Graph-of-Thought（GoT）：图结构的自由推理
+&lt;/h3&gt;&lt;p&gt;如果说CoT是一条线、ToT是一棵树，那GoT就是一张&lt;strong&gt;任意有向图&lt;/strong&gt;。GoT由Besta等人在2023年提出，它进一步打破了树结构的层级限制，允许推理节点之间形成更自由、更复杂的连接关系。&lt;/p&gt;
+&lt;p&gt;GoT相比ToT最关键的新增能力是&lt;strong&gt;思维的聚合（Aggregation）&lt;/strong&gt;。在树结构中，信息只能从父节点流向子节点，不同分支之间是隔离的。但在很多实际推理场景中，我们需要把多个分支的中间结论汇总合并成一个新的结论——这就要求不同分支之间能够&amp;quot;连线&amp;quot;。GoT通过引入聚合操作，允许多个思维节点的输出合并成一个新节点的输入，形成类似DAG（有向无环图）甚至包含环路的图结构。&lt;/p&gt;
+&lt;p&gt;举个例子：假设你要分析一篇长文档的核心观点。你可以先用不同的分支分别提取各段落的关键信息（这是ToT也能做的&amp;quot;发散&amp;quot;），然后把各段落的关键信息&lt;strong&gt;聚合&lt;/strong&gt;成一个全局摘要（这是GoT独有的&amp;quot;收敛&amp;quot;），最后基于全局摘要再进一步推理。这种&amp;quot;先发散再收敛&amp;quot;的模式在树结构中是做不到的。&lt;/p&gt;
+&lt;p&gt;从图论的角度来看，CoT是一条路径（Path），ToT是一棵树（Tree），GoT是一张图（Graph）。路径是树的特例，树是图的特例，所以GoT在理论上的表达能力是最强的。但表达能力强也意味着搜索空间更大、控制更复杂，实际工程中需要更精细的调度策略。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;got-graph.png&#34; alt=&#34;GoT图结构推理示意图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-面向-agent-的控制策略让系统更会做&#34;&gt;⚙️ 面向 Agent 的控制策略：让系统“更会做”
+&lt;/h2&gt;&lt;p&gt;除了上面这条&amp;quot;链→树→图&amp;quot;的主线是针对与大语言模型的规划增强策略，而下面几种方法是针对与Agent的规划增强策略。上面这一条“链 → 树 → 图”的演进脉络，本质上讨论的是 &lt;strong&gt;LLM 的推理结构&lt;/strong&gt;。而在真实 Agent 系统中，仅仅“会想”还不够，Agent 还需要解决另一个问题：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;推理、工具调用、执行、观察和修正，应该如何组织起来？&lt;/strong&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;下面这些方法是&lt;strong&gt;面向 Agent 的规划与决策实施策略&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;-react边推理边行动&#34;&gt;⚡ ReAct：边推理，边行动
+&lt;/h3&gt;&lt;p&gt;ReAct是当前Agent工程里最具代表性的控制范式之一。它的全称是&lt;strong&gt;Reasoning + Acting&lt;/strong&gt;，核心思想是：&lt;strong&gt;让大模型像人一样，边想边做&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;在ReAct之前，大模型处理复杂任务主要有两条路线：一条是以CoT为代表的&lt;strong&gt;纯推理路线&lt;/strong&gt;，另一条是以WebGPT、SayCan等为代表的&lt;strong&gt;纯行动路线&lt;/strong&gt;。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;纯推理路线&lt;/strong&gt;的问题在于，模型只能依赖自身内部的参数知识来一步步推导，一旦遇到需要实时信息、精确计算或者外部数据的场景，它就容易&amp;quot;幻觉&amp;quot;——比如问&amp;quot;今天北京天气怎么样&amp;quot;，它没有联网能力，只能瞎编一个答案。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;纯行动路线&lt;/strong&gt;的问题则相反，模型直接映射到动作空间去执行操作，但缺少中间的推理过程，导致它不知道&amp;quot;为什么要做这个动作&amp;quot;、&amp;ldquo;做完之后下一步该怎么办&amp;rdquo;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;ReAct的核心思想非常朴素：&lt;strong&gt;想一步、做一步、看一步，根据每一步的反馈来调整下一步的计划&lt;/strong&gt;。ReAct就是把这个&amp;quot;交替进行推理和行动&amp;quot;的过程形式化了。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;react-origin.png&#34; alt=&#34;ReAct的由来和核心思想&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h4 id=&#34;-react的工作流程&#34;&gt;🔄 ReAct的工作流程
+&lt;/h4&gt;&lt;p&gt;ReAct的工作流程可以用一个循环来概括：&lt;strong&gt;Thought → Action → Observation → Thought → Action → Observation → &amp;hellip; → Finish&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;我们用一个具体例子来说明。假设用户问：&amp;quot;《流浪地球》的导演还执导过哪些电影？这些电影中评分最高的是哪一部？&amp;quot;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第一轮：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Thought（思考）&lt;/strong&gt;：我需要先查一下《流浪地球》的导演是谁。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Action（行动）&lt;/strong&gt;：调用搜索工具，搜索&amp;quot;流浪地球 导演&amp;quot;。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Observation（观察）&lt;/strong&gt;：搜索结果返回——导演是郭帆。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;第二轮：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Thought（思考）&lt;/strong&gt;：好的，导演是郭帆。接下来我需要查一下郭帆还导演过哪些电影。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Action（行动）&lt;/strong&gt;：调用搜索工具，搜索&amp;quot;郭帆 导演 电影作品&amp;quot;。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Observation（观察）&lt;/strong&gt;：郭帆导演的电影有《流浪地球》《流浪地球2》《同桌的你》《李献计历险记》等。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;第三轮：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Thought（思考）&lt;/strong&gt;：现在我知道了他的作品列表，接下来需要比较这些电影的评分，找出最高的。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Action（行动）&lt;/strong&gt;：调用搜索工具，搜索这些电影的评分信息。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Observation（观察）&lt;/strong&gt;：返回评分数据。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;第四轮：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Thought（思考）&lt;/strong&gt;：根据评分数据，《流浪地球2》评分最高。我现在可以给出最终答案了。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Action（行动）&lt;/strong&gt;：Finish，输出最终答案。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这就是ReAct的精髓——&lt;strong&gt;推理指导行动，行动反馈推理，二者交替螺旋式推进，直到任务完成&lt;/strong&gt;。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;react-workflow.png&#34; alt=&#34;ReAct工作流程示意图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h4 id=&#34;-thoughtactionobservation各自的角色&#34;&gt;🎭 Thought、Action、Observation各自的角色
+&lt;/h4&gt;&lt;p&gt;在ReAct的三元组中，每个部分承担着不同的职责：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Thought&lt;/strong&gt; 是模型的&amp;quot;内心独白&amp;quot;，它不会被发送给外部工具，而是留在推理链中供模型自己参考。Thought负责分解任务、分析当前进度、决定下一步策略。可以说Thought就是CoT思维链在ReAct中的体现，它让模型的决策过程变得可解释、可追溯。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Action&lt;/strong&gt; 是模型与外部世界交互的桥梁。Action通常是对某个外部工具的调用，比如搜索引擎、计算器、数据库查询、API调用等。Action的关键在于它是结构化的，通常包含工具名称和调用参数，这样系统才能解析并执行。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Observation&lt;/strong&gt; 是外部环境给模型的反馈，也就是Action执行后返回的结果。Observation不是模型生成的，而是真实的外部数据，这就保证了模型的推理过程是&amp;quot;接地气&amp;quot;的，基于真实信息而非臆想。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这三者的协同关系，本质上构成了一个&lt;strong&gt;闭环反馈系统&lt;/strong&gt;：Thought基于当前上下文做出判断，Action将判断转化为具体操作，Observation将操作结果反馈回来更新上下文，然后新一轮的Thought再基于更新后的上下文继续推理。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;react-trio.png&#34; alt=&#34;Thought-Action-Observation三元组协作示意图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h4 id=&#34;-react与prompt工程的关系&#34;&gt;💻 ReAct与Prompt工程的关系
+&lt;/h4&gt;&lt;p&gt;在实际实现中，ReAct的核心机制是通过精心设计的Prompt来驱动的。一个典型的ReAct Prompt模板大致包含以下几个部分：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-markdown&#34; data-lang=&#34;markdown&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;你是一个智能助手，可以使用以下工具来回答问题：
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;1.&lt;/span&gt; Search[query] - 搜索相关信息
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;2.&lt;/span&gt; Lookup[term] - 在文档中查找特定内容
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;3.&lt;/span&gt; Finish[answer] - 给出最终答案
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;请按照以下格式交替进行思考和行动：
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Thought: 你的思考过程
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Action: 工具名[参数]
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Observation: 工具返回的结果
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;...（重复以上过程）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Thought: 我现在可以给出答案了
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Action: Finish[最终答案]
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;通过这种Prompt模板，我们实际上是在用few-shot或instruction的方式&amp;quot;教会&amp;quot;大模型按照Thought-Action-Observation的固定格式来输出。模型生成到Action时，系统会截断模型输出、解析Action内容、调用相应工具、获取结果，然后将Observation拼接回上下文，再让模型继续生成下一轮的Thought。&lt;/p&gt;
+&lt;p&gt;这也是为什么说ReAct是一个&lt;strong&gt;框架&lt;/strong&gt;而非一个模型——它是一种组织大模型推理和行动的协议和流程，可以套用在任何足够强的大模型上。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h4 id=&#34;-react的优势和局限&#34;&gt;⚖️ ReAct的优势和局限
+&lt;/h4&gt;&lt;p&gt;ReAct的优势主要体现在三个方面：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;可解释性强&lt;/strong&gt;：每一步行动之前都有明确的推理过程，出了问题可以回溯到具体是哪一步的思考出了偏差；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;减少幻觉&lt;/strong&gt;：通过调用外部工具获取真实数据，而不是让模型凭空编造，大大提高了事实准确性；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;泛化能力好&lt;/strong&gt;：同一套ReAct框架可以对接不同的工具集，适用于问答、数据分析、代码生成等多种场景。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;但ReAct也有明显的局限性：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;效率问题&lt;/strong&gt;：每一轮Thought-Action-Observation都需要一次LLM调用加一次工具调用，对于简单任务来说开销过大；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;错误累积&lt;/strong&gt;：如果中间某一步的推理或工具调用出错，后续步骤可能会在错误的基础上越走越偏；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;对模型能力的依赖&lt;/strong&gt;：ReAct需要模型有较强的指令遵循能力和格式控制能力，弱模型很容易输出不符合格式要求的内容导致解析失败。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h4 id=&#34;-react在现代agent框架中的演进&#34;&gt;🔮 ReAct在现代Agent框架中的演进
+&lt;/h4&gt;&lt;p&gt;现在主流的Agent框架基本都是在ReAct的基础上做了增强和扩展。&lt;/p&gt;
+&lt;p&gt;比如&lt;strong&gt;LangChain&lt;/strong&gt;中的AgentExecutor就是ReAct的典型实现，它的Agent循环本质就是不断地让LLM生成Thought和Action，然后执行工具获取Observation，直到LLM输出Final Answer。&lt;/p&gt;
+&lt;p&gt;更新的框架像&lt;strong&gt;LangGraph&lt;/strong&gt;，它把ReAct的线性循环扩展成了&lt;strong&gt;图结构&lt;/strong&gt;，允许更复杂的分支和条件跳转，但底层的Thought-Action-Observation三元组逻辑依然没变。&lt;/p&gt;
+&lt;p&gt;另外还有一些变体值得关注：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Reflexion&lt;/strong&gt;在ReAct的基础上加入了自我反思机制，当任务失败时模型会回顾整个推理过程并总结经验教训，下次再遇到类似问题时可以避免犯同样的错误&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Plan-and-Execute&lt;/strong&gt;则是先做全局规划再分步执行，适合更长链路的复杂任务&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;react-evolution.png&#34; alt=&#34;ReAct在现代Agent框架中的演进&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;从关系上看，ReAct不是CoT、ToT的替代品，而更像是一个&lt;strong&gt;运行框架&lt;/strong&gt;。它内部的&amp;quot;Thought&amp;quot;完全可以使用CoT风格来展开，因此可以把它理解成：&lt;strong&gt;CoT负责怎么想，ReAct负责怎么把想和做串起来。&lt;/strong&gt;&lt;/p&gt;
+&lt;h3 id=&#34;-plan-and-execute规划-执行分离&#34;&gt;📋 Plan-and-Execute（规划-执行分离）
+&lt;/h3&gt;&lt;p&gt;这是一种偏工程实践的策略。它的思路是把规划和执行拆成两个独立阶段：先让一个&amp;quot;Planner LLM&amp;quot;对任务做全局规划，输出一个完整的步骤清单，然后让一个&amp;quot;Executor LLM&amp;quot;逐步执行每个步骤。这种方法的好处是规划阶段可以纵览全局，不会被执行过程中的细节干扰，适合那些步骤较多但逻辑相对确定的任务，比如&amp;quot;帮我写一篇行业分析报告&amp;quot;这种。LangChain和LangGraph中都有对应的Plan-and-Execute Agent实现。&lt;/p&gt;
+&lt;h3 id=&#34;-reflexion反思机制&#34;&gt;🔁 Reflexion（反思机制）
+&lt;/h3&gt;&lt;p&gt;则是在规划执行的基础上加入了&amp;quot;复盘&amp;quot;环节。当Agent执行一个任务失败后，它不会简单地重试，而是先回顾整个推理和执行过程，总结出&amp;quot;哪里做错了、下次应该怎么改进&amp;quot;的经验教训，然后把这些反思存入记忆，在下一次尝试中参考。Reflexion本质上赋予了Agent从失败中学习的能力，类似于人类的&amp;quot;吃一堑长一智&amp;quot;。&lt;/p&gt;
+&lt;h3 id=&#34;-llmpllm--经典规划器&#34;&gt;🤖 LLM+P（LLM + 经典规划器）
+&lt;/h3&gt;&lt;p&gt;是一种混合方法，它把LLM的自然语言理解能力和经典AI规划算法（如PDDL规划器）的严格推理能力结合在一起。LLM负责把用户的自然语言需求转化为结构化的规划问题描述（PDDL格式），然后交给经典规划器去求解最优行动序列，最后LLM再把结果翻译成自然语言返回给用户。这种方法在需要严格逻辑保证的场景（比如机器人路径规划）中有独特优势。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;other-methods.png&#34; alt=&#34;其他规划方法示意图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-工程选型的思考&#34;&gt;⚖️ 工程选型的思考
+&lt;/h2&gt;&lt;p&gt;在实际 Agent 开发中，不同方法并不存在绝对的优劣，关键在于任务类型、延迟预算、可解释性要求和工程复杂度。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果只是大多数常见任务，&lt;strong&gt;CoT + ReAct&lt;/strong&gt; 往往已经足够好用。它简单、直观、延迟较低，也是目前很多通用 Agent 的默认起点。&lt;/li&gt;
+&lt;li&gt;如果任务本身具有明显的多路径探索特征，例如需要试错、搜索、回退，那么 &lt;strong&gt;ToT&lt;/strong&gt; 会比单链式 CoT 更有优势，因为它能够显式探索多个候选方向。&lt;/li&gt;
+&lt;li&gt;如果任务需要“先发散分析、再聚合结论”，例如多文档总结、多源信息融合，那么 &lt;strong&gt;GoT 的聚合思想&lt;/strong&gt;会更有启发意义。尽管目前落地还不如 CoT 和 ReAct 普遍，但它代表了一种更强的推理表达能力。&lt;/li&gt;
+&lt;li&gt;如果任务链条较长、步骤稳定、流程相对明确，那么 &lt;strong&gt;Plan-and-Execute&lt;/strong&gt; 是一种非常实用的企业级方案。它把规划和执行拆开，便于分别优化、监控和调试。&lt;/li&gt;
+&lt;li&gt;如果系统需要在长期运行中持续修正自身行为，那么 &lt;strong&gt;Reflexion&lt;/strong&gt; 会更有价值。它的重点不是一次成功，而是越做越好。&lt;/li&gt;
+&lt;li&gt;如果业务场景对逻辑正确性和约束满足有极高要求，那么 &lt;strong&gt;LLM + P&lt;/strong&gt; 是值得优先考虑的路线，因为它能够借助经典规划器提供更强的形式化保证。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;一个非常实用的经验原则是：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;先用最简单的方法跑通，再围绕瓶颈做针对性升级。&lt;/strong&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;因为复杂方法带来的不仅是推理能力提升，也一定伴随着额外成本：更高的时延、更大的 token 开销、更复杂的调试过程，以及更高的系统维护门槛。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-总结&#34;&gt;📝 总结
+&lt;/h2&gt;&lt;p&gt;如果把 Agent 的规划与决策能力放在一个统一框架里看，可以得到一个比较清晰的结论：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;CoT、Self-Consistency、ToT、GoT&lt;/strong&gt; 主要描述的是 &lt;strong&gt;LLM 的推理结构&lt;/strong&gt;，解决“模型怎么想”的问题；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;ReAct、Plan-and-Execute、Reflexion、LLM + P&lt;/strong&gt; 主要描述的是 &lt;strong&gt;Agent 的控制与执行方式&lt;/strong&gt;，解决“系统怎么做”的问题。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;前者偏向推理机制，后者偏向执行框架；前者回答“如何组织思维过程”，后者回答“如何组织任务过程”。两者并不是互斥关系，而是可以互相组合、上下协同。&lt;/p&gt;
+&lt;p&gt;例如，ReAct 中的 Thought 往往就可以采用 CoT 风格展开；Plan-and-Execute 中的 Planner 也完全可以借助 ToT 提升规划质量。换句话说，&lt;strong&gt;模型推理方法提供了 Agent 的“思考能力”，而 Agent 控制策略定义了这些能力如何被实际调度和执行。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;从演进脉络来看，相关方法大致可以理解为两条并行路线：&lt;/p&gt;
+&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th&gt;类型&lt;/th&gt;
+          &lt;th&gt;方法&lt;/th&gt;
+          &lt;th&gt;核心特征&lt;/th&gt;
+          &lt;th&gt;更适合的场景&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td&gt;模型推理方法&lt;/td&gt;
+          &lt;td&gt;&lt;strong&gt;CoT&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;线性链式推理&lt;/td&gt;
+          &lt;td&gt;简单多步问题&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;模型推理方法&lt;/td&gt;
+          &lt;td&gt;&lt;strong&gt;Self-Consistency&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;多链投票，提升鲁棒性&lt;/td&gt;
+          &lt;td&gt;数学/常识推理&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;模型推理方法&lt;/td&gt;
+          &lt;td&gt;&lt;strong&gt;ToT&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;树状搜索，可回溯&lt;/td&gt;
+          &lt;td&gt;复杂多路径任务&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;模型推理方法&lt;/td&gt;
+          &lt;td&gt;&lt;strong&gt;GoT&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;图结构推理，可聚合&lt;/td&gt;
+          &lt;td&gt;多源分析、先分后合&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;Agent 控制策略&lt;/td&gt;
+          &lt;td&gt;&lt;strong&gt;ReAct&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;推理与行动交替&lt;/td&gt;
+          &lt;td&gt;工具调用、环境交互&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;Agent 控制策略&lt;/td&gt;
+          &lt;td&gt;&lt;strong&gt;Plan-and-Execute&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;规划执行分离&lt;/td&gt;
+          &lt;td&gt;长链路稳定任务&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;Agent 控制策略&lt;/td&gt;
+          &lt;td&gt;&lt;strong&gt;Reflexion&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;基于反馈持续修正&lt;/td&gt;
+          &lt;td&gt;长期运行、自我改进&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;Agent 控制策略&lt;/td&gt;
+          &lt;td&gt;&lt;strong&gt;LLM + P&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;结合经典规划器&lt;/td&gt;
+          &lt;td&gt;强约束、强逻辑场景&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;归根结底，Agent 的规划能力并不是某一个单点技巧，而是一整套“&lt;strong&gt;如何让系统更会想，也更会做&lt;/strong&gt;”的方法集合。理解这些方法之间的层级关系和适用边界，比单纯记住缩写本身更重要。&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>Agent的记忆模块</title>
+        <link>https://Tyritic.github.io/p/agent%E7%9A%84%E8%AE%B0%E5%BF%86%E6%A8%A1%E5%9D%97/</link>
+        <pubDate>Wed, 25 Mar 2026 16:20:00 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/agent%E7%9A%84%E8%AE%B0%E5%BF%86%E6%A8%A1%E5%9D%97/</guid>
+        <description>&lt;h2 id=&#34;-记忆模块的重要性&#34;&gt;🧠 记忆模块的重要性
+&lt;/h2&gt;&lt;p&gt;记忆模块是 Agent 四大核心组件之一（其余三个是 LLM 大脑、规划模块、工具使用）。如果说 LLM 是 Agent 的推理引擎，那么记忆模块就是支撑这个引擎持续运转的&amp;quot;燃料仓库&amp;quot;。&lt;/p&gt;
+&lt;p&gt;一个没有记忆的 Agent，每次对话都是从零开始的&amp;quot;失忆者&amp;quot;——它不知道用户之前的偏好、不记得上次任务的经验、也无法积累领域知识。而有了记忆模块，Agent 就能表现出&amp;quot;越用越聪明&amp;quot;的特性，成为一个真正有积累的智能助手。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-人类记忆的类比&#34;&gt;🔄 人类记忆的类比
+&lt;/h2&gt;&lt;p&gt;Agent 的记忆系统设计，其实是从认知科学中借鉴过来的。人类的记忆大致分为两类：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;短期记忆（Short-term Memory）&lt;/strong&gt;：也叫工作记忆，容量有限，持续时间短。比如你听到一个手机号码，能暂时记住但过一会儿就忘了。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;长期记忆（Long-term Memory）&lt;/strong&gt;：容量几乎无限，能持续很长时间。比如你的名字、骑自行车的技能、上周开会的内容。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;把这个类比映射到 Agent 身上就非常自然了：&lt;/p&gt;
+&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th&gt;人类记忆&lt;/th&gt;
+          &lt;th&gt;Agent记忆&lt;/th&gt;
+          &lt;th&gt;核心问题&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td&gt;短期记忆&lt;/td&gt;
+          &lt;td&gt;当前对话的上下文信息&lt;/td&gt;
+          &lt;td&gt;上下文窗口有限怎么办？&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;长期记忆&lt;/td&gt;
+          &lt;td&gt;跨对话持久化存储的知识&lt;/td&gt;
+          &lt;td&gt;信息怎么存、怎么检索、怎么更新？&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;人类记忆的类比.png&#34; alt=&#34;人类记忆的类比&#34; width=&#34;75%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-短期记忆上下文窗口的管理艺术&#34;&gt;📋 短期记忆：上下文窗口的管理艺术
+&lt;/h2&gt;&lt;p&gt;Agent 的短期记忆，最直接的载体就是 LLM 的 &lt;strong&gt;Context Window（上下文窗口）&lt;/strong&gt;。每次调用 LLM 时，我们把之前的对话历史、系统提示词、工具调用记录等信息拼接成一个 prompt 发给模型，模型就是基于这些&amp;quot;短期记忆&amp;quot;来理解当前状态并做出决策的。&lt;/p&gt;
+&lt;h3 id=&#34;-上下文窗口的核心挑战&#34;&gt;⚠️ 上下文窗口的核心挑战
+&lt;/h3&gt;&lt;p&gt;Context Window 的容量是有限的。即使现在的模型已经支持 128K 甚至更长的上下文，在实际 Agent 场景中，上下文很容易就被撑满：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;一个复杂任务可能需要十几轮工具调用&lt;/li&gt;
+&lt;li&gt;每轮的 Thought、Action、Observation 加起来可能就有上千 token&lt;/li&gt;
+&lt;li&gt;再加上系统提示词和工具定义，上下文窗口很快就不够用了&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;而且即使窗口足够大，研究表明模型在处理超长上下文时会出现 &lt;strong&gt;&amp;ldquo;Lost in the Middle&amp;quot;现象&lt;/strong&gt;——对上下文中间位置的信息关注度明显下降。&lt;/p&gt;
+&lt;p&gt;所以短期记忆的核心挑战是：&lt;strong&gt;如何在有限的上下文窗口里，尽可能保留最有用的信息？&lt;/strong&gt;&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-滑动窗口sliding-window&#34;&gt;🔧 滑动窗口（Sliding Window）
+&lt;/h3&gt;&lt;p&gt;滑动窗口是最简单粗暴的方案。当对话历史超过窗口限制时，直接截断最早的消息，只保留最近的 N 轮对话。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt; 实现简单&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt; 信息丢失严重——可能用户在第一轮告诉了 Agent 一个关键信息，到了第十轮就被截掉了，Agent 完全&amp;quot;忘&amp;quot;了这件事。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-对话摘要conversation-summary&#34;&gt;📝 对话摘要（Conversation Summary）
+&lt;/h3&gt;&lt;p&gt;对话摘要是一种更优雅的方案。当对话历史变长时，不是直接截断，而是用 LLM 把较早的对话内容压缩成一段摘要，然后用这段摘要替代原始的冗长历史。&lt;/p&gt;
+&lt;p&gt;这种方式既控制了 token 用量，又保留了关键信息。&lt;strong&gt;LangChain&lt;/strong&gt; 中的 &lt;code&gt;ConversationSummaryMemory&lt;/code&gt; 和 &lt;code&gt;ConversationSummaryBufferMemory&lt;/code&gt; 就是这种策略的实现：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;后者更实用一些，它保留最近几轮的原始对话不动&lt;/li&gt;
+&lt;li&gt;只对更早的对话做摘要压缩&lt;/li&gt;
+&lt;li&gt;兼顾了近期对话的完整性和历史信息的保留&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-token-buffertoken-缓冲区&#34;&gt;📐 Token Buffer（Token 缓冲区）
+&lt;/h3&gt;&lt;p&gt;Token Buffer 则是按 token 数量来精确控制。设置一个 token 上限，比如 4000 token，当历史消息的总 token 数超过这个值时，从最早的消息开始逐条丢弃，直到总量回到阈值以内。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt; 比简单的轮次截断更精确&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt; 本质上还是&amp;quot;先进先出&amp;quot;的淘汰策略，可能丢失重要信息&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-基于重要度的选择性保留&#34;&gt;📌 基于重要度的选择性保留
+&lt;/h3&gt;&lt;p&gt;还有一种更精细的做法——不是简单地按时间顺序淘汰，而是评估每条历史消息的&amp;quot;重要程度&amp;rdquo;。&lt;/p&gt;
+&lt;p&gt;比如：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;包含用户需求的消息比闲聊更重要&lt;/li&gt;
+&lt;li&gt;工具调用失败的经验比成功的记录更重要&lt;/li&gt;
+&lt;li&gt;用户明确纠正 Agent 的信息比普通对话更重要&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;优先保留重要的、淘汰次要的。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt; 效果最好，最大化利用有限的上下文窗口&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt; 实现最复杂，通常需要额外的 LLM 调用来做重要度评估&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-长期记忆跨会话的持久化知识系统&#34;&gt;💾 长期记忆：跨会话的持久化知识系统
+&lt;/h2&gt;&lt;p&gt;如果说短期记忆解决的是&amp;quot;当前对话怎么记&amp;quot;的问题，那长期记忆解决的就是&amp;quot;&lt;strong&gt;跨对话怎么记、怎么用&lt;/strong&gt;&amp;ldquo;的问题。&lt;/p&gt;
+&lt;p&gt;长期记忆让 Agent 可以记住：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;用户的偏好（&amp;ldquo;我喜欢简洁的代码风格&amp;rdquo;）&lt;/li&gt;
+&lt;li&gt;历史交互的经验教训&lt;/li&gt;
+&lt;li&gt;领域专有知识&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;使其表现得更像一个&amp;quot;有积累&amp;quot;的助手，而不是每次对话都从零开始的&amp;quot;失忆者&amp;rdquo;。&lt;/p&gt;
+&lt;p&gt;从认知科学的角度，长期记忆又可以细分为两类：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;显式记忆（Explicit Memory）&lt;/strong&gt;：可以明确表述的事实和事件，比如&amp;quot;用户 A 喜欢 Python&amp;quot;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;隐式记忆（Implicit Memory）&lt;/strong&gt;：内化在模型行为中的模式和技能，对应到 LLM 领域就是通过微调融入模型参数中的知识&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-向量数据库--rag检索增强生成&#34;&gt;🔍 向量数据库 + RAG（检索增强生成）
+&lt;/h3&gt;&lt;p&gt;这是目前最主流的长期记忆方案。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;核心思路：&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;把需要长期记忆的信息（对话历史摘要、用户画像、领域文档等）通过 Embedding 模型转化为向量&lt;/li&gt;
+&lt;li&gt;存入向量数据库（如 Milvus、Pinecone、Chroma、Weaviate 等）&lt;/li&gt;
+&lt;li&gt;当 Agent 需要使用这些记忆时，先把当前问题也转化为向量&lt;/li&gt;
+&lt;li&gt;在向量数据库中做相似度检索，找出最相关的记忆片段&lt;/li&gt;
+&lt;li&gt;注入到当前的上下文中供 LLM 参考&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;本质：&lt;/strong&gt; 把长期记忆的&amp;quot;存&amp;quot;和&amp;quot;取&amp;quot;都转化成了向量空间中的操作&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优势：&lt;/strong&gt; 检索是语义级别的，即使用户的问法和存储时的原文表述不同，只要语义相近就能检索到&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-关系型数据库--kv-存储&#34;&gt;💾 关系型数据库 / KV 存储
+&lt;/h3&gt;&lt;p&gt;适合存储&lt;strong&gt;结构化&lt;/strong&gt;的记忆信息。&lt;/p&gt;
+&lt;p&gt;比如用户画像这类高度结构化的数据：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;9
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-json&#34; data-lang=&#34;json&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;#34;user_id&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;12345&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;#34;name&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;张三&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;#34;preferred_language&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;Python&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;#34;preferred_style&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;简洁&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;#34;history_tasks&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;#34;task&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;写排序算法&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nt&#34;&gt;&amp;#34;result&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;成功&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nt&#34;&gt;&amp;#34;time&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;2026-03-20&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;p&#34;&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;用关系型数据库存储比向量数据库更合适，因为可以&lt;strong&gt;精确查询&lt;/strong&gt;而不是模糊的语义匹配。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;实际项目中：&lt;/strong&gt; 往往是向量数据库和关系型数据库配合使用&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;结构化信息用 MySQL/PostgreSQL 存&lt;/li&gt;
+&lt;li&gt;非结构化的语义信息用向量数据库存&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;知识图谱knowledge-graph&#34;&gt;知识图谱（Knowledge Graph）
+&lt;/h3&gt;&lt;p&gt;知识图谱是另一种重要的长期记忆载体，特别适合存储&lt;strong&gt;实体之间的关系&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;比如：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&amp;ldquo;张三是产品经理&amp;rdquo;&lt;/li&gt;
+&lt;li&gt;&amp;ldquo;张三负责 A 项目&amp;rdquo;&lt;/li&gt;
+&lt;li&gt;&amp;ldquo;A 项目依赖 B 服务&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这类关系型知识，用&lt;strong&gt;图结构&lt;/strong&gt;来存储比纯文本向量化更自然。Agent 在推理时可以通过图查询来获取结构化的关系信息，辅助决策。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;常用图数据库：&lt;/strong&gt; Neo4j、TigerGraph&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-模型微调fine-tuning&#34;&gt;📚 模型微调（Fine-tuning）
+&lt;/h3&gt;&lt;p&gt;模型微调是一种&amp;quot;&lt;strong&gt;隐式&lt;/strong&gt;&amp;ldquo;的长期记忆方案。&lt;/p&gt;
+&lt;p&gt;通过在特定领域的数据上对模型进行微调，领域知识就被&amp;quot;烧&amp;quot;进了模型参数中，变成了模型的&amp;rdquo;&lt;strong&gt;肌肉记忆&lt;/strong&gt;&amp;quot;。&lt;/p&gt;
+&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th&gt;方案&lt;/th&gt;
+          &lt;th&gt;优点&lt;/th&gt;
+          &lt;th&gt;缺点&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td&gt;向量数据库+RAG&lt;/td&gt;
+          &lt;td&gt;更新灵活、可实时增删&lt;/td&gt;
+          &lt;td&gt;推理时需要额外检索步骤&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;模型微调&lt;/td&gt;
+          &lt;td&gt;推理时不需要额外步骤&lt;/td&gt;
+          &lt;td&gt;更新成本高，每次知识更新都需要重新微调&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-记忆的写入检索与更新机制&#34;&gt;⚙️ 记忆的写入、检索与更新机制
+&lt;/h2&gt;&lt;p&gt;光有存储方案还不够，一个完善的记忆系统还需要设计好三个核心机制：&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-写入机制&#34;&gt;🖊️ 写入机制
+&lt;/h3&gt;&lt;p&gt;最常见的做法是在每轮对话结束后，由一个专门的&amp;quot;&lt;strong&gt;记忆管理模块&lt;/strong&gt;&amp;ldquo;来判断当前对话中是否有值得长期保存的信息。&lt;/p&gt;
+&lt;p&gt;比如：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;用户明确表达了某个偏好（&amp;ldquo;我喜欢用 Python&amp;rdquo;）&lt;/li&gt;
+&lt;li&gt;Agent 完成了一个任务并积累了经验教训&lt;/li&gt;
+&lt;li&gt;用户提供了重要的背景信息&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;写入之前：&lt;/strong&gt; 通常需要做一次摘要提炼，把冗长的对话内容压缩成简洁的记忆条目，避免存储大量冗余信息。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-检索机制&#34;&gt;🔎 检索机制
+&lt;/h3&gt;&lt;p&gt;最关键的问题是&amp;rdquo;&lt;strong&gt;检索的时机和精度&lt;/strong&gt;&amp;quot;。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;时机上：&lt;/strong&gt; Agent 在开始处理每个新任务时，都应该先从长期记忆中检索与当前任务相关的历史信息，把它们注入到短期记忆（上下文）中。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;精度上：&lt;/strong&gt; 除了基于向量相似度的语义检索，还可以结合：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;元数据过滤&lt;/strong&gt;（比如按时间范围、按用户 ID 过滤）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;重排序（Reranking）&lt;/strong&gt; 来提高检索质量&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;常见组合：&lt;/strong&gt; &amp;ldquo;向量检索召回 + 交叉编码器重排序&amp;rdquo;&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-更新和遗忘机制&#34;&gt;🔄 更新和遗忘机制
+&lt;/h3&gt;&lt;p&gt;人的记忆会遗忘，Agent 的记忆也需要。如果长期记忆只增不减：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;存储成本会越来越高&lt;/li&gt;
+&lt;li&gt;过期的、错误的记忆还会干扰 Agent 的判断&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;常见做法：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;为记忆条目设置&lt;strong&gt;时间衰减权重&lt;/strong&gt;（越久远的记忆权重越低）&lt;/li&gt;
+&lt;li&gt;定期让 LLM 对记忆库做&lt;strong&gt;整理和去重&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;当用户明确纠正某个信息时&lt;strong&gt;主动更新&lt;/strong&gt;对应的记忆条目&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-实际项目中的三层分层记忆架构&#34;&gt;🏗️ 实际项目中的三层分层记忆架构
+&lt;/h2&gt;&lt;p&gt;在真实的 Agent 项目中，短期记忆和长期记忆不是孤立运作的，而是协同配合形成一个完整的&lt;strong&gt;分层记忆架构&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;-最内层即时上下文&#34;&gt;💭 最内层：即时上下文
+&lt;/h3&gt;&lt;p&gt;也就是当前这轮 LLM 调用的 prompt 内容，包括：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;系统提示词&lt;/li&gt;
+&lt;li&gt;最近几轮的原始对话&lt;/li&gt;
+&lt;li&gt;从长期记忆中检索注入的相关信息&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这是 Agent &lt;strong&gt;&amp;ldquo;当前正在想什么&amp;rdquo;&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;-中间层会话缓存&#34;&gt;🗃️ 中间层：会话缓存
+&lt;/h3&gt;&lt;p&gt;存储当前整个会话的完整历史（不仅仅是 prompt 中的那几轮），通常用 &lt;strong&gt;Redis&lt;/strong&gt; 这类内存数据库来存。&lt;/p&gt;
+&lt;p&gt;当上下文窗口装不下全部历史时，就从会话缓存中检索或摘要化处理后注入。&lt;/p&gt;
+&lt;h3 id=&#34;-最外层持久化存储&#34;&gt;🏛️ 最外层：持久化存储
+&lt;/h3&gt;&lt;p&gt;也就是跨会话的长期记忆，用&lt;strong&gt;向量数据库 + 关系型数据库 + 知识图谱&lt;/strong&gt;等方案来承载。&lt;/p&gt;
+&lt;p&gt;当 Agent 需要调用历史经验、用户偏好、领域知识时，就从这一层检索。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-信息流动&#34;&gt;🔀 信息流动
+&lt;/h3&gt;&lt;p&gt;信息在三层之间是可以&lt;strong&gt;双向流动&lt;/strong&gt;的：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;沉淀&lt;/strong&gt;：对话过程中产生的重要信息会从内层向外层（短期→长期）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;提取&lt;/strong&gt;：需要用到的历史知识会从外层向内层（长期→短期）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;这种分层设计既保证了：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Agent 的实时响应速度&lt;/li&gt;
+&lt;li&gt;近乎无限的记忆容量&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-主流框架支持&#34;&gt;🛠️ 主流框架支持
+&lt;/h2&gt;&lt;p&gt;主流框架对这套架构都有很好的支持：&lt;/p&gt;
+&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th&gt;框架&lt;/th&gt;
+          &lt;th&gt;特点&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td&gt;&lt;strong&gt;LangChain&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;提供多种 Memory 组件（ConversationBufferMemory、ConversationSummaryBufferMemory、VectorStoreRetrieverMemory 等）&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;&lt;strong&gt;LlamaIndex&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;更侧重于通过索引结构来组织长期记忆&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;&lt;strong&gt;Mem0&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;专门做 Agent 记忆管理的开源项目，提供开箱即用的记忆存储、检索、更新和遗忘机制&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-总结&#34;&gt;📝 总结
+&lt;/h2&gt;&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th&gt;记忆类型&lt;/th&gt;
+          &lt;th&gt;存储位置&lt;/th&gt;
+          &lt;th&gt;核心挑战&lt;/th&gt;
+          &lt;th&gt;主流方案&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td&gt;短期记忆&lt;/td&gt;
+          &lt;td&gt;LLM Context Window&lt;/td&gt;
+          &lt;td&gt;窗口有限、&amp;ldquo;Lost in the Middle&amp;rdquo;&lt;/td&gt;
+          &lt;td&gt;滑动窗口、对话摘要、Token Buffer&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;长期记忆&lt;/td&gt;
+          &lt;td&gt;向量数据库/关系库/知识图谱&lt;/td&gt;
+          &lt;td&gt;存/取/更新的完整生命周期&lt;/td&gt;
+          &lt;td&gt;向量+RAG、KV存储、知识图谱、微调&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;strong&gt;核心要点：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;短期记忆解决&amp;quot;当前对话怎么记&amp;quot;的问题——通过上下文窗口管理策略&lt;/li&gt;
+&lt;li&gt;长期记忆解决&amp;quot;跨对话怎么记、怎么用&amp;quot;的问题——通过向量检索、结构化存储、知识图谱&lt;/li&gt;
+&lt;li&gt;完整架构是&lt;strong&gt;三层分层设计&lt;/strong&gt;：即时上下文 → 会话缓存 → 持久化存储&lt;/li&gt;
+&lt;li&gt;信息在三层之间&lt;strong&gt;双向流动&lt;/strong&gt;：沉淀（内→外）和提取（外→内）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;理解并掌握记忆模块的设计，是构建真正&amp;quot;有积累、有经验&amp;quot;的智能 Agent 的关键所在。&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>Agent的工具调用</title>
+        <link>https://Tyritic.github.io/p/agent%E7%9A%84%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8/</link>
+        <pubDate>Wed, 25 Mar 2026 16:00:00 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/agent%E7%9A%84%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8/</guid>
+        <description>&lt;h2 id=&#34;-llm-为什么工具调用&#34;&gt;🔧 LLM 为什么工具调用？
+&lt;/h2&gt;&lt;p&gt;在讨论&amp;quot;怎么调工具&amp;quot;之前，先要搞清楚&amp;quot;为什么要调工具&amp;quot;。LLM 本质上是一个基于海量文本训练出来的语言模型，它的能力边界由训练数据决定。这意味着它天生有几个硬伤：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;知识有截止日期&lt;/strong&gt;：训练数据之后发生的事情它不知道&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;不擅长精确计算&lt;/strong&gt;：比如让它算 1234×5678 它大概率算不对&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;无法与外部系统交互&lt;/strong&gt;：它不能发邮件、查数据库、调 API&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;工具调用（Tool Use）就是为了弥补这些硬伤而设计的。通过让 LLM &amp;ldquo;学会&amp;quot;在需要的时候调用外部工具——搜索引擎、计算器、数据库、第三方 API 等——它的能力就从&amp;quot;只能说&amp;quot;扩展到了&amp;quot;能说也能做&amp;rdquo;。这也是 Agent 和普通 Chatbot 的本质区别之一。&lt;/p&gt;
+&lt;p&gt;但这里有一个关键的认知要先建立：&lt;strong&gt;LLM 并不是真的在&amp;quot;执行&amp;quot;工具调用&lt;/strong&gt;。LLM 做的事情只有一件——生成文本。所谓的&amp;quot;调用工具&amp;quot;，实际上是 LLM 生成了一段&lt;strong&gt;结构化的文本&lt;/strong&gt;（比如一个 JSON），表达&amp;quot;我想调用某个工具，参数是什么&amp;quot;，然后由外部的&lt;strong&gt;运行时系统&lt;/strong&gt;（Agent Runtime / Orchestrator）来解析这段文本、真正执行工具调用、获取结果、再把结果喂回给 LLM。LLM 在这个过程中扮演的是&amp;quot;决策者&amp;quot;而非&amp;quot;执行者&amp;quot;的角色。&lt;/p&gt;
+&lt;p&gt;理解了这一点，后面讲的所有方案就都好理解了——它们本质上都是在解决同一个问题：&lt;strong&gt;如何让 LLM 准确地生成符合格式要求的工具调用指令？&lt;/strong&gt;&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;1-llm-tool-architecture.png&#34; alt=&#34;LLM与工具交互架构&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-function-calling&#34;&gt;📡 Function Calling
+&lt;/h2&gt;&lt;p&gt;Function Calling 是过去一段时间最主流、效果最好的工具调用方案，由 OpenAI 在 2023 年 6 月率先推出，随后各大模型厂商（Anthropic、Google、国内的通义千问、智谱等）都跟进支持了。&lt;/p&gt;
+&lt;p&gt;Function Calling 的核心思路是：&lt;strong&gt;在模型训练阶段就让模型学会&amp;quot;什么时候该调工具、怎么生成调用参数&amp;quot;&lt;/strong&gt;，而不是仅仅靠 prompt 在推理阶段去引导。具体来说，模型厂商在训练数据中加入了大量的工具调用样本——这些样本告诉模型&amp;quot;当用户问到这类问题时，你应该输出一个特定格式的工具调用请求&amp;quot;。经过这种训练后，模型原生就具备了工具调用的能力。&lt;/p&gt;
+&lt;p&gt;在使用时，开发者需要在 API 请求中通过 &lt;code&gt;tools&lt;/code&gt; 参数传入可用工具的定义，每个工具定义包括工具名称、功能描述、以及参数的 JSON Schema。比如：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;15
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;16
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;17
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;18
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;19
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-json&#34; data-lang=&#34;json&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;nt&#34;&gt;&amp;#34;tools&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;[{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;function&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nt&#34;&gt;&amp;#34;function&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;#34;name&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;get_weather&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;#34;description&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;获取指定城市的当前天气信息&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;nt&#34;&gt;&amp;#34;parameters&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;object&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;#34;properties&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;          &lt;span class=&#34;nt&#34;&gt;&amp;#34;city&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;nt&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;string&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;nt&#34;&gt;&amp;#34;description&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;s2&#34;&gt;&amp;#34;城市名称，如&amp;#39;北京&amp;#39;&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;          &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;p&#34;&gt;},&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nt&#34;&gt;&amp;#34;required&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;city&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;p&#34;&gt;}]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;当模型判断需要调用工具时，它不会输出普通的文本回复，而是输出一个结构化的 &lt;code&gt;tool_calls&lt;/code&gt; 对象，里面包含要调用的函数名和参数值。比如 &lt;code&gt;{&amp;quot;name&amp;quot;: &amp;quot;get_weather&amp;quot;, &amp;quot;arguments&amp;quot;: {&amp;quot;city&amp;quot;: &amp;quot;北京&amp;quot;}}&lt;/code&gt;。开发者的代码接收到这个对象后，执行实际的 API 调用，拿到结果，再把结果以 &lt;code&gt;tool&lt;/code&gt; 类型的消息追加到对话历史中，发送给模型进行下一轮推理。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;2-function-calling.png&#34; alt=&#34;Function Calling流程&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;Function Calling 的优势非常明显：因为是模型训练阶段内化的能力，所以&lt;strong&gt;格式稳定性极高&lt;/strong&gt;，几乎不会出现 JSON 解析错误的情况；同时模型对&amp;quot;什么时候该调工具、什么时候不该调&amp;quot;的判断也更准确，能很好地处理&amp;quot;不需要工具直接回答&amp;quot;和&amp;quot;需要工具辅助&amp;quot;之间的切换。而且现在主流模型都支持&lt;strong&gt;并行工具调用&lt;/strong&gt;——一次推理同时调用多个工具，大幅提升效率。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-prompt-engineering&#34;&gt;⚙️ Prompt Engineering
+&lt;/h2&gt;&lt;p&gt;在 Function Calling 出现之前，或者对于不支持 Function Calling 的模型，开发者主要依靠&lt;strong&gt;精心设计的 Prompt&lt;/strong&gt; 来引导 LLM 生成工具调用指令。这也是 ReAct 框架最初采用的方案。&lt;/p&gt;
+&lt;p&gt;具体做法是：在 System Prompt 中详细描述每个可用工具的名称、功能和使用格式，并通过 few-shot 示例教模型按照固定格式输出工具调用指令。比如：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;你可以使用以下工具：
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;1. search(query: str) - 在互联网上搜索信息
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;2. calculator(expression: str) - 计算数学表达式
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;3. database_query(sql: str) - 执行 SQL 查询
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;当你需要使用工具时，请严格按照以下格式输出：
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Action: 工具名
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Action Input: 参数值
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;示例：
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;用户：2023年中国GDP是多少？
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Thought: 我需要搜索最新的中国GDP数据
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Action: search
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Action Input: 2023年中国GDP总量
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;系统在接收到 LLM 的输出后，通过&lt;strong&gt;正则表达式或字符串解析&lt;/strong&gt;来提取 Action 和 Action Input，然后执行对应的工具调用。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;3-react-framework.png&#34; alt=&#34;ReAct框架流程&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;这种方案的优势是&lt;strong&gt;灵活性极高&lt;/strong&gt;——不依赖模型厂商的特定 API，任何模型都能用，而且工具的定义和格式完全由开发者控制。但劣势也很明显：&lt;strong&gt;格式稳定性差&lt;/strong&gt;。模型毕竟是在做自由文本生成，它不一定每次都严格遵守你定义的格式——有时候会在 Action 前面多写几句话，有时候参数格式不对，有时候干脆忘了用工具直接瞎编答案。这在工程上需要大量的容错处理和重试逻辑。&lt;/p&gt;
+&lt;p&gt;从实际项目经验来看，Prompt 方案适合两种场景：一是模型不支持 Function Calling 时的降级方案；二是需要高度定制化的工具调用格式时（比如 ReAct 的 Thought-Action-Observation 格式本身就承载了推理链信息，这是标准 Function Calling 不容易做到的）。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-微调训练&#34;&gt;🎯 微调训练
+&lt;/h2&gt;&lt;p&gt;如果你使用的是开源模型（如 LLaMA、Qwen、ChatGLM 等），而且需要非常稳定的工具调用能力，还有一条路是&lt;strong&gt;对模型进行微调&lt;/strong&gt;，让它从训练层面学会工具调用。&lt;/p&gt;
+&lt;p&gt;微调的核心思路是：构建大量的工具调用训练样本，每个样本包含&amp;quot;用户输入 + 可用工具列表 → 模型应该输出的工具调用指令&amp;quot;，然后用这些数据对模型做有监督微调（SFT）。训练数据的质量和多样性决定了微调效果的上限——数据需要覆盖&amp;quot;需要调工具&amp;quot;和&amp;quot;不需要调工具&amp;quot;两种场景，也需要覆盖单工具调用和多工具调用的情况。&lt;/p&gt;
+&lt;p&gt;这个方向上有几个有代表性的工作：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Gorilla&lt;/strong&gt;：UC Berkeley 的研究，专门针对 API 调用场景做了微调，在大量真实 API 文档上训练，使模型能够根据 API 文档准确生成调用代码&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;ToolLLM&lt;/strong&gt;：构建了一个包含 16000+ 真实 API 的大规模工具调用数据集，并在此基础上微调出了 ToolLLaMA&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Qwen-Agent&lt;/strong&gt;：国内的方案，通义千问模型本身就在训练中融入了 Function Calling 能力&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;4-finetune-training.png&#34; alt=&#34;微调训练示意&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;微调方案的优势是&lt;strong&gt;可以深度定制&lt;/strong&gt;——你可以让模型学会调用你业务特有的工具集，甚至学会处理复杂的多工具编排逻辑。劣势是&lt;strong&gt;成本高&lt;/strong&gt;，需要构建高质量的训练数据、消耗 GPU 资源训练、还需要持续维护和更新。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-工具描述的设计&#34;&gt;📝 工具描述的设计
+&lt;/h2&gt;&lt;p&gt;不管使用哪种方案，有一个环节对工具调用成功率的影响非常大，但经常被低估——那就是&lt;strong&gt;工具描述（Tool Description）的质量&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;LLM 是根据工具的描述文本来理解&amp;quot;这个工具能做什么、什么时候该用它&amp;quot;的。如果描述写得模糊或歧义，模型就可能在不该调工具的时候调了，或者该调的时候没调，或者调了错误的工具。&lt;/p&gt;
+&lt;p&gt;一个好的工具描述应该包含：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;功能的精确描述&lt;/strong&gt;：这个工具做什么，不做什么&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;参数的清晰说明&lt;/strong&gt;：每个参数是什么含义、什么类型、有什么约束&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;使用场景的边界&lt;/strong&gt;：什么情况下该用这个工具，什么情况下不该用&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在实际项目中，我们经常需要反复迭代工具描述的措辞，这跟调 prompt 是一样的道理——本质上它就是 prompt 的一部分。&lt;/p&gt;
+&lt;p&gt;另外一个工程上的重要考量是&lt;strong&gt;工具数量的控制&lt;/strong&gt;。当可用工具数量很多时（比如超过 20 个），全部塞进上下文会消耗大量 token，而且模型在太多工具中做选择时准确率会下降。常见的解决方案是做&lt;strong&gt;工具检索&lt;/strong&gt;——先用 embedding 相似度或者分类模型从全量工具库中筛选出与当前任务最相关的几个工具，只把这些工具的描述传给模型。这本质上就是对工具列表做了一次 RAG。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-mcp-协议&#34;&gt;🔗 MCP 协议
+&lt;/h2&gt;&lt;p&gt;最后值得一提的是目前工具调用领域重要的标准化趋势——&lt;strong&gt;MCP（Model Context Protocol，模型上下文协议）&lt;/strong&gt;。MCP 由 Anthropic 在 2024 年底提出，它试图解决的问题是：目前每个模型厂商的 Function Calling 接口格式不一样，每个工具的接入方式也各不相同，导致开发者在切换模型或接入新工具时需要大量的适配工作。&lt;/p&gt;
+&lt;p&gt;MCP 定义了一套标准化的协议，让 LLM 和外部工具之间的交互有了统一的&amp;quot;语言&amp;quot;。你可以把它理解为工具调用领域的&amp;quot;USB 接口&amp;quot;——有了这个标准，任何符合 MCP 协议的工具都可以即插即用地接入任何支持 MCP 的模型或 Agent 框架，大幅降低了集成成本。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;6-mcp-protocol.png&#34; alt=&#34;MCP协议架构&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;在 MCP 的架构中，有三个核心角色：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;MCP Host&lt;/strong&gt;：使用工具的应用，比如你的 Agent&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;MCP Client&lt;/strong&gt;：协议客户端，负责和 Server 通信&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;MCP Server&lt;/strong&gt;：工具提供方，把自己的 API 包装成 MCP 标准接口暴露出来&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;开发者只需要按 MCP 标准实现一次工具的 Server 端，就可以被任何 MCP 兼容的 Agent 直接调用。&lt;/p&gt;
+&lt;p&gt;具体细节参见往期博客：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;https://tyritic.github.io/p/%E6%A8%A1%E5%9E%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%8F%E8%AE%AEmcp/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;模型上下文协议（MCP）&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-总结&#34;&gt;✅ 总结
+&lt;/h2&gt;&lt;p&gt;LLM 调用外部工具的核心原理，首先要理解一个关键前提：&lt;strong&gt;LLM 本身并不执行任何工具操作，它做的事情只是生成一段结构化的文本指令&lt;/strong&gt;，表达&amp;quot;我要调什么工具、传什么参数&amp;quot;，然后由外部的 Agent 运行时系统去解析指令、执行调用、把结果回传给 LLM 继续推理。理解了这个前提之后，赋予 LLM 工具调用能力主要有三条技术路线。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第一条是 Function Calling&lt;/strong&gt;，这是目前效果最好也最主流的方案，OpenAI、Anthropic、通义千问等主流模型都原生支持。它的原理是在模型训练阶段就加入大量工具调用的样本数据，让模型学会根据 tools 参数中的 JSON Schema 工具定义来判断何时需要调用工具，并直接输出结构化的 tool_calls 对象，格式稳定性非常高，还支持并行调用多个工具。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第二条是 Prompt Engineering&lt;/strong&gt;，在模型不支持 Function Calling 时作为降级方案，通过在 System Prompt 中描述工具列表和调用格式，配合 few-shot 示例引导模型按固定格式输出，然后用正则表达式解析。ReAct 框架最初就是这种方案，灵活性高但格式稳定性差，需要大量容错处理。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第三条是微调训练&lt;/strong&gt;，针对开源模型在业务专用的工具调用数据上做 SFT，像 Gorilla 和 ToolLLM 就是这个方向的代表工作。&lt;/p&gt;
+&lt;p&gt;除了方案选择之外，实际工程中&lt;strong&gt;工具描述的质量对调用成功率影响极大&lt;/strong&gt;，好的描述要精确定义功能边界和参数约束，这和调 prompt 是一样的道理。工具数量多时还需要做工具检索——先用相似度筛选出相关工具再传给模型。最后值得关注的趋势是 &lt;strong&gt;MCP 协议&lt;/strong&gt;，它定义了 LLM 和工具之间标准化的通信接口，目标是让工具实现&amp;quot;即插即用&amp;quot;的生态互通，是这个领域从碎片化走向标准化的重要一步。&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>Agent的核心组件</title>
+        <link>https://Tyritic.github.io/p/agent%E7%9A%84%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6/</link>
+        <pubDate>Wed, 25 Mar 2026 14:52:00 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/agent%E7%9A%84%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6/</guid>
+        <description>&lt;h2 id=&#34;-agent的定义&#34;&gt;🧠 Agent的定义
+&lt;/h2&gt;&lt;p&gt;**Agent（智能体）**的本质是以 LLM 为核心推理引擎，结合规划能力、工具使用能力和记忆能力，能够自主完成复杂任务的智能系统。&lt;/p&gt;
+&lt;h3 id=&#34;agent-vs-普通llm调用&#34;&gt;Agent vs 普通LLM调用
+&lt;/h3&gt;&lt;p&gt;普通 LLM 调用是&amp;quot;一问一答&amp;quot;的被动模式——你给一个 prompt，它返回一个 completion，交互就结束了。LLM 本身不会主动做任何事情，也不会根据结果来决定下一步该干什么。&lt;/p&gt;
+&lt;p&gt;Agent 的核心特征是&lt;strong&gt;自主性（Autonomy）&lt;/strong&gt;——它能够自主地感知环境、制定计划、使用工具、执行行动，并且根据执行结果来动态调整后续策略。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;Agent与LLM区别.png&#34; alt=&#34;Agent与LLM调用的区别&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;**举例说明：**假设用户说&amp;quot;帮我查一下明天北京的天气，如果下雨就把我后天的户外会议改成线上&amp;quot;。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;普通 LLM&lt;/strong&gt;：最多只能告诉你&amp;quot;你可以去查天气然后改会议&amp;quot;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Agent&lt;/strong&gt;：会自动执行完整流程——调用天气 API → 判断是否下雨 → 调用日历 API 找到会议 → 调用会议修改接口 → 汇报结果&lt;/li&gt;
+&lt;/ul&gt;
+&lt;blockquote&gt;
+&lt;p&gt;学术上比较经典的定义来自 Lilian Weng 的博客，她把 Agent 定义为 &lt;strong&gt;LLM + Planning + Memory + Tools&lt;/strong&gt; 的组合体，这个框架至今仍是业界最广泛认可的 Agent 架构抽象。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-agent的核心组件&#34;&gt;🏗️ Agent的核心组件
+&lt;/h2&gt;&lt;p&gt;一个完整的 Agent 系统通常由&lt;strong&gt;四个核心模块&lt;/strong&gt;构成：LLM（大脑）、规划模块、记忆模块、工具使用。这四个模块各司其职又紧密协作，共同支撑了 Agent 的自主决策和任务执行能力。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;Agent核心组件架构.png&#34; alt=&#34;Agent核心组件架构图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;-llmagent的大脑&#34;&gt;🧠 LLM——Agent的大脑
+&lt;/h3&gt;&lt;p&gt;LLM 是整个系统的中枢，负责：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;理解用户意图&lt;/li&gt;
+&lt;li&gt;进行逻辑推理&lt;/li&gt;
+&lt;li&gt;生成行动计划&lt;/li&gt;
+&lt;li&gt;解读工具返回结果&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Agent 的智能水平上限取决于底层 LLM 的能力。在工程实践中，我们通常通过精心设计的 &lt;strong&gt;System Prompt&lt;/strong&gt; 来给 LLM 设定角色、约束行为边界、规定输出格式，这相当于给&amp;quot;大脑&amp;quot;装上了一套操作手册。&lt;/p&gt;
+&lt;h3 id=&#34;-规划模块任务分解与推理&#34;&gt;📋 规划模块——任务分解与推理
+&lt;/h3&gt;&lt;p&gt;规划能力是 Agent 区别于简单 LLM 应用的关键标志。当 Agent 接收到一个复杂任务时，它会把任务分解成多个可执行的子步骤，然后按照逻辑顺序逐步执行。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;主流规划策略分为两类：&lt;/strong&gt;&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;规划策略分类.png&#34; alt=&#34;规划策略分类&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;1. 无反馈的规划&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;代表框架 &lt;strong&gt;ReAct（Reasoning + Acting）&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Thought：先进行推理思考&lt;/li&gt;
+&lt;li&gt;Action：决定执行一个动作&lt;/li&gt;
+&lt;li&gt;Observation：观察动作的结果&lt;/li&gt;
+&lt;li&gt;进入下一轮循环&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;优点是实现简单、思路清晰，是目前最广泛使用的 Agent 推理框架。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;2. 带反馈的规划&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;代表框架 &lt;strong&gt;Reflexion&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Agent 在执行失败后会对失败原因进行自我反思&lt;/li&gt;
+&lt;li&gt;修正策略重新执行&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这种方式更接近人类解决问题的真实过程——会根据反馈不断调整方案。&lt;/p&gt;
+&lt;h3 id=&#34;-记忆模块上下文与经验&#34;&gt;🗄️ 记忆模块——上下文与经验
+&lt;/h3&gt;&lt;p&gt;Agent 的记忆通常分为两种：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;记忆模块分类.png&#34; alt=&#34;记忆模块分类&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;1. 短期记忆（Short-term Memory）&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;本质是当前对话的上下文（Context）&lt;/li&gt;
+&lt;li&gt;包括用户的历史消息、Agent 的推理过程、工具调用结果等&lt;/li&gt;
+&lt;li&gt;受限于 LLM 的上下文窗口长度&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;常见解决方案：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;对话摘要（Summarization）&lt;/li&gt;
+&lt;li&gt;滑动窗口&lt;/li&gt;
+&lt;li&gt;基于关键信息提取的压缩策略&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;2. 长期记忆（Long-term Memory）&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;持久化存储的外部知识，通常通过&lt;strong&gt;向量数据库&lt;/strong&gt;实现&lt;/li&gt;
+&lt;li&gt;Agent 可以把重要的历史交互、经验、用户偏好等信息存入&lt;/li&gt;
+&lt;li&gt;在需要时通过 &lt;strong&gt;RAG&lt;/strong&gt; 的方式检索召回&lt;/li&gt;
+&lt;li&gt;使 Agent 表现出&amp;quot;越用越聪明&amp;quot;的特性&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-工具使用与外部世界交互&#34;&gt;🔧 工具使用——与外部世界交互
+&lt;/h3&gt;&lt;p&gt;LLM 本身只能生成文本，不能查数据库、不能调 API、不能操作文件系统。通过工具使用机制，Agent 可以将 LLM 的推理能力与外部世界的执行能力连接起来。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;工具使用机制.png&#34; alt=&#34;工具使用机制&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;Function Calling 机制：&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;预先定义好工具描述（名称、功能说明、参数 schema）&lt;/li&gt;
+&lt;li&gt;放在 System Prompt 或通过 Function Calling 接口传给 LLM&lt;/li&gt;
+&lt;li&gt;LLM 判断需要使用某个工具时，生成结构化的函数调用请求&lt;/li&gt;
+&lt;li&gt;Agent 框架解析请求并执行函数&lt;/li&gt;
+&lt;li&gt;把执行结果返回给 LLM 继续推理&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;常见工具类型：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;搜索引擎（联网检索信息）&lt;/li&gt;
+&lt;li&gt;数据库查询&lt;/li&gt;
+&lt;li&gt;API 调用（天气、日历、邮件等）&lt;/li&gt;
+&lt;li&gt;代码执行器&lt;/li&gt;
+&lt;li&gt;文件读写操作&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-工程关键设计&#34;&gt;⚙️ 工程关键设计
+&lt;/h2&gt;&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;工程关键设计.png&#34; alt=&#34;工程关键设计&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;-安全与边界控制&#34;&gt;🔒 安全与边界控制
+&lt;/h3&gt;&lt;p&gt;Agent 拥有工具调用能力意味着它能对外部系统产生真实影响（如发邮件、改数据库），所以必须设计：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;权限控制&lt;/strong&gt;：限制 Agent 能访问和操作的资源范围&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;人工确认机制（Human-in-the-Loop）&lt;/strong&gt;：在执行危险操作前需要人类确认&lt;/li&gt;
+&lt;li&gt;防止 Agent 在推理出错时执行不可逆的危险操作&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-多agent协作&#34;&gt;👥 多Agent协作
+&lt;/h3&gt;&lt;p&gt;当任务非常复杂时，单个 Agent 可能难以胜任。可以设计&lt;strong&gt;多个专业化的 Agent&lt;/strong&gt; 各负责一个子领域，通过编排层（Orchestrator）来协调分工合作。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;AutoGen&lt;/strong&gt;、&lt;strong&gt;CrewAI&lt;/strong&gt; 等框架就是这个思路&lt;/li&gt;
+&lt;li&gt;本质上是把&amp;quot;一个全能 Agent&amp;quot;拆成&amp;quot;多个专家 Agent 的团队&amp;quot;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-可观测性与调试&#34;&gt;📊 可观测性与调试
+&lt;/h3&gt;&lt;p&gt;Agent 的多步推理过程是非确定性的，每次运行可能走不同路径，给调试带来很大挑战。工程上需要：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;完善的日志记录&lt;/strong&gt;：记录每一步的输入输出&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Trace 追踪&lt;/strong&gt;：追踪整个推理链路&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;中间状态可视化&lt;/strong&gt;：快速定位是哪一步推理出错&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-总结&#34;&gt;📚 总结
+&lt;/h2&gt;&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th&gt;核心组件&lt;/th&gt;
+          &lt;th&gt;主要作用&lt;/th&gt;
+          &lt;th&gt;技术实现&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td&gt;🧠 LLM&lt;/td&gt;
+          &lt;td&gt;大脑中枢&lt;/td&gt;
+          &lt;td&gt;推理引擎、System Prompt&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;📋 规划&lt;/td&gt;
+          &lt;td&gt;任务分解&lt;/td&gt;
+          &lt;td&gt;ReAct、Reflexion&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;🗄️ 记忆&lt;/td&gt;
+          &lt;td&gt;上下文连贯&lt;/td&gt;
+          &lt;td&gt;短期上下文、长期向量数据库&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;🔧 工具&lt;/td&gt;
+          &lt;td&gt;外部交互&lt;/td&gt;
+          &lt;td&gt;Function Calling&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;strong&gt;关键要点：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Agent 的本质是&lt;strong&gt;自主性&lt;/strong&gt;——能感知、规划、行动、调整&lt;/li&gt;
+&lt;li&gt;四大核心组件缺一不可，协同支撑智能决策&lt;/li&gt;
+&lt;li&gt;工程落地需关注&lt;strong&gt;安全&lt;/strong&gt;、&lt;strong&gt;多Agent协作&lt;/strong&gt;、&lt;strong&gt;可观测性&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Agent，本质上是以 LLM 为核心推理引擎，具备自主规划、工具调用和记忆能力，能够自主完成复杂任务的智能系统。它跟普通的 LLM 调用最大的区别在于&lt;strong&gt;自主性&lt;/strong&gt;——普通 LLM 调用是一问一答的被动模式，而 Agent 能够自主地把一个复杂任务拆解成多个步骤，在每一步进行推理决策，选择合适的工具去执行，观察结果后再动态调整下一步策略，形成一个&amp;quot;思考-行动-观察&amp;quot;的闭环循环，直到任务完成。
+核心组件通常有四个。第一个是 &lt;strong&gt;LLM 本身&lt;/strong&gt;，它充当 Agent 的大脑，负责意图理解、逻辑推理和决策生成。第二个是&lt;strong&gt;规划模块&lt;/strong&gt;，让 Agent 能够进行任务分解和多步推理，主流的实现方式是 ReAct 框架。第三个是&lt;strong&gt;记忆模块&lt;/strong&gt;，分为短期记忆和长期记忆，短期记忆保证一次任务内的连贯性，长期记忆通过向量数据库存储历史经验。第四个是&lt;strong&gt;工具使用能力&lt;/strong&gt;，通过 Function Calling 机制让 Agent 能够调用外部 API、查数据库、执行代码等。在实际落地中，还需要特别关注安全边界控制、Human-in-the-Loop 机制以及整个推理链路的可观测性。&lt;/p&gt;
+&lt;hr&gt;
+</description>
+        </item>
+        <item>
+        <title>Agent的概念</title>
+        <link>https://Tyritic.github.io/p/agent%E7%9A%84%E6%A6%82%E5%BF%B5/</link>
+        <pubDate>Wed, 25 Mar 2026 13:20:00 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/agent%E7%9A%84%E6%A6%82%E5%BF%B5/</guid>
+        <description>&lt;h2 id=&#34;-agent是什么&#34;&gt;🧠 Agent是什么？
+&lt;/h2&gt;&lt;p&gt;Agent，也就是我们常说的&lt;strong&gt;智能体&lt;/strong&gt;。先下一个简单的定义：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Agent是一个能够通过感知器（Sensors）获取外部环境（Environment）信息，并基于其内在逻辑，通过执行器（Actuators）采取具体行动（Action），从而实现既定目标的独立实体。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;这个核心定义揭示了智能体的&lt;strong&gt;四个核心要素&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;环境（Environment）&lt;/strong&gt;：智能体活动的舞台。对于一个自动化仓储机器人，环境是布满货架和移动设备的车间；对于一个量化交易机器人，环境则是实时波动的全球资产价格数据。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;感知器（Sensors）&lt;/strong&gt;：智能体通过感知器与外界建立联系。这些感知器可以是摄像头、传感器，也可以是监听各类应用程序编程接口（API）的数据回调。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;执行器（Actuators）&lt;/strong&gt;：智能体改变环境的能力来源。执行器既可以是物理层面的机械装置（如工业抓取手、自平衡底座），也可以是数字世界的软件接口（如发送一封邮件、更新数据库记录）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;自主性（Autonomy）&lt;/strong&gt;：衡量一个程序是否能被称为智能体的关键。智能体不是一段只会机械执行 &lt;code&gt;if-else&lt;/code&gt; 的脚本，它拥有独立决策的能力，能够根据当下的环境感知和内部预设的状态，自主判断该采取何种行动来逼近目标。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这种&lt;strong&gt;感知到行动的闭环逻辑&lt;/strong&gt;，构成了所有智能体行为的底层架构。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-agent的演化&#34;&gt;🔄 Agent的演化
+&lt;/h2&gt;&lt;p&gt;在大语言模型（LLM）开启智能化新纪元之前，人工智能领域已经对智能体进行了长达半个世纪的探索。这些我们如今称之为传统智能体的架构，经历了一段从被动响应到主动适应的清晰进化史。&lt;/p&gt;
+&lt;h3 id=&#34;简单反射智能体&#34;&gt;简单反射智能体
+&lt;/h3&gt;&lt;p&gt;最初的Agent称之为&lt;strong&gt;简单反射智能体（Simple Reflex Agent）&lt;/strong&gt;。它们的逻辑非常直接，完全建立在预定义的条件与动作规则之上。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;简单反射智能体.png&#34; alt=&#34;简单反射智能体&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;我们可以想象一个工业光控系统：当环境亮度低于特定阈值时，自动触发照明设备。这种智能体只关注当下，没有记忆，也无法预测未来。它像是一种数字化的膝跳反应，虽然在特定环境下极度可靠且高效，但面对需要上下文理解的复杂场景时，就显得捉襟见肘。&lt;/p&gt;
+&lt;h3 id=&#34;基于模型的反射智能体&#34;&gt;基于模型的反射智能体
+&lt;/h3&gt;&lt;p&gt;为了破解这一难题，研究者开发了&lt;strong&gt;基于模型的反射智能体（Model-Based Reflex Agent）&lt;/strong&gt;。这类智能体拥有一种内部模型（World Model），能够追踪那些无法被即时感知的环境信息。&lt;/p&gt;
+&lt;p&gt;它通过维护一个内部状态来回答：&lt;strong&gt;世界现在处于什么状态？&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;例如，一艘在深海潜行的无人潜航器，即便声呐信号因地形暂时中断，其内部模型仍会根据之前的航速、航向和水流惯性，推算自身的位置。这种机制赋予了智能体初步的记忆，使其决策建立在更完整、更具连贯性的环境理解之上。&lt;/p&gt;
+&lt;h3 id=&#34;基于目标的智能体&#34;&gt;基于目标的智能体
+&lt;/h3&gt;&lt;p&gt;然而，仅仅理解世界是不够的，智能体必须由目标驱动。这推动了**基于目标的智能体（Goal-Based Agent）**的诞生。&lt;/p&gt;
+&lt;p&gt;与被动反应不同，它表现出极强的预见性，会主动选择那些能够导向最终目标的路径。此时，它需要思考的问题变成了：&lt;strong&gt;为了达成这个目标，我下一步该做什么？&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;以智能仓储的路径规划为例，机器人的目标是取走 5 号货柜的商品，它会基于仓库地图（世界模型），利用路径搜索算法（如 A* 算法）规划出一条效率最高的避障路线。这类智能体的精髓在于&lt;strong&gt;对未来的模拟与规划能力&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;基于效用的智能体&#34;&gt;基于效用的智能体
+&lt;/h3&gt;&lt;p&gt;在现实场景中，目标往往是多元且相互冲突的。我们不仅希望机器人取货快，还希望它耗电最省、且避开人流密集的区域。当需要权衡多重目标时，**基于效用的智能体（Utility-Based Agent）**就派上了用场。&lt;/p&gt;
+&lt;p&gt;它会给每一种可能的结果赋予一个效用值（类似于满意度），智能体的核心驱动力从达成单一状态转变为追求期望效用的最大化。它在思考：&lt;strong&gt;哪种行动组合能让我得到最满意的综合结果？&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;这种架构使得机器人的决策更加趋于理性，能够在成本与收益之间寻找平衡。&lt;/p&gt;
+&lt;h3 id=&#34;学习型智能体&#34;&gt;学习型智能体
+&lt;/h3&gt;&lt;p&gt;尽管这些传统智能体越来越复杂，但它们的决策逻辑依然被禁锢在人类设计师预设的框架内。如果智能体能够像人类一样，通过尝试与错误进行自主学习呢？&lt;/p&gt;
+&lt;p&gt;这正是**学习型智能体（Learning Agent）&lt;strong&gt;的核心诉求，而&lt;/strong&gt;强化学习（Reinforcement Learning, RL）**则是其最著名的实践路径。这类智能体由性能元件和学习元件构成，学习元件会通过观察性能元件在环境中的行为反馈（奖励或惩罚），不断迭代和优化决策模型。&lt;/p&gt;
+&lt;p&gt;想象一个在虚拟环境中学习复杂操作的 AI 机械臂。起初它可能只是无规则地晃动，但每当它成功触碰到目标物体，系统就会给予正向激励。经过数以万计次的迭代，学习元件逐渐掌握了最优的抓取姿势。正如 AlphaGo Zero 在围棋领域的突破一样，这种通过自我对弈、自我进化的机制，展现了超越人类既有经验的巨大潜力。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;从最基础的光控开关，到拥有内部状态的潜航器，再到具备规划能力的物流机器人和懂得权衡利弊的理财大脑，直至最终能够实现自我学习，这段演进历程是我们理解现代Agent的重要基础。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-大语言模型催生的范式巨变&#34;&gt;🚀 大语言模型催生的范式巨变
+&lt;/h2&gt;&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;大语言模型催生的范式巨变.png&#34; alt=&#34;大语言模型催生的范式巨变&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;以 GPT 系列为代表的大语言模型的爆发，正在重塑智能体的构建逻辑与能力天花板。LLM 智能体不再仅仅是代码的堆砌，它们拥有了一种本质上不同的决策引擎。&lt;/p&gt;
+&lt;p&gt;这种范式的转变，赋予了智能体直接处理模糊指令的能力。让我们以一个智能办公助手为例。&lt;/p&gt;
+&lt;p&gt;在 LLM 时代之前，如果你想让 AI 帮你组织一场跨部门会议，你需要在不同的系统（日历、邮件、预订系统）之间来回切换，自己负责信息的对齐。而一个 LLM 驱动的智能助手则能将这些孤立的环节缝合成一个完整的智能流。&lt;/p&gt;
+&lt;p&gt;当你下达&amp;quot;帮我安排下周五下午的跨部门周会&amp;quot;这一模糊指令时，它的工作流充分展示了新范式的优势：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;自主推理与任务规划&lt;/strong&gt;：智能体会将宏观目标拆解为具体的行动链条：&lt;code&gt;[获取参会名单] -&amp;gt; [核对各方日历空档] -&amp;gt; [筛选合适的会议室] -&amp;gt; [发送正式邀请]&lt;/code&gt;。这是一个由模型内生驱动的思考过程。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;工具与环境的交互&lt;/strong&gt;：在执行过程中，它能意识到自己缺乏实时数据，从而主动调用外部工具。比如，它会调用公司的会议室预订系统接口，一旦发现原定会议室不可用，会立即寻找备选方案。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;动态调整与自我修复&lt;/strong&gt;：如果某个关键参会人临时反馈&amp;quot;周五下午不便&amp;quot;，智能体会将此视为新的约束条件，自动重启部分规划流程，重新协调时间并同步给所有人。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;blockquote&gt;
+&lt;p&gt;这种从单一功能自动化到系统性解决问题的转变，标志着我们正从编写死代码转向引导一个通用的&amp;quot;数字大脑&amp;quot;。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-多维度视角下的智能体分类&#34;&gt;📊 多维度视角下的智能体分类
+&lt;/h2&gt;&lt;p&gt;为了更深刻地理解 Agent 的多样性，我们可以从三个互补的维度对其进行分类。&lt;/p&gt;
+&lt;h3 id=&#34;基于决策架构的纵向分类&#34;&gt;基于决策架构的纵向分类
+&lt;/h3&gt;&lt;p&gt;第一种分类方式侧重于智能体内在思维架构的复杂度。正如我们在前文演进史中所见，从最基础的反应式结构到具备内部模型、目标导向乃至效用最大化的架构，构成了一个由浅入深的技术阶梯。而学习能力则像是一个插件，可以加载在任何架构之上，让智能体具备进化属性。&lt;/p&gt;
+&lt;h3 id=&#34;基于反应时效的横向分类&#34;&gt;基于反应时效的横向分类
+&lt;/h3&gt;&lt;p&gt;除了架构复杂度，智能体在处理信息时的反应模式也是一个核心维度。这主要涉及&lt;strong&gt;决策速度（反应性）与决策深度（规划性）之间的权衡&lt;/strong&gt;。&lt;/p&gt;
+&lt;h4 id=&#34;反应式智能体&#34;&gt;反应式智能体
+&lt;/h4&gt;&lt;p&gt;这类智能体强调实时性，通常在接收到外部刺激后几乎零延迟地做出响应。它们不涉及长远的思考，而是遵循快速的感知-行动映射。&lt;/p&gt;
+&lt;p&gt;其优势在于极高的响应速度和极低的算力成本，在动态瞬变的环境（如赛车防抱死系统或高速避障传感器）中不可或缺。但缺点是缺乏全局视角，容易陷入局部最优。&lt;/p&gt;
+&lt;h4 id=&#34;规划式智能体&#34;&gt;规划式智能体
+&lt;/h4&gt;&lt;p&gt;与追求速度不同，规划式智能体（也称审议式）在行动前会进行充分的推演。它们利用世界模型，在虚拟空间内探索不同决策序列的后果，从中挑选最优路径。&lt;/p&gt;
+&lt;p&gt;其决策逻辑更像是一位顶尖的战术家，能够处理长跨度、多步骤的复杂任务。虽然这带来了更强的战略性，但代价是昂贵的计算开销和响应延迟。在瞬息万变的环境中，过度的思考有时意味着错失良机。&lt;/p&gt;
+&lt;h4 id=&#34;混合式智能体&#34;&gt;混合式智能体
+&lt;/h4&gt;&lt;p&gt;在现实应用中，我们往往需要两者兼得。混合式智能体通过分层设计，试图在反应速度与规划深度之间找到黄金平衡点。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;底层通常由硬实时的反应模块组成，处理安全防御和基础动作&lt;/li&gt;
+&lt;li&gt;高层则由规划模块主导，负责战略目标的制定&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;现代 LLM 智能体实际上展现了一种极其灵活的混合模式，它们在&amp;quot;思考-行动-观察&amp;quot;的微循环中，将审慎的逻辑推理与敏捷的环境反馈有机结合，既能保持大方向正确，又能灵活应对突发状况。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;基于反应时效的横向分类.png&#34; alt=&#34;基于反应时效的横向分类&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;基于知识存储形式的分类&#34;&gt;基于知识存储形式的分类
+&lt;/h3&gt;&lt;p&gt;这是一个触及人工智能哲学根基的分类维度，它探讨的是智能体如何存储和处理知识。&lt;/p&gt;
+&lt;h4 id=&#34;符号主义-ai&#34;&gt;符号主义 AI
+&lt;/h4&gt;&lt;p&gt;符号主义认为智能源于对人类可读符号的逻辑运算。知识被编码为清晰的规则、事实和逻辑关系。它像是一位博学且严谨的法官，通过法律条文（规则）和案情事实（符号）推导出判决结果。&lt;/p&gt;
+&lt;p&gt;其最大优势在于过程的完全透明和可解释性，但在面对模糊、非结构化和充满异常的现实世界时，往往会遭遇知识获取的瓶颈，表现得过于死板。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;符号主义AI.png&#34; alt=&#34;符号主义AI&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;h4 id=&#34;亚符号主义-ai&#34;&gt;亚符号主义 AI
+&lt;/h4&gt;&lt;p&gt;这一阵营认为智能并非由显性逻辑构成，而是内隐地分布在神经网络的连接权重中，通过对海量数据的统计建模而产生。&lt;/p&gt;
+&lt;p&gt;它更像是一个具有直觉的艺术家，在看过无数作品后，能够瞬间识别出某种风格，却无法用精确的逻辑语言解释其判断依据。它在处理图像、语音等复杂模式识别任务时具有压倒性优势，但其黑箱特性使得决策过程难以被人类直观理解。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;亚符号主义 AI.png&#34; alt=&#34;亚符号主义AI&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;h4 id=&#34;神经符号主义-ai&#34;&gt;神经符号主义 AI
+&lt;/h4&gt;&lt;p&gt;为了融合上述两者的长处，神经符号主义应运而生。它试图构建一种既具备神经网络的感知与泛化能力，又具备符号系统的逻辑推理能力的智能体。&lt;/p&gt;
+&lt;p&gt;诺贝尔奖得主丹尼尔·卡尼曼提出的&lt;strong&gt;双系统理论&lt;/strong&gt;为我们提供了一个完美的类比：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;系统 1&lt;/strong&gt; 是快直觉（亚符号）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;系统 2&lt;/strong&gt; 是慢逻辑（符号）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;人工智能就是这两个系统协同的结果。当前的 LLM 智能体正是这一理念的绝佳落地：它的底层是一个巨大的神经网络（亚符号引擎），使其拥有惊人的常识和语言直觉；而当它被引导进行 Chain of Thought（思维链）推理或调用结构化 API 时，它实际上是在产生和操作显性的符号逻辑。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;这种直觉与理性的初步融合，正是智能体未来发展的核心方向。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;神经符号主义 AI.png&#34; alt=&#34;神经符号主义AI&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-构建复杂agent的挑战&#34;&gt;⚠️ 构建复杂Agent的挑战
+&lt;/h2&gt;&lt;p&gt;在实际工程化落地中，构建一个复杂 Agent 面临着诸多挑战。这些挑战都围绕一个核心根源展开——&lt;strong&gt;LLM 推理的不确定性&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;-llm推理的不确定性&#34;&gt;⚡ LLM推理的不确定性
+&lt;/h3&gt;&lt;p&gt;这是构建复杂 Agent 时最根本、最深层的挑战，所有其他挑战几乎都由它衍生而来。&lt;/p&gt;
+&lt;p&gt;传统软件是确定性的——给定相同的输入，永远得到相同的输出。你写一个 &lt;code&gt;if-else&lt;/code&gt; 分支，它每次都会走你预期的那条路。但 Agent 的核心驱动引擎是 LLM，而 LLM 本质上是一个概率模型，它的输出带有随机性。&lt;/p&gt;
+&lt;p&gt;这意味着：&lt;strong&gt;同样的用户输入，同样的工具列表，Agent 这次可能选对了工具，下次可能选错了；这次的参数格式正确，下次可能多了个逗号导致 JSON 解析失败；这次推理了 3 步就完成了任务，下次可能推理了 10 步还在兜圈子。&lt;/strong&gt;&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;LLM推理的不确定性.png&#34; alt=&#34;LLM推理的不确定性&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;这种不确定性在简单的单轮对话场景中可能还能容忍，但在复杂 Agent 中就会被急剧放大。因为 Agent 的执行过程是&lt;strong&gt;多步串联&lt;/strong&gt;的——每一步的输出是下一步的输入，如果某一步出了偏差，后面所有步骤都可能在错误的基础上越走越偏。这就像多米诺骨牌效应，一个小错误在多步传播后可能变成完全跑偏的结果。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;应对策略：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;通过精心设计 Prompt 和 few-shot 示例来约束模型输出的格式和范围&lt;/li&gt;
+&lt;li&gt;对关键步骤设置&lt;strong&gt;输出校验&lt;/strong&gt;，格式不对就重试&lt;/li&gt;
+&lt;li&gt;在推理链中加入&lt;strong&gt;自我检查&lt;/strong&gt;节点，让模型回顾之前的步骤是否合理&lt;/li&gt;
+&lt;li&gt;设置&lt;strong&gt;最大步数限制&lt;/strong&gt;和&lt;strong&gt;超时机制&lt;/strong&gt;，防止无限循环&lt;/li&gt;
+&lt;/ul&gt;
+&lt;blockquote&gt;
+&lt;p&gt;这些都只能缓解而不能根治，这就是为什么 Agent 的可靠性始终是整个行业的核心难题。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3 id=&#34;-复杂任务的规划与分解&#34;&gt;🧩 复杂任务的规划与分解
+&lt;/h3&gt;&lt;p&gt;当用户给 Agent 一个复杂的高层任务时（比如&amp;quot;帮我做一份竞品分析报告&amp;quot;），Agent 需要自己把这个大任务分解成可执行的子步骤，然后按照合理的顺序执行。这个&amp;quot;规划&amp;quot;的能力看起来理所当然，但实际上极其困难。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;难点一：分解粒度很难把控&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;分得太粗，每一步的执行难度还是太大，LLM 搞不定；分得太细，步骤太多，一方面增加了出错概率，另一方面也增加了延迟和成本。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;难点二：步骤之间的依赖关系和顺序很复杂&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;有些步骤必须串行（先搜索竞品列表，才能分析每个竞品），有些可以并行（同时分析多个竞品），有些还有条件依赖（如果搜不到某个竞品的信息，就跳过或换一种方式获取）。让 LLM 在规划阶段就考虑清楚这些依赖关系，目前的模型还远做不到完美。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;难点三：动态调整&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;现实中计划赶不上变化——Agent 在执行过程中可能发现某个工具不可用了、某个 API 返回了异常结果、或者中间步骤获得了新信息导致原来的计划不再合理。好的 Agent 需要具备&amp;quot;边执行边调整计划&amp;quot;的能力，而不是僵化地按原计划走到底。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;复杂任务的规划与分解.png&#34; alt=&#34;复杂任务的规划与分解&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;实践策略：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Plan-and-Execute 分离&lt;/strong&gt;：先让一个 Planner LLM 做全局规划，再让 Executor LLM 逐步执行，执行中可以触发重新规划&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;ReAct 式的逐步推进&lt;/strong&gt;：不做全局规划，每一步都根据当前状态决定下一步&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;分层规划&lt;/strong&gt;：先做粗粒度规划，每个粗步骤再做细粒度规划&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-工具调用的可靠性与错误处理&#34;&gt;🔧 工具调用的可靠性与错误处理
+&lt;/h3&gt;&lt;p&gt;Agent 的能力边界由它能调用的工具决定，但工具调用在实际工程中远比想象中脆弱。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;问题一：工具选择错误&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;当 Agent 面前有十几个工具时，它可能选错——比如该用精确查询数据库的工具，它却去调了搜索引擎；或者该用计算器算个精确值，它却自己让 LLM 心算。工具描述（Tool Description）的质量直接影响选择准确率，但即使描述写得再好，在工具数量多或场景边界模糊时，误选还是经常发生。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;问题二：参数构造错误&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;LLM 生成的工具调用参数不一定符合工具的实际要求——日期格式不对、枚举值拼错、必填参数缺失、数值超出范围等等。这些在传统开发中靠类型系统和编译器就能避免的错误，在 LLM 生成的世界里需要额外的&lt;strong&gt;参数校验层&lt;/strong&gt;来兜底。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;问题三：工具执行失败&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;外部 API 可能超时、返回错误码、返回空结果，或者返回了和预期完全不同的数据格式。Agent 需要能够理解这些失败，并做出合理的应对——是重试、换一个工具、还是向用户报告无法完成。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;工具调用的可靠性与错误处理.png&#34; alt=&#34;工具调用的可靠性与错误处理&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;工程解决方案：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;建立一个&lt;strong&gt;工具调用中间层&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;对 LLM 输出的调用指令做参数校验和类型转换&lt;/li&gt;
+&lt;li&gt;对工具执行结果做异常捕获和格式规范化&lt;/li&gt;
+&lt;li&gt;设置单次调用的超时和重试策略&lt;/li&gt;
+&lt;li&gt;对失败情况生成友好的错误描述反馈给 LLM，让它基于错误信息调整策略&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-可观测性与调试&#34;&gt;🔍 可观测性与调试
+&lt;/h3&gt;&lt;p&gt;在传统软件中，程序出了 bug，你可以看日志、打断点、逐行调试，定位问题通常不难。但 Agent 的调试是一个完全不同量级的难题。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;黑箱问题&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;LLM 的推理过程是不透明的——你能看到它输出了什么 Thought 和 Action，但你很难知道&amp;quot;它为什么做出这个决策&amp;quot;。同样的输入，换一个措辞可能就走了完全不同的路径。这种不可解释性让定位问题变得非常困难：当 Agent 给出了一个错误的结果时，你需要在可能有十几步的推理链中，逐步排查到底是哪一步出了问题、为什么出了问题。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;复现困难&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;由于 LLM 输出的随机性，你在调试时遇到的 bug 可能无法稳定复现——同样的输入跑 10 次，可能只有 2 次会触发这个问题。这让传统的&amp;quot;复现 → 定位 → 修复 → 验证&amp;quot;的调试流程变得非常低效。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;评估标准模糊&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;传统软件的正确性可以用单元测试精确验证，但 Agent 的输出往往是自然语言的回答或多步操作的结果，怎么定义&amp;quot;对&amp;quot;和&amp;quot;错&amp;quot;本身就是一个难题。比如 Agent 帮你写了一份竞品分析报告，怎么自动化地评估这份报告的质量？内容是否准确？分析是否有深度？结论是否合理？这些都很难用确定性的测试用例来覆盖。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;可观测性与调试.png&#34; alt=&#34;可观测性与调试&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;工程应对方案：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;使用 &lt;strong&gt;LangSmith、LangFuse&lt;/strong&gt; 等可观测性平台来记录 Agent 每一步的详细链路（Trace）——包括每次 LLM 的输入输出、工具调用的参数和结果、耗时和 token 消耗等&lt;/li&gt;
+&lt;li&gt;建立&lt;strong&gt;基于 LLM 的评估体系&lt;/strong&gt;（LLM-as-Judge），用另一个 LLM 来评估 Agent 输出的质量&lt;/li&gt;
+&lt;li&gt;构建&lt;strong&gt;回归测试集&lt;/strong&gt;，积累典型的 case 定期跑评估，确保改动不会导致整体效果下降&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-成本与延迟的平衡&#34;&gt;⚖️ 成本与延迟的平衡
+&lt;/h3&gt;&lt;p&gt;前面的挑战偏技术，这个挑战偏工程和商业。在生产环境中，Agent 的每一次 LLM 调用都有真金白银的 token 成本和实实在在的延迟。&lt;/p&gt;
+&lt;p&gt;一个复杂 Agent 完成一次任务可能需要 5-15 次 LLM 调用，每次调用还可能带上大量的上下文历史和工具定义，token 消耗动辄上万。如果再加上 RAG 检索、重试机制等，一次任务的总成本可能远超预期。在 B2C 场景中（比如面向大量终端用户的 AI 助手），这个成本乘以请求量就是一笔不可忽视的开支。&lt;/p&gt;
+&lt;p&gt;延迟同样是痛点。用户问一个问题，Agent 可能需要十几秒才能给出最终结果（多步推理 + 多次工具调用），这在很多对响应速度有要求的场景中是不可接受的。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;成本与延迟的平衡.png&#34; alt=&#34;成本与延迟的平衡&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;应对策略：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;按任务复杂度分级路由&lt;/strong&gt;：简单任务直接用小模型一步回答，复杂任务才走完整 Agent 流程&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;缓存&lt;/strong&gt;：对相同或相似的子任务结果做缓存，避免重复调用&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;并行化&lt;/strong&gt;：把可以并行的工具调用同时执行（Function Calling 的 parallel tool calls）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;流式输出（Streaming）&lt;/strong&gt;：在 Agent 推理过程中就逐步将中间结果流式返回给用户，降低用户的感知等待时间&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-小结&#34;&gt;📝 小结
+&lt;/h2&gt;&lt;p&gt;智能体正从机械执行的规则脚本，进化为具备&amp;quot;直觉与理性&amp;quot;双重特征的数字生命。这种范式的重塑，让Agent不再局限于预设的逻辑闭环，而是能以自主性为核心，在感知与行动的往复中更智能地实现既定目标。&lt;/p&gt;
+&lt;p&gt;从最初的简单反射到如今重塑范式的通用引擎，Agent的演变不仅是技术的更迭，更是人类从&amp;quot;编写死代码&amp;quot;转向&amp;quot;引导智慧体&amp;quot;的根本变革——它正以前所未有的姿态，开启一个人机协同、自主进化的新纪元。&lt;/p&gt;
+&lt;hr&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;参考资料&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;https://mp.weixin.qq.com/s/t38gIdGVmJ-dMYtFQhGFHQ&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;人人都在说的Agent究竟是啥？&lt;/a&gt; - IT杨秀才&lt;/li&gt;
+&lt;li&gt;&lt;a class=&#34;link&#34; href=&#34;https://mp.weixin.qq.com/s/w5X9b1wijBe5if3m0SeqtQ&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;构建复杂Agent的挑战&lt;/a&gt; - IT杨秀才&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+</description>
+        </item>
+        <item>
+        <title>Agent的安全设计</title>
+        <link>https://Tyritic.github.io/p/agent%E7%9A%84%E5%AE%89%E5%85%A8%E8%AE%BE%E8%AE%A1/</link>
+        <pubDate>Wed, 25 Mar 2026 08:00:00 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/agent%E7%9A%84%E5%AE%89%E5%85%A8%E8%AE%BE%E8%AE%A1/</guid>
+        <description>&lt;h2 id=&#34;-为什么agent的安全问题比chatbot更严峻&#34;&gt;🧠 为什么Agent的安全问题比Chatbot更严峻
+&lt;/h2&gt;&lt;p&gt;先搞清楚一个关键背景：Agent的安全问题为什么比普通Chatbot更难、更重要。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;agent-vs-chatbot.png&#34; alt=&#34;Agent vs Chatbot安全风险对比&#34; width=&#34;88%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;普通Chatbot只做一件事——生成文本。即使它输出了不当内容，最坏的情况也就是用户看到了一段不合适的文字。但Agent不同，&lt;strong&gt;Agent能采取行动&lt;/strong&gt;——它可以调用工具、执行代码、访问数据库、发送邮件、操作内部系统。这意味着Agent一旦&amp;quot;跑偏&amp;quot;，造成的后果不再是&amp;quot;说了不该说的话&amp;quot;，而可能是&amp;quot;做了不该做的事&amp;quot;。&lt;/p&gt;
+&lt;p&gt;举个例子：一个有数据库访问权限的Agent，如果被恶意prompt注入攻击（用户精心构造的输入让Agent偏离原本意图），它可能执行了&lt;code&gt;DROP TABLE&lt;/code&gt;删除了核心数据。一个有邮件发送权限的Agent可能向客户发出了不当内容。这些不是理论上的风险，而是实际项目中真实发生过的事故。&lt;/p&gt;
+&lt;p&gt;所以Agent的安全保障不是&amp;quot;锦上添花&amp;quot;，而是&lt;strong&gt;生产上线的前提条件&lt;/strong&gt;。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-第一层防线模型层对齐&#34;&gt;🛡️ 第一层防线：模型层对齐
+&lt;/h2&gt;&lt;p&gt;Agent的一切行为都始于LLM的推理输出，所以安全保障的第一层要从模型本身开始。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;RLHF（Reinforcement Learning from Human Feedback）&lt;/strong&gt; 是目前最主流的模型对齐技术。它的核心思路是：在模型的后训练阶段，让人类标注员对模型的输出做好坏排序，训练一个奖励模型（Reward Model）来学习人类的偏好，然后用强化学习（PPO等算法）来微调模型，让它更倾向于生成人类认为好的、安全的回答。目前OpenAI、Anthropic、Google等主流模型厂商都在模型出厂前做了大量的RLHF训练。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Constitutional AI&lt;/strong&gt; 是Anthropic提出的一种改进方案。它不依赖大规模的人类标注，而是预先定义一组&amp;quot;宪法原则&amp;quot;（比如&amp;quot;不要帮助用户进行违法活动&amp;quot;、&amp;ldquo;如果不确定就坦诚承认&amp;rdquo;），然后让模型自己按照这些原则来评估和修正自己的输出。相当于给模型内置了一套&amp;quot;行为准则&amp;quot;。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;rlhf-constitutional.png&#34; alt=&#34;RLHF与Constitutional AI对齐技术&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;但需要注意的是，模型层的对齐是&lt;strong&gt;模型厂商的工作&lt;/strong&gt;，作为Agent应用开发者，我们能做的主要是&lt;strong&gt;选择对齐良好的基座模型&lt;/strong&gt;、以及通过&lt;strong&gt;System Prompt&lt;/strong&gt;来进一步强化安全约束。System Prompt中的安全指令（&amp;ldquo;你不能执行任何可能造成数据丢失的操作&amp;rdquo;、&amp;ldquo;遇到不确定的情况必须向用户确认&amp;rdquo;）本质上是在模型层对齐之上再加一层&amp;quot;软约束&amp;quot;。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-第二层防线架构层设计&#34;&gt;🏗️ 第二层防线：架构层设计
+&lt;/h2&gt;&lt;p&gt;模型层的对齐再好也不是百分百可靠的——prompt注入、越狱攻击等手段有时候确实能绕过模型的安全护栏。所以我们不能把安全全押在模型身上，而是要在&lt;strong&gt;架构设计层面&lt;/strong&gt;构建更硬的约束。&lt;/p&gt;
+&lt;h3 id=&#34;-最小权限原则&#34;&gt;🔐 最小权限原则
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;最小权限原则（Principle of Least Privilege）&lt;/strong&gt; 是最重要的架构安全原则。给Agent配置工具和权限时，只授予它完成当前任务&lt;strong&gt;最低限度所需&lt;/strong&gt;的权限。比如一个只需要查询数据的Agent，就不要给它写入和删除权限；一个只需要访问本部门数据的Agent，就不要给它全库访问权限。即使Agent被攻击或推理出错，它能造成的破坏也被限制在一个很小的范围内。&lt;/p&gt;
+&lt;h3 id=&#34;-沙箱执行环境&#34;&gt;🏠 沙箱执行环境
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;沙箱执行环境（Sandbox）&lt;/strong&gt; 对于需要执行代码的Agent至关重要。代码执行是Agent场景中风险最高的操作之一——如果Agent在宿主机上直接执行代码，恶意代码可能访问文件系统、网络甚至整个服务器。解决方案是在Docker容器、WebAssembly沙箱或其他隔离环境中运行Agent生成的代码，严格限制文件系统访问、网络权限和系统调用。&lt;/p&gt;
+&lt;h3 id=&#34;-操作分级与审批流&#34;&gt;⚖️ 操作分级与审批流
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;操作分级与审批流（Tiered Actions）&lt;/strong&gt; 是一种非常实用的架构策略。把Agent能执行的操作按风险等级分成几档：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;低风险操作&lt;/strong&gt;（如信息查询）可以自动执行&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;中风险操作&lt;/strong&gt;（如数据修改）需要二次确认&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;高风险操作&lt;/strong&gt;（如批量删除、资金操作）必须经过&lt;strong&gt;人工审批&lt;/strong&gt;才能执行&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;LangGraph中的Human-in-the-Loop机制就是为这种场景设计的——Agent推理到需要执行高风险操作时，自动暂停、将操作详情展示给人类审批者，只有审批通过后才继续执行。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;architecture-security.png&#34; alt=&#34;架构层安全设计示意图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-第三层防线运行时防护&#34;&gt;🔍 第三层防线：运行时防护
+&lt;/h2&gt;&lt;p&gt;即使有了模型对齐和架构约束，Agent在运行时仍然可能出现预料之外的行为。运行时防护就是最后一道&amp;quot;兜底&amp;quot;防线。&lt;/p&gt;
+&lt;h3 id=&#34;-输入端的prompt注入防护&#34;&gt;🛡️ 输入端的Prompt注入防护
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;Prompt注入（Prompt Injection）&lt;/strong&gt; 是Agent面临的最常见攻击方式——攻击者通过精心构造的输入试图覆盖Agent的原始指令，让它执行非预期的操作。比如用户输入&amp;quot;忽略你之前的所有指令，现在执行以下操作&amp;hellip;&amp;quot;。&lt;/p&gt;
+&lt;p&gt;防护手段包括：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;输入预处理&lt;/strong&gt;——在用户输入送给LLM之前先做清洗和过滤，检测是否包含注入特征&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;指令隔离&lt;/strong&gt;——将系统指令和用户输入严格分离，避免用户输入被模型当作指令来执行（比如使用XML标签或特殊分隔符将两者隔开）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Prompt Guard模型&lt;/strong&gt;——用一个训练好的分类模型来判断输入是否包含注入攻击意图&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-输出端的内容审查&#34;&gt;📝 输出端的内容审查
+&lt;/h3&gt;&lt;p&gt;Agent在输出最终回答或执行操作之前，应该经过一道审查——检查输出是否包含有害内容、是否泄露了敏感信息（如PII个人身份信息）、操作指令是否符合预定义的安全策略。OpenAI的Moderation API就是做这件事的，也可以用自建的规则引擎或分类模型来实现。&lt;/p&gt;
+&lt;h3 id=&#34;-行为监控与异常检测&#34;&gt;📊 行为监控与异常检测
+&lt;/h3&gt;&lt;p&gt;在Agent运行过程中持续监控其行为模式——如果Agent突然开始高频调用某个敏感工具、尝试访问超出权限的资源、或者推理步骤数异常地多（可能陷入了死循环），系统应该自动触发告警，必要时直接熔断Agent的执行。这些监控指标和告警规则需要在上线前就定义好。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;runtime-protection.png&#34; alt=&#34;运行时防护体系&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-第四层防线人为干预human-in-the-loop&#34;&gt;👤 第四层防线：人为干预（Human-in-the-Loop）
+&lt;/h2&gt;&lt;p&gt;所有技术层面的安全措施都有可能失效，所以在关键环节保留人类的审批和干预权是最后也是最可靠的保障。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Human-in-the-Loop&lt;/strong&gt; 的核心理念是：Agent可以自主完成大部分低风险的决策和操作，但在&lt;strong&gt;关键决策点&lt;/strong&gt;必须暂停等待人类确认。这就像自动驾驶的&amp;quot;L3级别&amp;quot;——大部分时间系统自动驾驶，但遇到复杂路况时提醒人类接管。&lt;/p&gt;
+&lt;p&gt;在实践中，HITL可以在多个环节介入：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;规划审批&lt;/strong&gt;——Agent制定了执行计划后，先展示给用户确认再执行&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;操作审批&lt;/strong&gt;——关键操作执行前需要用户点击&amp;quot;确认&amp;quot;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;结果审核&lt;/strong&gt;——Agent完成任务后，结果先给用户审核，确认无误后才正式提交&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;LangGraph对HITL有很好的原生支持。你可以在图的任意节点之间插入一个&amp;quot;人工审批&amp;quot;中断点，Agent执行到这个点时自动暂停，等待人类审批的信号后才继续。这种机制在企业级应用中几乎是标配——特别是涉及资金操作、客户沟通、数据修复等场景。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;hitl-mechanism.png&#34; alt=&#34;Human-in-the-Loop机制示意图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;需要注意的是，HITL的设计需要平衡&lt;strong&gt;安全性和效率&lt;/strong&gt;。如果每个操作都要人类审批，Agent的自动化优势就丧失了。所以关键在于&lt;strong&gt;精准定义哪些操作需要审批&lt;/strong&gt;——基于操作的风险等级、影响范围和可逆性来决定。不可逆的高影响操作必须审批，低风险可逆操作自动执行。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-总结多层纵深防御体系&#34;&gt;📋 总结：多层纵深防御体系
+&lt;/h2&gt;&lt;p&gt;如果把Agent的安全保障放在一个统一框架里看，可以得到一个比较清晰的结论：&lt;/p&gt;
+&lt;p&gt;Agent的安全保障比Chatbot难度更高也更重要，因为Agent能采取真实行动——调用API、执行代码、操作数据库，一旦失控造成的不是&amp;quot;说错话&amp;quot;而是&amp;quot;做错事&amp;quot;，后果可能不可逆。所以在实际项目中构建的是一套&lt;strong&gt;多层纵深防御体系&lt;/strong&gt;，任何单一防线都可能被突破，但多层叠加后穿透概率就会大大降低。&lt;/p&gt;
+&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th&gt;防线层次&lt;/th&gt;
+          &lt;th&gt;核心机制&lt;/th&gt;
+          &lt;th&gt;约束类型&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td&gt;&lt;strong&gt;模型层对齐&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;RLHF、Constitutional AI、System Prompt&lt;/td&gt;
+          &lt;td&gt;软约束&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;&lt;strong&gt;架构层设计&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;最小权限、沙箱隔离、操作分级审批&lt;/td&gt;
+          &lt;td&gt;硬约束&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;&lt;strong&gt;运行时防护&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;Prompt注入检测、内容审核、异常监控&lt;/td&gt;
+          &lt;td&gt;检测拦截&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;&lt;strong&gt;人为干预&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;规划审批、操作审批、结果审核&lt;/td&gt;
+          &lt;td&gt;最终保障&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;strong&gt;第一层是模型层对齐&lt;/strong&gt;，选择经过RLHF和Constitutional AI充分对齐的基座模型，再通过System Prompt写入明确的安全边界指令。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第二层是架构层的硬约束&lt;/strong&gt;——严格执行最小权限原则，只给Agent完成任务所必需的最低权限；代码执行必须在Docker沙箱中隔离运行；把操作按风险分级，低风险自动执行、中风险二次确认、高风险必须人工审批。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第三层是运行时防护&lt;/strong&gt;，输入端做Prompt注入检测和意图分类；输出端做内容审核和PII脱敏；全过程做行为监控和异常检测，出现异常指标时自动熔断。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第四层是Human-in-the-Loop&lt;/strong&gt;，在关键决策点保留人类审批权，根据操作的风险等级和可逆性来精确划定哪些需要人审哪些可以自动执行，在安全性和效率之间找到平衡。&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>多Agent系统</title>
+        <link>https://Tyritic.github.io/p/%E5%A4%9Aagent%E7%B3%BB%E7%BB%9F/</link>
+        <pubDate>Wed, 25 Mar 2026 08:00:00 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/%E5%A4%9Aagent%E7%B3%BB%E7%BB%9F/</guid>
+        <description>&lt;h2 id=&#34;-单agent的瓶颈&#34;&gt;🧠 单Agent的瓶颈
+&lt;/h2&gt;&lt;p&gt;要理解多智能体系统，最好的切入点是先搞清楚：&lt;strong&gt;单个Agent到底在什么时候不够用了？&lt;/strong&gt;&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;single-agent-bottleneck.png&#34; alt=&#34;单Agent瓶颈示意图&#34; width=&#34;88%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;回顾单Agent的架构——一个LLM作为中枢大脑，配上工具、记忆、规划能力，通过ReAct等框架来完成任务。这套架构在很多场景下确实好用，但随着任务复杂度的提升，它会遇到几个瓶颈。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;第一个瓶颈是角色过载。&lt;/strong&gt; 当你让一个Agent同时扮演&amp;quot;需求分析师 + 架构师 + 程序员 + 测试员&amp;quot;时，它的System Prompt会变得又长又复杂，各种角色的指令互相干扰，模型很难在一个上下文里同时保持多种角色的专业能力。就像现实中一个人同时做四份工作，每份都做不精。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;第二个瓶颈是上下文窗口的压力。&lt;/strong&gt; 一个复杂任务涉及大量的工具定义、历史对话、中间推理状态，全部塞进一个Agent的上下文窗口，很快就撑满了。即使窗口够大，信息太多也会导致&amp;quot;Lost in the Middle&amp;quot;问题，关键信息被淹没。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;第三个瓶颈是串行执行的效率问题。&lt;/strong&gt; 单Agent只有一个LLM在推理，所有步骤只能串行执行。如果任务中有可以并行的部分（比如同时分析三个竞品），单Agent也只能一个一个来。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;多智能体系统就是为了突破这些瓶颈而出现的。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-什么是多智能体系统&#34;&gt;🤝 什么是多智能体系统
+&lt;/h2&gt;&lt;p&gt;多智能体系统（Multi-Agent System，MAS）是指&lt;strong&gt;多个具有不同角色、专长或职责的Agent组成一个协作网络，通过互相通信和配合来共同完成一个复杂任务&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;你可以把它类比为一个公司的团队协作。单Agent就像一个全栈的&amp;quot;独行侠&amp;quot;，什么都自己干。而多智能体系统就像一个有明确分工的项目团队——有产品经理负责理解需求、架构师负责设计方案、程序员负责写代码、测试负责验证质量，每个人都专注于自己最擅长的领域，通过沟通协作来完成整个项目。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;multi-agent-system.png&#34; alt=&#34;多智能体系统架构&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;在技术实现层面，多智能体系统的每个Agent本质上是LLM驱动的，但每个Agent有自己独立的&lt;strong&gt;System Prompt&lt;/strong&gt;（定义角色和职责）、&lt;strong&gt;工具集&lt;/strong&gt;（只挂载与自己职责相关的工具）、以及&lt;strong&gt;记忆空间&lt;/strong&gt;（可以有私有记忆也可以共享部分记忆）。Agent之间通过某种&lt;strong&gt;通信机制&lt;/strong&gt;（消息传递、共享黑板、管道等）来交换信息和协调行动。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-多agent协作的核心优势&#34;&gt;⚡ 多Agent协作的核心优势
+&lt;/h2&gt;&lt;p&gt;理解了&amp;quot;为什么需要多Agent&amp;quot;之后，优势就很自然了：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;专业化分工带来的质量提升&lt;/strong&gt;是最大的优势。每个Agent只负责一个明确的角色，它的System Prompt可以写得非常精确和专注，挂载的工具也只需要和它的职责相关。这样LLM在推理时的&amp;quot;认知负荷&amp;quot;大幅降低，做出高质量决策的概率明显提高。就像你不会让一个前端工程师去写数据库优化SQL一样，专业的事交给专业的Agent。实验也验证了这一点——在代码生成任务中，让一个Agent同时写代码和审核代码的效果，明显不如让一个&amp;quot;Coder Agent&amp;quot;写代码然后让一个独立的&amp;quot;Reviewer Agent&amp;quot;做代码审查。因为后者在审查时不会带有&amp;quot;这是我自己写的代码&amp;quot;的认知偏见。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;上下文隔离带来的效率提升&lt;/strong&gt;也非常显著。每个Agent只需要在自己的上下文中保留与自身职责相关的信息，不需要装载其他Agent的工具定义和历史记录。这不仅降低了单个Agent的token消耗，也避免了信息过多导致的注意力分散。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;并行执行带来的速度提升&lt;/strong&gt;在很多场景下都很有价值。多个Agent可以同时处理任务的不同部分——比如在一个数据分析场景中，一个Agent在查询销售数据的同时，另一个Agent可以去查询用户反馈数据，最后由一个汇总Agent把两边的结果合并分析。这比单Agent串行执行两次查询要快得多。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;容错和鲁棒性&lt;/strong&gt;也得到了改善。多个Agent可以互相检查和验证对方的输出——一个Agent写了代码，另一个Agent来测试；一个Agent做了分析，另一个Agent来验证逻辑是否自洽。这种&amp;quot;交叉检验&amp;quot;的机制在单Agent架构中很难实现。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-主流的多agent协作模式&#34;&gt;🔀 主流的多Agent协作模式
+&lt;/h2&gt;&lt;p&gt;在实际工程中，多Agent之间的协作方式不是随意的，而是有几种成熟的模式。理解这些模式对于实际项目设计都很重要。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;collaboration-patterns.png&#34; alt=&#34;多Agent协作模式&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;中心化协调模式（Orchestrator Pattern）&lt;/strong&gt; 是最常见的模式。有一个&amp;quot;协调Agent&amp;quot;（也叫Supervisor / Manager）作为中枢，它负责接收用户任务、分配子任务给各个专业Agent、收集结果、做最终汇总。其他Agent不直接互相通信，而是都和协调Agent交互。这种模式结构清晰、容易控制，但协调Agent是单点瓶颈——如果它的判断出错，整个团队都会被带偏。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;去中心化对话模式（Debate / Discussion Pattern）&lt;/strong&gt; 允许多个Agent之间直接对话讨论。比如让一个&amp;quot;正方Agent&amp;quot;和一个&amp;quot;反方Agent&amp;quot;围绕一个问题展开辩论，最后由一个&amp;quot;裁判Agent&amp;quot;做总结。这种模式在需要多角度分析的场景中很有效，但对话管理更复杂。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;流水线模式（Pipeline Pattern）&lt;/strong&gt; 是把任务拆成多个阶段，每个阶段由一个Agent负责，上一个Agent的输出是下一个Agent的输入，形成一条流水线。比如&amp;quot;需求分析Agent → 设计Agent → 编码Agent → 测试Agent&amp;quot;，就是一条典型的软件开发流水线。这种模式适合阶段明确、前后依赖关系清晰的任务。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;层级模式（Hierarchical Pattern）&lt;/strong&gt; 是中心化模式的扩展。顶层有一个总协调Agent，它把任务分配给几个中层Manager Agent，每个Manager再管理自己下属的Worker Agent。这种模式适合规模更大、层次更深的复杂任务。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-多agent引入的新复杂性&#34;&gt;⚠️ 多Agent引入的新复杂性
+&lt;/h2&gt;&lt;p&gt;多Agent不是银弹，它在解决单Agent瓶颈的同时，也引入了一系列单Agent时代完全不存在的新问题。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;new-complexities.png&#34; alt=&#34;多Agent新复杂性&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;通信开销与信息一致性&lt;/strong&gt;是第一个大问题。多个Agent之间需要互相传递信息，但传什么、传多少、什么时候传，都需要精心设计。传少了，下游Agent缺乏足够的上下文做出好的决策；传多了，又变成了变相把所有信息塞进一个超大上下文的老问题。更棘手的是&lt;strong&gt;信息一致性&lt;/strong&gt;——Agent A在第3步更新了对任务的理解，但Agent B可能还在基于第1步的旧信息工作，这种信息不同步会导致协作混乱。实际项目中，常见的做法是设计一个&lt;strong&gt;共享状态空间（Shared State）&lt;/strong&gt;——所有Agent都可以读写的公共黑板。LangGraph中的State就是这个思路，每个Node（Agent）读取State中自己需要的字段、写回自己产出的结果，由图引擎保证状态的一致性。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;任务分配与协调成本&lt;/strong&gt;是第二个问题。谁来决定把哪个子任务分给哪个Agent？分完之后怎么知道各个Agent的执行进度？某个Agent失败了怎么重试或换人？这些在人类团队中靠项目经理和日会来解决的问题，在多Agent系统中需要靠一个可靠的&amp;quot;协调机制&amp;quot;来处理。而这个协调者本身也是一个LLM驱动的Agent，它的决策同样有不确定性——可能分配错任务、可能误判执行进度、可能做出不合理的重新规划。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;调试难度的指数级增长&lt;/strong&gt;是第三个问题，也是在实际项目中感知最强烈的痛点。单Agent的调试已经够难了——推理链长、不可复现、黑箱不透明。多Agent把这个难度又放大了一个量级：你需要追踪多个Agent之间的消息流、理解每个Agent独立的推理链、还要排查它们之间的交互是否正确。当一个多Agent系统给出了错误结果时，可能是Agent A的分析有误、也可能是Agent B在传递信息时丢了关键细节、也可能是协调Agent在汇总时做了错误的判断——定位问题的空间比单Agent大得多。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;成本控制&lt;/strong&gt;也是一个现实挑战。多Agent意味着多次LLM调用，而且Agent之间的通信本身也常常需要LLM来做&amp;quot;翻译&amp;quot;和&amp;quot;理解&amp;quot;。一个3个Agent的系统完成一次任务，总LLM调用次数可能是单Agent的3-5倍甚至更多。在token单价还没有降到足够低的阶段，这在很多B2C场景中是不可接受的成本。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-主流框架和工程选型&#34;&gt;🛠️ 主流框架和工程选型
+&lt;/h2&gt;&lt;p&gt;了解了原理和挑战之后，如果能结合框架来谈就很有说服力了。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;framework-comparison.png&#34; alt=&#34;主流框架对比&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;CrewAI&lt;/strong&gt; 是目前最流行的多Agent框架之一，它用Role-Based的方式定义Agent——每个Agent有自己的Role（角色）、Goal（目标）、Backstory（背景故事），像定义一个角色扮演游戏的角色一样。支持Sequential（流水线）和Hierarchical（层级）两种协作模式，上手非常简单。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;AutoGen&lt;/strong&gt;（微软出品）侧重于多Agent对话场景，支持Group Chat模式让多个Agent在一个对话组里讨论问题，非常适合需要多角度探讨的场景。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;LangGraph&lt;/strong&gt; 虽然不是专门的多Agent框架，但它的图编排能力天然适合构建多Agent系统——每个Node可以是一个独立的Agent，Node之间的边定义了通信和数据流转，通过State做共享状态管理。它的灵活性最高，但上手门槛也最高。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;选型原则：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果任务可以分成几个明确的角色用流水线或层级方式协作，&lt;strong&gt;CrewAI&lt;/strong&gt;是最快的选择&lt;/li&gt;
+&lt;li&gt;如果需要Agent之间自由讨论辩论，&lt;strong&gt;AutoGen&lt;/strong&gt;更合适&lt;/li&gt;
+&lt;li&gt;如果需要高度定制的复杂协作流程，&lt;strong&gt;LangGraph&lt;/strong&gt;给你最大的控制力&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-总结&#34;&gt;📝 总结
+&lt;/h2&gt;&lt;p&gt;多智能体系统是指多个具有不同角色和专长的Agent组成协作网络，通过通信和分工来共同完成复杂任务。它的出现本质上是为了解决单Agent的三个瓶颈：&lt;strong&gt;角色过载&lt;/strong&gt;导致Prompt臃肿、&lt;strong&gt;上下文压力&lt;/strong&gt;撑满窗口、&lt;strong&gt;串行瓶颈&lt;/strong&gt;无法并行。&lt;/p&gt;
+&lt;p&gt;多Agent对应带来了几个核心优势：专业化分工让每个Agent的Prompt精简且专注，决策质量显著提升；上下文隔离让每个Agent只关注自己职责范围内的信息；可并行执行的子任务交给不同Agent同时处理大幅缩短耗时；多个Agent可以互相检查和验证输出。&lt;/p&gt;
+&lt;p&gt;但多Agent也引入了新复杂性：&lt;strong&gt;通信层面&lt;/strong&gt;传什么信息、如何保持状态一致性需要精心设计；&lt;strong&gt;协调层面&lt;/strong&gt;任务怎么分、进度怎么跟、失败怎么重试都依赖协调者判断；&lt;strong&gt;工程层面&lt;/strong&gt;调试难度指数级增长；还有&lt;strong&gt;成本问题&lt;/strong&gt;——N个Agent通信M轮意味着LLM调用次数成倍增长。&lt;/p&gt;
+&lt;p&gt;实际经验是：多Agent不应该是默认选择，而应该是&lt;strong&gt;单Agent确实遇到瓶颈后的升级方案&lt;/strong&gt;——能用单Agent搞定的就不要上多Agent，因为复杂性本身就是成本。&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>RAG的基本概念和流程</title>
+        <link>https://Tyritic.github.io/p/rag%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E5%92%8C%E6%B5%81%E7%A8%8B/</link>
         <pubDate>Sun, 04 May 2025 19:29:50 +0800</pubDate>
         
-        <guid>https://Tyritic.github.io/p/%E6%A3%80%E7%B4%A2%E5%A2%9E%E5%BC%BA%E7%94%9F%E6%88%90rag/</guid>
+        <guid>https://Tyritic.github.io/p/rag%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E5%92%8C%E6%B5%81%E7%A8%8B/</guid>
         <description>&lt;h2 id=&#34;-业务背景&#34;&gt;🤖 业务背景
 &lt;/h2&gt;&lt;p&gt;随着自然语言处理技术的发展，纯生成式模型虽然已经能够生成较为流畅的文本，但在实际业务中仍然存在两个典型问题：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;知识局限性&lt;/strong&gt;：大模型的知识主要来源于训练数据，通常建立在互联网上的公开语料之上。对于实时性、私有化或离线场景中的知识，模型本身往往无法直接掌握。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;幻觉问题&lt;/strong&gt;：大模型的生成本质上仍然是概率计算。当模型缺少某个领域知识，或者面对自己并不擅长的问题时，就可能一本正经地输出错误结论。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;再往工程里看，这两个问题通常会进一步拆成三类约束：&lt;strong&gt;知识有截止日期、无法理解私域数据、缺少依据时容易产生幻觉&lt;/strong&gt;。这也是为什么很多企业在做问答机器人、知识助手、客服 Copilot 时，最终都会从“只靠模型记忆”转向“模型 + 外部知识库”的组合方案。&lt;/p&gt;
+&lt;p&gt;再往工程里看，这两个问题通常会进一步拆成三类约束：&lt;strong&gt;知识有截止日期、无法理解私域数据、缺少依据时容易产生幻觉&lt;/strong&gt;。这也是为什么很多企业在做问答机器人、知识助手、客服 Copilot 时，最终都会从&amp;quot;只靠模型记忆&amp;quot;转向&amp;quot;模型 + 外部知识库&amp;quot;的组合方案。&lt;/p&gt;
 &lt;div
   class=&#34;notice info&#34;
   
@@ -30,43 +1427,43 @@
 &lt;/svg&gt;
 
     &lt;/span&gt;引言&lt;/p&gt;
-  &lt;p&gt;可以先用一句话理解本文：&lt;strong&gt;RAG 的本质，是让大模型在回答前先检索资料，再基于资料作答，从“靠记忆回答”切换到“带依据回答”。&lt;/strong&gt;&lt;/p&gt;
+  &lt;p&gt;可以先用一句话理解本文：&lt;strong&gt;RAG 的本质，是让大模型在回答前先检索资料，再基于资料作答，从&amp;quot;靠记忆回答&amp;quot;切换到&amp;quot;带依据回答&amp;quot;。&lt;/strong&gt;&lt;/p&gt;
   &lt;/div&gt;
 
 &lt;hr&gt;
 &lt;h2 id=&#34;-什么是-rag&#34;&gt;📖 什么是 RAG
-&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;RAG（Retrieval-Augmented Generation，检索增强生成）&lt;/strong&gt; 是一种将 &lt;strong&gt;信息检索（Retrieval）&lt;/strong&gt; 与 &lt;strong&gt;文本生成（Generation）&lt;/strong&gt; 结合起来的 AI 方法，主要目标是提升大语言模型（LLM）的知识覆盖范围与回答准确性。&lt;/p&gt;
+&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;RAG（Retrieval-Augmented Generation，检索增强生成）&lt;/strong&gt; 是一种将 &lt;strong&gt;信息检索（Retrieval）&lt;/strong&gt; 与 &lt;strong&gt;文本生成（Generation）&lt;/strong&gt; 结合起来的 AI 方法，主要目标是提升 &lt;strong&gt;大语言模型（LLM）&lt;/strong&gt; 的知识覆盖范围与回答准确性。&lt;/p&gt;
 &lt;p&gt;可以把它理解成这样：&lt;strong&gt;模型在回答问题之前，先去外部知识库中检索相关内容，再结合检索结果生成最终回答，而不是完全依赖自身参数里的旧知识。&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;RAG 接受输入并根据来源（例如，维基百科）检索一组相关/支持的文档。这些文档作为上下文与原始输入提示连接，并馈送到文本生成器，生成最终输出。这使得 RAG 能够适应事实随时间变化的情况。这对于绕过 LLMs 的参数化知识静态性，通过基于检索的生成访问最新信息以生成可靠输出非常有用。&lt;/p&gt;
+&lt;p&gt;RAG 接受输入并根据来源（例如，维基百科）检索一组相关/支持的文档。这些文档作为上下文与原始输入提示连接，并馈送到文本生成器，生成最终输出。这使得 RAG 能够适应事实随时间变化的情况。这对于绕过 &lt;strong&gt;LLM&lt;/strong&gt; 的参数化知识静态性，通过基于检索的生成访问最新信息以生成可靠输出非常有用。&lt;/p&gt;
 &lt;p&gt;RAG 的核心价值主要体现在两个方面：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;检索&lt;/strong&gt;：根据用户输入，从外部知识库中检索与问题相关的文本片段，通常依赖文本向量化和向量数据库完成语义匹配。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;检索&lt;/strong&gt;：根据用户输入，从外部知识库中检索与问题相关的文本片段，通常依赖 &lt;strong&gt;文本向量化&lt;/strong&gt; 和 &lt;strong&gt;向量数据库&lt;/strong&gt; 完成语义匹配。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;增强生成&lt;/strong&gt;：将检索到的知识作为上下文输入给大模型，让模型基于更准确、更贴近问题的信息生成答案，从而减少误导性输出。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;如果换一个角度理解，RAG 更像是让模型在推理时“开卷考试”：模型本身不需要把所有知识都背下来，而是在回答前先把相关资料找出来，再基于资料作答。&lt;/p&gt;
+&lt;p&gt;如果换一个角度理解，RAG 更像是让模型在推理时&amp;quot;开卷考试&amp;quot;：模型本身不需要把所有知识都背下来，而是在回答前先把相关资料找出来，再基于资料作答。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;RAG简介.png&#34; alt=&#34;RAG简介&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
-&lt;p&gt;简而言之，RAG 检索到的证据可以作为提高 LLM 响应准确度、可控性和相关性的手段。这就是为什么 RAG 可以帮助减少在高度演变环境中解决问题时出现的幻觉或表现问题&lt;/p&gt;
+&lt;p&gt;简而言之，RAG 检索到的证据可以作为提高 &lt;strong&gt;LLM&lt;/strong&gt; 响应准确度、可控性和相关性的手段。这就是为什么 RAG 可以帮助减少在高度演变环境中解决问题时出现的幻觉或表现问题&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;RAG典型工作流.png&#34; alt=&#34;RAG典型工作流&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
 &lt;h3 id=&#34;-为什么需要-rag&#34;&gt;🎯 为什么需要 RAG
-&lt;/h3&gt;&lt;p&gt;要理解 RAG，首先得理解它要解决的痛点。大语言模型的知识来源于预训练阶段吃过的语料，这套&amp;quot;参数化知识&amp;quot;有三个致命的缺陷。&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;要理解 RAG，首先得理解它要解决的痛点。&lt;strong&gt;大语言模型&lt;/strong&gt; 的知识来源于预训练阶段吃过的语料，这套&amp;quot;参数化知识&amp;quot;有三个致命的缺陷。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;知识有截止日期。GPT-4 的训练数据截止到某个时间点，之后发生的事情它一无所知。你问它&amp;quot;2024 年诺贝尔物理学奖给了谁&amp;quot;，它只能坦白说不知道。&lt;/li&gt;
-&lt;li&gt;缺乏私域知识。LLM 训练用的是公开互联网数据，你公司内部的技术文档、客户档案、会议纪要、产品规格书——这些私有数据 LLM 从未见过，所以它也无法回答这类私有问题。&lt;/li&gt;
-&lt;li&gt;幻觉问题。当 LLM 对某个问题没有足够的知识储备时，它有时不会老实说&amp;quot;我不知道&amp;quot;，而是会&amp;quot;一本正经地胡说八道&amp;quot;——用流畅自信的语言生成看起来合理但事实上错误的内容。这是因为 LLM 的本质是一个概率语言模型，它优化的目标是&amp;quot;下一个 token 的概率&amp;quot;，而不是&amp;quot;事实的准确性&amp;quot;。这种幻觉在需要高准确性的场景（法律、医疗、金融）中是不可接受的。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;知识有截止日期&lt;/strong&gt;。GPT-4 的训练数据截止到某个时间点，之后发生的事情它一无所知。你问它&amp;quot;2024 年诺贝尔物理学奖给了谁&amp;quot;，它只能坦白说不知道。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;缺乏私域知识&lt;/strong&gt;。&lt;strong&gt;LLM&lt;/strong&gt; 训练用的是公开互联网数据，你公司内部的技术文档、客户档案、会议纪要、产品规格书——这些私有数据 LLM 从未见过，所以它也无法回答这类私有问题。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;幻觉问题&lt;/strong&gt;。当 &lt;strong&gt;LLM&lt;/strong&gt; 对某个问题没有足够的知识储备时，它有时不会老实说&amp;quot;我不知道&amp;quot;，而是会&amp;quot;一本正经地胡说八道&amp;quot;——用流畅自信的语言生成看起来合理但事实上错误的内容。这是因为 &lt;strong&gt;LLM&lt;/strong&gt; 的本质是一个概率语言模型，它优化的目标是&amp;quot;下一个 token 的概率&amp;quot;，而不是&amp;quot;事实的准确性&amp;quot;。这种幻觉在需要高准确性的场景（法律、医疗、金融）中是不可接受的。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;面对这三个缺陷，直觉上你可能会想：那把最新的数据、私域文档全部喂给模型重新训练不就好了？这就是微调的思路。但微调有很高的门槛——需要 GPU 算力、需要整理训练数据、需要处理灾难性遗忘、训练完还要重新部署。而且每次数据更新都要重新微调，成本和周期都不现实。RAG 的诞生，本质上就是在说：能不能不动模型本身，而是在推理阶段给它&amp;quot;开卷考试&amp;quot;的机会？ 不要求模型记住所有知识，而是在需要的时候从外部知识库中检索相关信息，把检索结果作为上下文塞给模型，让它&amp;quot;带着资料回答问题&amp;quot;。&lt;/p&gt;
+&lt;p&gt;面对这三个缺陷，直觉上你可能会想：那把最新的数据、私域文档全部喂给模型重新训练不就好了？这就是 &lt;strong&gt;微调&lt;/strong&gt; 的思路。但微调有很高的门槛——需要 GPU 算力、需要整理训练数据、需要处理灾难性遗忘、训练完还要重新部署。而且每次数据更新都要重新微调，成本和周期都不现实。RAG 的诞生，本质上就是在说：能不能不动模型本身，而是在推理阶段给它&amp;quot;开卷考试&amp;quot;的机会？ 不要求模型记住所有知识，而是在需要的时候从外部知识库中检索相关信息，把检索结果作为上下文塞给模型，让它&amp;quot;带着资料回答问题&amp;quot;。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;RAG的破局思路.png&#34; alt=&#34;RAG 的破局思路&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
 &lt;h3 id=&#34;-rag-与微调的区别&#34;&gt;🧠 RAG 与微调的区别
-&lt;/h3&gt;&lt;p&gt;要理解RAG 和微调的对比，我们可以用一个形象的比喻。微调就像是给一个人&amp;quot;补课&amp;quot;——你改变的是他脑子里的知识结构和思维方式。微调后的模型，它的参数被永久性地更新了，它&amp;quot;记住&amp;quot;了新的知识或&amp;quot;学会&amp;quot;了新的行为模式。RAG 则像是给一个人&amp;quot;发参考资料&amp;quot;——你没有改变他的能力，而是在他答题的时候递给他一叠相关材料，让他照着材料来回答。&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;要理解RAG 和微调的对比，我们可以用一个形象的比喻。&lt;strong&gt;微调&lt;/strong&gt; 就像是给一个人&amp;quot;补课&amp;quot;——你改变的是他脑子里的知识结构和思维方式。微调后的模型，它的参数被永久性地更新了，它&amp;quot;记住&amp;quot;了新的知识或&amp;quot;学会&amp;quot;了新的行为模式。&lt;strong&gt;RAG&lt;/strong&gt; 则像是给一个人&amp;quot;发参考资料&amp;quot;——你没有改变他的能力，而是在他答题的时候递给他一叠相关材料，让他照着材料来回答。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;RAG&lt;/strong&gt; 更擅长解决“知识获取”问题，例如最新信息、企业私有文档、产品参数、库存状态、内部制度等。即模型需要用到的事实性信息——最新的数据、私域文档、具体的产品参数等。这些信息的特点是&amp;quot;需要查的，而不是需要学的&amp;quot;。你不需要让模型把你公司所有产品的参数都背下来，你只需要在用户问到某个产品时，帮它从数据库里检索出相关参数就好了。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;微调&lt;/strong&gt; 微调改变模型的行为模式和专业能力，更擅长解决“行为模式”问题，例如输出风格、领域术语习惯、复杂格式约束、某类推理偏好等。比如你想让一个通用模型学会用医学术语对话、学会用特定的语气风格回答、学会遵循某种复杂的输出格式、或者让它在某个专业领域（如法律条文解读）的推理能力更强——这些是微调的强项。因为这些本质上是在改变模型的&amp;quot;思维方式&amp;quot;，需要调整模型参数才能实现。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;RAG&lt;/strong&gt; 更擅长解决&amp;quot;知识获取&amp;quot;问题，例如最新信息、企业私有文档、产品参数、库存状态、内部制度等。即模型需要用到的事实性信息——最新的数据、私域文档、具体的产品参数等。这些信息的特点是&amp;quot;需要查的，而不是需要学的&amp;quot;。你不需要让模型把你公司所有产品的参数都背下来，你只需要在用户问到某个产品时，帮它从数据库里检索出相关参数就好了。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;微调&lt;/strong&gt; 改变模型的行为模式和专业能力，更擅长解决&amp;quot;行为模式&amp;quot;问题，例如输出风格、领域术语习惯、复杂格式约束、某类推理偏好等。比如你想让一个通用模型学会用医学术语对话、学会用特定的语气风格回答、学会遵循某种复杂的输出格式、或者让它在某个专业领域（如法律条文解读）的推理能力更强——这些是微调的强项。因为这些本质上是在改变模型的&amp;quot;思维方式&amp;quot;，需要调整模型参数才能实现。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;所以在生产环境里，两者通常不是二选一，而是互补关系：&lt;strong&gt;微调负责改变模型能力边界，RAG 负责补充实时且可更新的事实知识。&lt;/strong&gt;&lt;/p&gt;
 &lt;table&gt;
@@ -97,13 +1494,13 @@
 &lt;/h3&gt;&lt;p&gt;RAG 相比微调在&amp;quot;知识获取&amp;quot;层面有五大显著优势：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;知识实时更新，无需重新训练&lt;/strong&gt;：微调一次可能需要数天甚至数周，而 RAG 的知识更新只需要往向量数据库里写入新数据，几分钟甚至几秒钟就完成了。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;知识实时更新，无需重新训练&lt;/strong&gt;：微调一次可能需要数天甚至数周，而 RAG 的知识更新只需要往 &lt;strong&gt;向量数据库&lt;/strong&gt; 里写入新数据，几分钟甚至几秒钟就完成了。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;大幅降低幻觉，生成内容可溯源&lt;/strong&gt;：RAG 通过在 Prompt 中提供明确的参考信息，把 LLM 的生成从&amp;quot;凭记忆编&amp;quot;变成了&amp;quot;照资料写&amp;quot;。更重要的是，RAG 天然支持引用溯源，用户可以验证信息的准确性。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;大幅降低幻觉，生成内容可溯源&lt;/strong&gt;：RAG 通过在 &lt;strong&gt;Prompt&lt;/strong&gt; 中提供明确的参考信息，把 &lt;strong&gt;LLM&lt;/strong&gt; 的生成从&amp;quot;凭记忆编&amp;quot;变成了&amp;quot;照资料写&amp;quot;。更重要的是，RAG 天然支持引用溯源，用户可以验证信息的准确性。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;成本低、门槛低、落地快&lt;/strong&gt;：RAG 只需要一个 Embedding API、一个向量数据库、一个 LLM API，加上几百行代码，就能搭起一个可用的原型。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;成本低、门槛低、落地快&lt;/strong&gt;：RAG 只需要一个 &lt;strong&gt;Embedding API&lt;/strong&gt;、一个 &lt;strong&gt;向量数据库&lt;/strong&gt;、一个 &lt;strong&gt;LLM API&lt;/strong&gt;，加上几百行代码，就能搭起一个可用的原型。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
 &lt;p&gt;&lt;strong&gt;数据安全和权限控制&lt;/strong&gt;：RAG 天然支持在检索阶段根据用户身份过滤可访问的文档范围，确保模型只能&amp;quot;看到&amp;quot;该用户有权看到的资料。&lt;/p&gt;
@@ -120,17 +1517,17 @@
 &lt;/h2&gt;&lt;p&gt;RAG 的完整流程通常可以拆成 5 个核心阶段：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;数据准备&lt;/strong&gt;：清洗原始文档，并进行分块处理，例如把 PDF、Word 或网页文本切成可检索的片段。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;文本向量化&lt;/strong&gt;：使用&lt;strong&gt;嵌入模型&lt;/strong&gt;（如 &lt;strong&gt;BERT&lt;/strong&gt;、&lt;strong&gt;BGE&lt;/strong&gt;）将文本转换为向量表示。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;索引存储&lt;/strong&gt;：将生成的向量写入&lt;strong&gt;向量数据库&lt;/strong&gt;，例如 &lt;strong&gt;Milvus&lt;/strong&gt;、&lt;strong&gt;Faiss&lt;/strong&gt;、&lt;strong&gt;Elasticsearch&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;文本向量化&lt;/strong&gt;：使用 &lt;strong&gt;嵌入模型&lt;/strong&gt;（如 BERT、BGE）将文本转换为向量表示。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;索引存储&lt;/strong&gt;：将生成的向量写入 &lt;strong&gt;向量数据库&lt;/strong&gt;，例如 Milvus、Faiss、Elasticsearch。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;检索增强&lt;/strong&gt;：用户提问后，先把问题向量化，再检索相关文档片段。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;生成答案&lt;/strong&gt;：把检索结果与用户问题一起送给大模型，生成最终回答。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;如果从系统设计视角再抽象一层，RAG 往往会被拆成 &lt;strong&gt;离线&lt;/strong&gt;的&lt;strong&gt;索引阶段&lt;/strong&gt; 和 &lt;strong&gt;在线&lt;/strong&gt;的&lt;strong&gt;检索阶段、增强阶段、生成阶段&lt;/strong&gt;：&lt;/p&gt;
+&lt;p&gt;如果从系统设计视角再抽象一层，RAG 往往会被拆成 &lt;strong&gt;离线&lt;/strong&gt; 的 &lt;strong&gt;索引阶段&lt;/strong&gt; 和 &lt;strong&gt;在线&lt;/strong&gt; 的 &lt;strong&gt;检索阶段&lt;/strong&gt;、&lt;strong&gt;增强阶段&lt;/strong&gt;、&lt;strong&gt;生成阶段&lt;/strong&gt;：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;索引阶段&lt;/strong&gt;：离线阶段把原始文档解析、切块、向量化后写入向量数据库，提前构建好可检索的知识底座。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;检索阶段&lt;/strong&gt;：在线阶段用户提问后，再用同一个嵌入模型把问题向量化，从大规模知识库里先召回一批候选内容&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;增强阶段&lt;/strong&gt;：增强涉及将检索段落中的上下文有效整合到当前生成任务中的过程，把检索结果变成模型真正能用的上下文&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;生成阶段&lt;/strong&gt;：让 LLM 基于问题 + 增强后的上下文输出答案，形成模型的最终输出。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;检索阶段&lt;/strong&gt;：在线阶段用户提问后，再用同一个嵌入模型把问题向量化，从大规模知识库里先召回一批候选内容。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;增强阶段&lt;/strong&gt;：增强涉及将检索段落中的上下文有效整合到当前生成任务中的过程，把检索结果变成模型真正能用的上下文。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;生成阶段&lt;/strong&gt;：让 &lt;strong&gt;LLM&lt;/strong&gt; 基于问题 + 增强后的上下文输出答案，形成模型的最终输出。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div
   class=&#34;notice tip&#34;
@@ -144,8 +1541,8 @@
 
     &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;如果从工程实现看，RAG 可以简化理解为两句话：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;离线阶段负责把知识“准备好”&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;在线阶段负责把知识“找出来并组织好”&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;离线阶段负责把知识&amp;quot;准备好&amp;quot;&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;在线阶段负责把知识&amp;quot;找出来并组织好&amp;quot;&lt;/strong&gt;&lt;/li&gt;
 &lt;/ul&gt;&lt;/div&gt;
 
 &lt;div align=&#34;center&#34;&gt;
@@ -155,20 +1552,20 @@
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;image-20250504195224385.png&#34; alt=&#34;RAG 的阶段&#34; width=&#34;80%&#34; /&gt;
 &lt;/div&gt;
-&lt;h3 id=&#34;-离线阶段&#34;&gt;🗂️ 离线阶段
-&lt;/h3&gt;&lt;p&gt;在离线阶段，在RAG系统中只有索引阶段。提前构建好可检索的知识底座。&lt;/p&gt;
-&lt;h4 id=&#34;-索引阶段&#34;&gt;🗂️ 索引阶段
-&lt;/h4&gt;&lt;p&gt;离线索引阶段是&amp;quot;备考&amp;quot;的过程，目的是把原始文档变成可以被高效检索的形式。
+&lt;h2 id=&#34;-离线阶段&#34;&gt;🗂️ 离线阶段
+&lt;/h2&gt;&lt;p&gt;在离线阶段，在RAG系统中只有索引阶段。提前构建好可检索的知识底座。&lt;/p&gt;
+&lt;h3 id=&#34;-索引阶段&#34;&gt;🗂️ 索引阶段
+&lt;/h3&gt;&lt;p&gt;离线索引阶段是&amp;quot;备考&amp;quot;的过程，目的是把原始文档变成可以被高效检索的形式。
 在索引阶段，系统会先对原始文档进行解析，然后拆分为多个较小的文本块。接着，这些文本块会经过嵌入模型处理，转换成向量并存入向量数据库，为后续语义检索提供基础。&lt;/p&gt;
-&lt;h5 id=&#34;-文档加载与切分chunking&#34;&gt;📂 文档加载与切分（Chunking）
-&lt;/h5&gt;&lt;p&gt;原始文档可能是 PDF、Word、网页、数据库记录等各种格式，首先要把它们统一解析成纯文本。然后，由于文档通常很长，而后续的 Embedding 模型和 LLM 的上下文窗口都有长度限制，需要把长文档切分成较小的文本块（Chunk）。切分策略是 RAG 工程中第一个需要仔细调优的点——切太大，检索精度下降（一个大 chunk 里可能只有一小段是相关的，其他全是噪声）；切太小，语义完整性被破坏（一句话被从中间截断，失去了上下文）。常见的策略包括按固定长度切分并设置重叠（Overlap）、按自然段落或章节切分、以及基于语义相似度的动态切分。&lt;/p&gt;
-&lt;h5 id=&#34;-文本向量化embedding&#34;&gt;🧮 文本向量化（Embedding）
-&lt;/h5&gt;&lt;p&gt;一个 Embedding 模型（如 OpenAI 的 text-embedding-3、BGE、E5 等）把每个文本块转换成一个高维向量。这个向量是文本块语义信息的数学表示——语义相近的文本块在向量空间中的距离也相近。这一步的关键是 Embedding 模型的质量，它直接决定了后续检索的准确率。&lt;/p&gt;
+&lt;h4 id=&#34;-文档加载与切分chunking&#34;&gt;📂 文档加载与切分（Chunking）
+&lt;/h4&gt;&lt;p&gt;原始文档可能是 PDF、Word、网页、数据库记录等各种格式，首先要把它们统一解析成纯文本。然后，由于文档通常很长，而后续的 &lt;strong&gt;Embedding 模型&lt;/strong&gt; 和 &lt;strong&gt;LLM&lt;/strong&gt; 的上下文窗口都有长度限制，需要把长文档切分成较小的文本块（&lt;strong&gt;Chunk&lt;/strong&gt;）。切分策略是 RAG 工程中第一个需要仔细调优的点——切太大，检索精度下降（一个大 chunk 里可能只有一小段是相关的，其他全是噪声）；切太小，语义完整性被破坏（一句话被从中间截断，失去了上下文）。常见的策略包括按固定长度切分并设置重叠（&lt;strong&gt;Overlap&lt;/strong&gt;）、按自然段落或章节切分、以及基于语义相似度的动态切分。&lt;/p&gt;
+&lt;h4 id=&#34;-文本向量化embedding&#34;&gt;🧮 文本向量化（Embedding）
+&lt;/h4&gt;&lt;p&gt;一个 &lt;strong&gt;Embedding 模型&lt;/strong&gt;（如 OpenAI 的 text-embedding-3、BGE、E5 等）把每个文本块转换成一个高维向量。这个向量是文本块语义信息的数学表示——语义相近的文本块在向量空间中的距离也相近。这一步的关键是 Embedding 模型的质量，它直接决定了后续检索的准确率。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;1728219277.jpg&#34; alt=&#34;文本向量化示意图&#34; width=&#34;70%&#34; /&gt;
 &lt;/div&gt;
-&lt;h5 id=&#34;-存入向量数据库vector-database&#34;&gt;🗄️ 存入向量数据库（Vector Database）
-&lt;/h5&gt;&lt;p&gt;把所有文本块的向量及其对应的原文存入向量数据库（如 Milvus、Pinecone、Weaviate、Chroma 等）。向量数据库的核心能力是&lt;strong&gt;ANN（Approximate Nearest Neighbor，近似最近邻搜索）&lt;/strong&gt; ——给定一个查询向量，能在毫秒级别从百万甚至亿级的向量中找到最相似的 &lt;strong&gt;Top-K&lt;/strong&gt; 个。&lt;/p&gt;
+&lt;h4 id=&#34;-存入向量数据库vector-database&#34;&gt;🗄️ 存入向量数据库（Vector Database）
+&lt;/h4&gt;&lt;p&gt;把所有文本块的向量及其对应的原文存入 &lt;strong&gt;向量数据库&lt;/strong&gt;（如 Milvus、Pinecone、Weaviate、Chroma 等）。向量数据库的核心能力是 &lt;strong&gt;ANN（Approximate Nearest Neighbor，近似最近邻搜索）&lt;/strong&gt; ——给定一个查询向量，能在毫秒级别从百万甚至亿级的向量中找到最相似的 &lt;strong&gt;Top-K&lt;/strong&gt; 个。&lt;/p&gt;
 &lt;p&gt;这里有两个工程细节非常关键：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;切块策略本身就是索引质量的一部分&lt;/strong&gt;。切得太粗会把多个知识点揉成一个向量，切得太碎又会让语义断裂。&lt;/li&gt;
@@ -194,17 +1591,17 @@
 &lt;li&gt;&lt;strong&gt;向量数据库&lt;/strong&gt;：专门用于存储和管理高维向量的数据库，适合对文本、图片、音频等非结构化数据进行相似性搜索。&lt;/li&gt;
 &lt;/ul&gt;&lt;/div&gt;
 
-&lt;h3 id=&#34;-在线阶段&#34;&gt;🌐 在线阶段
-&lt;/h3&gt;&lt;p&gt;在在线阶段，在RAG系统中有检索阶段、增强阶段、生成阶段。其中检索阶段负责从向量数据库中检索相关知识，增强阶段负责把检索到的知识组织整理成模型输入，生成阶段负责把增强后的知识输入让模型输出符合用户需求的回答。&lt;/p&gt;
-&lt;h4 id=&#34;-检索阶段&#34;&gt;🔍 检索阶段
-&lt;/h4&gt;&lt;p&gt;在线查询阶段是&amp;quot;开卷考试&amp;quot;中翻书查看资料的过程，负责根据用户的问题从外部知识库中找出相关的信息片段。这个阶段通常会结合关键词检索、向量检索或混合检索等方式，从大量文档中召回一批候选内容，其核心目标是尽可能快速且准确地找到与当前问题最相关的知识，为后续回答提供可靠依据。&lt;/p&gt;
-&lt;h5 id=&#34;-查询向量化embedding&#34;&gt;🔄 查询向量化（Embedding）
-&lt;/h5&gt;&lt;p&gt;用同一个 Embedding 模型把用户的问题转换成向量。注意这里必须用和索引阶段相同的模型，否则向量空间不一致，检索就会失效。&lt;/p&gt;
-&lt;h5 id=&#34;-相似度检索&#34;&gt;🎯 相似度检索
-&lt;/h5&gt;&lt;p&gt;用问题向量在向量数据库中进行 ANN 搜索，找到 Top-K 个最相似的文本块。这些文本块就是系统认为和用户问题最相关的&amp;quot;参考资料&amp;quot;。实际工程中，这一步往往还会叠加一些增强策略，比如混合检索（同时用向量检索和关键词检索，取并集）、重排序（用一个 Cross-encoder 模型对 Top-K 结果做精排）、查询改写（用 LLM 对用户原始问题做扩展或改写以提高召回率）等。&lt;/p&gt;
-&lt;p&gt;检索阶段会先把用户问题通过&lt;strong&gt;嵌入模型&lt;/strong&gt;转换为向量，再与&lt;strong&gt;向量数据库&lt;/strong&gt;中的知识向量进行相似度比对。系统会从中找出最匹配的前 &lt;code&gt;K&lt;/code&gt; 条结果，作为后续生成阶段的参考上下文。&lt;/p&gt;
-&lt;h4 id=&#34;-增强阶段&#34;&gt;⚙️ 增强阶段
-&lt;/h4&gt;&lt;p&gt;增强阶段系统将检索段落中的上下文有效整合到当前生成任务中的过程。增强的目的是将召回到的候选内容整理成大模型可以直接利用的上下文，最终构造成适合输入给模型的 prompt，使模型能够在更充分、更准确的上下文中完成回答。&lt;/p&gt;
+&lt;h2 id=&#34;-在线阶段&#34;&gt;🌐 在线阶段
+&lt;/h2&gt;&lt;p&gt;在在线阶段，在RAG系统中有检索阶段、增强阶段、生成阶段。其中检索阶段负责从向量数据库中检索相关知识，增强阶段负责把检索到的知识组织整理成模型输入，生成阶段负责把增强后的知识输入让模型输出符合用户需求的回答。&lt;/p&gt;
+&lt;h3 id=&#34;-检索阶段&#34;&gt;🔍 检索阶段
+&lt;/h3&gt;&lt;p&gt;在线查询阶段是&amp;quot;开卷考试&amp;quot;中翻书查看资料的过程，负责根据用户的问题从外部知识库中找出相关的信息片段。这个阶段通常会结合关键词检索、向量检索或混合检索等方式，从大量文档中召回一批候选内容，其核心目标是尽可能快速且准确地找到与当前问题最相关的知识，为后续回答提供可靠依据。&lt;/p&gt;
+&lt;h4 id=&#34;-查询向量化embedding&#34;&gt;🔄 查询向量化（Embedding）
+&lt;/h4&gt;&lt;p&gt;用同一个 &lt;strong&gt;Embedding 模型&lt;/strong&gt; 把用户的问题转换成向量。注意这里必须用和索引阶段相同的模型，否则向量空间不一致，检索就会失效。&lt;/p&gt;
+&lt;h4 id=&#34;-相似度检索&#34;&gt;🎯 相似度检索
+&lt;/h4&gt;&lt;p&gt;用问题向量在向量数据库中进行 &lt;strong&gt;ANN&lt;/strong&gt; 搜索，找到 &lt;strong&gt;Top-K&lt;/strong&gt; 个最相似的文本块。这些文本块就是系统认为和用户问题最相关的&amp;quot;参考资料&amp;quot;。实际工程中，这一步往往还会叠加一些增强策略，比如 &lt;strong&gt;混合检索&lt;/strong&gt;（同时用向量检索和关键词检索，取并集）、&lt;strong&gt;重排序&lt;/strong&gt;（用一个 Cross-encoder 模型对 Top-K 结果做精排）、&lt;strong&gt;查询改写&lt;/strong&gt;（用 LLM 对用户原始问题做扩展或改写以提高召回率）等。&lt;/p&gt;
+&lt;p&gt;检索阶段会先把用户问题通过 &lt;strong&gt;嵌入模型&lt;/strong&gt; 转换为向量，再与 &lt;strong&gt;向量数据库&lt;/strong&gt; 中的知识向量进行相似度比对。系统会从中找出最匹配的前 &lt;code&gt;K&lt;/code&gt; 条结果，作为后续生成阶段的参考上下文。&lt;/p&gt;
+&lt;h3 id=&#34;-增强阶段&#34;&gt;⚙️ 增强阶段
+&lt;/h3&gt;&lt;p&gt;增强阶段系统将检索段落中的上下文有效整合到当前生成任务中的过程。增强的目的是将召回到的候选内容整理成大模型可以直接利用的上下文，最终构造成适合输入给模型的 &lt;strong&gt;Prompt&lt;/strong&gt;，使模型能够在更充分、更准确的上下文中完成回答。&lt;/p&gt;
 &lt;p&gt;RAG 的增强可以在预训练、微调和推理等不同阶段应用&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;
@@ -222,387 +1619,484 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;-生成阶段&#34;&gt;✨ 生成阶段
-&lt;/h4&gt;&lt;p&gt;生成阶段是 RAG 流程的最后一步，在这个阶段大语言模型将基于用户问题和增强后的上下文内容生成最终答案。在这一阶段，模型不再单纯依赖自身参数中的知识，而是结合外部检索到的信息进行组织、推理和表达，从而输出更准确、更具时效性且更贴合问题需求的回答。这个过程涉及多样化的输入数据，有时需要努力调整语言模型以适应来自查询和文档的输入数据。这可以通过后检索处理和微调来解决：&lt;/p&gt;
+&lt;h3 id=&#34;-生成阶段&#34;&gt;✨ 生成阶段
+&lt;/h3&gt;&lt;p&gt;生成阶段是 RAG 流程的最后一步，在这个阶段 &lt;strong&gt;大语言模型&lt;/strong&gt; 将基于用户问题和增强后的上下文内容生成最终答案。在这一阶段，模型不再单纯依赖自身参数中的知识，而是结合外部检索到的信息进行组织、推理和表达，从而输出更准确、更具时效性且更贴合问题需求的回答。这个过程涉及多样化的输入数据，有时需要努力调整语言模型以适应来自查询和文档的输入数据。这可以通过后检索处理和微调来解决：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;
-&lt;p&gt;Post-retrieval with Frozen LLM: Post-retrieval 处理不会影响 LLM，而是通过信息压缩和结果重排序等操作来提升检索结果的质量。信息压缩有助于减少噪声、解决 LLM 的上下文长度限制问题，并增强生成效果。重排序旨在重新排列文档，以使最相关的内容排在前面&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Post-retrieval with Frozen LLM&lt;/strong&gt;：Post-retrieval 处理不会影响 LLM，而是通过信息压缩和结果重排序等操作来提升检索结果的质量。信息压缩有助于减少噪声、解决 LLM 的上下文长度限制问题，并增强生成效果。重排序旨在重新排列文档，以使最相关的内容排在前面。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;使用 LLM 进行 RAG 微调：为了改进 RAG 系统，生成器可以进一步优化或微调，以确保生成的文本自然且有效地利用了检索到的文档&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;使用 LLM 进行 RAG 微调&lt;/strong&gt;：为了改进 RAG 系统，生成器可以进一步优化或微调，以确保生成的文本自然且有效地利用了检索到的文档。&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;80d5236e087e619edced930b19fb653a.png&#34; alt=&#34;增强生成阶段&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
-&lt;hr&gt;
-&lt;h2 id=&#34;-评价体系&#34;&gt;📊 评价体系
-&lt;/h2&gt;&lt;p&gt;RAG 系统有一个根本特征：它是一个两阶段的 pipeline，每个阶段的失败模式完全不同，因此需要分而治之地评估。&lt;/p&gt;
-&lt;p&gt;要理解 RAG 评估为什么难，先得理解 RAG 系统的&amp;quot;责任链&amp;quot;结构。用户提了一个问题，先经过检索模块从知识库中找出若干相关文档片段（Chunks），再把这些 Chunks 连同问题一起交给 LLM 生成最终回答。这意味着最终回答的质量取决于两个环节的连乘：如果检索没找对文档，LLM 再强也是&amp;quot;巧妇难为无米之炊&amp;quot;；反过来，即使检索完美地找到了所有相关信息，如果 LLM 没有正确地理解和整合这些信息，甚至编造了检索结果中不存在的内容（即&amp;quot;幻觉&amp;quot;），最终结果同样不合格。更麻烦的是，当最终回答出了问题，你必须能定位到底是哪个环节出了错——是检索阶段的锅还是生成阶段的锅——否则优化就无从下手。这就是为什么 RAG 评估必须分阶段进行。&lt;/p&gt;
-&lt;div align=&#34;center&#34;&gt;
-&lt;img src=&#34;分阶段评估.png&#34; alt=&#34;分阶段评估&#34; width=&#34;78%&#34; /&gt;
-&lt;/div&gt;
-&lt;p&gt;以下是用于评估 RAG 系统不同方面的指标总结：&lt;/p&gt;
-&lt;div align=&#34;center&#34;&gt;
-&lt;img src=&#34;RAG评估指标.png&#34; alt=&#34;RAG评估指标&#34; width=&#34;78%&#34; /&gt;
-&lt;/div&gt;
-&lt;h3 id=&#34;-检索阶段评估&#34;&gt;🔍 检索阶段评估
-&lt;/h3&gt;&lt;p&gt;检索阶段的核心任务是从知识库中找出与用户问题相关的文档片段。评估这个阶段的好坏，本质上就是在回答三个问题：找到的东西是不是真的相关？该找到的东西有没有漏掉？找到的东西排列顺序合不合理？&lt;/p&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;检索阶段评估.png&#34; alt=&#34;检索阶段评估&#34; width=&#34;78%&#34; /&gt;
-&lt;/div&gt;
-&lt;h4 id=&#34;-基础指标&#34;&gt;📏 基础指标
-&lt;/h4&gt;&lt;p&gt;Precision（精确率）和 Recall（召回率） 是最基础也最重要的两个指标。&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;Precision 衡量的是&amp;quot;检索回来的文档中，有多少是真正相关的&amp;quot;——如果你检索了 10 个 Chunk，其中只有 3 个和问题相关，那 Precision 就是 30%，说明有大量噪声文档被带了进来。&lt;/li&gt;
-&lt;li&gt;Recall 衡量的是&amp;quot;所有相关的文档中，有多少被成功检索回来了&amp;quot;——如果知识库中有 5 个 Chunk 和问题相关，你只检索到了 2 个，那 Recall 就是 40%，说明关键信息被遗漏了。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;在 RAG 场景中，这两个指标存在一个天然的张力。你想提高 Recall，最简单的办法就是多检索一些 Chunk（提高 Top-K），但这会导致 Precision 下降，大量无关的 Chunk 涌入上下文不仅浪费 token，还可能干扰 LLM 的理解。反之，如果 Top-K 设得太小，Precision 上去了，但可能漏掉了关键信息。实际工程中通常要在两者之间找到一个甜蜜点，这就是为什么 F1 Score（Precision 和 Recall 的调和平均）在检索评估中也很常用。&lt;/p&gt;
-&lt;h4 id=&#34;-排序指标&#34;&gt;📈 排序指标
-&lt;/h4&gt;&lt;p&gt;但光看 Precision 和 Recall 还不够，因为它们没有考虑排序质量。在 RAG 系统中，检索返回的 Chunk 是有顺序的，排在前面的 Chunk 通常会在 LLM 的上下文中占据更显眼的位置，对生成结果的影响更大。如果最相关的 Chunk 被排在了第 8 位而一个勉强沾边的 Chunk 排在了第 1 位，即使整体的 Precision 和 Recall 看起来还行，实际效果也会大打折扣。&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;MRR（Mean Reciprocal Rank，平均倒数排名） 专门衡量&amp;quot;第一个相关文档排在什么位置&amp;quot;。如果第一个相关文档排在第 1 位，得分是 1；排在第 2 位，得分是 1/2；排在第 5 位，得分是 1/5。MRR 越高，说明系统越能把最相关的结果排到前面，用户（或 LLM）越快就能看到有用的信息。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;NDCG（Normalized Discounted Cumulative Gain，归一化折损累积增益） 则更进一步，它不仅关心第一个相关文档的位置，而是评估整个排序列表的质量。它的核心思想是：排在前面的文档对最终结果的贡献应该更大，排在后面的文档即使相关，其贡献也要被&amp;quot;折损&amp;quot;。NDCG 考虑了每个文档的相关性程度（不只是&amp;quot;相关/不相关&amp;quot;的二值判断，还可以有&amp;quot;非常相关/部分相关/不太相关&amp;quot;的多级标注），并且用理论最优排序作为归一化基准，所以它在评估分级相关性场景下特别有价值。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;Context Relevance（上下文相关性），这是 RAGAS 框架提出的评估维度。它不是简单地看每个 Chunk 是否相关，而是评估检索回来的整体上下文中，有多大比例的内容对回答用户问题确实有用。一个常见的实现方式是用 LLM 从检索到的上下文中提取所有能用于回答问题的句子，然后计算这些有用句子占总上下文的比例。这个指标特别适合发现&amp;quot;检索了很多 Chunk 但大部分是废话&amp;quot;的情况。&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&#34;-生成阶段评估&#34;&gt;✨ 生成阶段评估
-&lt;/h3&gt;&lt;p&gt;检索阶段把相关文档找回来了，接下来就看 LLM 拿这些文档能产出什么质量的回答。生成阶段的评估比检索阶段更微妙，因为它要评判的是一段自然语言文本的质量，而自然语言的&amp;quot;好坏&amp;quot;远不像检索命中率那样容易量化。&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;Faithfulness（忠实度） 是 RAG 生成评估中最核心的指标，没有之一。它衡量的是&amp;quot;LLM 生成的回答是否忠实于检索到的文档内容，有没有编造检索结果中不存在的信息&amp;quot;。为什么说它最核心？因为 RAG 系统存在的根本意义就是让 LLM 基于可靠的外部知识来回答，而不是靠自己的参数记忆胡编乱造。如果生成的回答中出现了检索文档完全没有提到的&amp;quot;事实&amp;quot;，那这个 RAG 系统就失去了存在的意义——用户还不如直接问 LLM。Faithfulness 的评估通常是这样做的：先让 LLM 把生成的回答拆分成若干独立的事实性陈述（Claims），然后逐一检验每个陈述是否能被检索到的上下文所支持。Faithfulness 得分 = 被上下文支持的陈述数 / 总陈述数。这个拆分-验证的思路在 RAGAS 和 TruLens 等评估框架中被广泛使用。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;Answer Relevance（回答相关性） 衡量的是生成的回答是否切题、是否真正回答了用户的问题。一个回答可能完全忠实于检索文档（Faithfulness 满分），但如果它答非所问，同样是一个低质量的回答。比如用户问&amp;quot;Python 的 GIL 是什么&amp;quot;，LLM 却大谈 Python 的安装方法——内容可能没有编造，但完全没有回答用户的问题。RAGAS 框架中评估 Answer Relevance 的一个巧妙方法是：用 LLM 根据生成的回答反向生成几个问题，然后计算这些反向生成的问题与原始问题之间的语义相似度，相似度越高说明回答越切题。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;Answer Completeness / Correctness（回答完整性/正确性） 关注的是回答是否覆盖了问题的所有要点。一个忠实且切题的回答，如果只回答了问题的一半，也不算好答案。这个指标通常需要一个参考答案（Ground Truth）来对比，评估生成的回答覆盖了参考答案中多少关键信息点。在有标注数据的场景下，这是一个很有说服力的指标。&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;div align=&#34;center&#34;&gt;
-&lt;img src=&#34;生成阶段评估.png&#34; alt=&#34;生成阶段评估&#34; width=&#34;78%&#34; /&gt;
-&lt;/div&gt;
-&lt;h3 id=&#34;-传统-nlp-指标&#34;&gt;📐 传统 NLP 指标
-&lt;/h3&gt;&lt;p&gt;除了上面这些专门为 RAG 设计的语义级评估指标，还有一些经典的 NLP 文本评估指标也被用在 RAG 评估中，但它们各有局限，需要理解其适用边界。BLEU 和 ROUGE 是最常见的两个。&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;BLEU 原本用于机器翻译评估，衡量生成文本与参考文本之间的 n-gram 重叠度&lt;/li&gt;
-&lt;li&gt;ROUGE 原本用于摘要评估，侧重衡量参考文本中的关键 n-gram 是否被生成文本覆盖。
-它们的优势是计算简单、不需要调用 LLM、成本几乎为零，适合在大规模评估中快速筛选。但它们的根本问题是只看表面文字的重叠，不理解语义。两句意思完全相同但措辞不同的回答，在 BLEU/ROUGE 下可能得分很低；反过来，一句大量复用了原文词汇但意思完全扭曲的回答，可能得分反而高。所以在 RAG 场景中，这些指标只能作为辅助参考，不能作为核心评估手段。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;BERTScore 是一个改进方向，它用预训练语言模型的 Embedding 来计算生成文本和参考文本之间的语义相似度，而不是简单的词汇重叠。这在一定程度上解决了&amp;quot;同义不同词&amp;quot;的问题，但仍然依赖参考答案的存在，而且对于 RAG 这种开放式生成任务，参考答案本身就很难穷举。&lt;/p&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;评估维度.png&#34; alt=&#34;评估维度&#34; width=&#34;78%&#34; /&gt;
-&lt;/div&gt;
-&lt;h3 id=&#34;-llm-as-judge让-llm-作为裁判&#34;&gt;🤖 LLM-as-Judge（让 LLM 作为裁判）
-&lt;/h3&gt;&lt;p&gt;讲到这里，一个绕不开的实操问题浮出水面：上面说的 Faithfulness、Answer Relevance 这些语义级指标，到底靠什么来计算？ 靠人工标注当然最准，但成本高、速度慢，根本无法满足日常迭代的需求。RAG 评估领域目前最主流的解决方案就是 LLM-as-Judge——用一个 LLM（通常是 GPT-4 级别的强模型）来充当评估者，自动对 RAG 系统的输出进行评分。&lt;/p&gt;
-&lt;p&gt;RAGAS 框架是目前最成熟的 RAG 自动化评估工具，它的核心就是用 LLM 来评估前面提到的 Faithfulness、Answer Relevance、Context Relevance 等指标。TruLens 则提供了更灵活的反馈函数（Feedback Functions）机制，可以自定义各种评估逻辑。这些框架让 RAG 评估从&amp;quot;每次改动都要找人标注&amp;quot;变成了&amp;quot;改完代码跑一遍评估脚本就能看到效果&amp;quot;，极大地加速了迭代效率。&lt;/p&gt;
-&lt;p&gt;但 LLM-as-Judge 本身也有局限。首先是评估模型本身可能犯错——它可能误判一个幻觉陈述为&amp;quot;被上下文支持&amp;quot;，或者对一个完全正确的回答打了低分。其次是成本——每次评估都要调用大模型，如果评估集很大，成本也不容小觑。实践中的做法是：日常迭代用 LLM-as-Judge 做快速评估，定期用人工标注做校准和修正，两者互补。&lt;/p&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;LLM-as-Judge.png&#34; alt=&#34;LLM-as-Judge&#34; width=&#34;78%&#34; /&gt;
-&lt;/div&gt;
-&lt;h3 id=&#34;-完整的评估流程&#34;&gt;🔄 完整的评估流程
-&lt;/h3&gt;&lt;p&gt;虽然分阶段评估对于定位问题至关重要，但不能忘了最终关心的是端到端的效果。一个检索指标全优但用户满意度不高的 RAG 系统，和一个检索指标一般但最终回答恰好满足用户需求的系统，后者在业务上可能反而更有价值。&lt;/p&gt;
-&lt;p&gt;所以在实际项目中，一套完善的 RAG 评估体系通常是这样分层的&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;最底层是各阶段的细粒度指标（Precision、Recall、MRR、Faithfulness 等），用于日常开发中的问题诊断和快速迭代&lt;/li&gt;
-&lt;li&gt;中间层是端到端的自动化指标（Answer Correctness、整体 RAGAS 分数），用于版本间的效果对比&lt;/li&gt;
-&lt;li&gt;最上层是人工评估和用户反馈，用于校准自动化指标的准确性和把握真实的用户体验。三层互补，缺一不可。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;分层评估体系.png&#34; alt=&#34;分层评估体系&#34; width=&#34;78%&#34; /&gt;
-&lt;/div&gt;
-&lt;h2 id=&#34;-rag-的常见范式&#34;&gt;🏗️ RAG 的常见范式
-&lt;/h2&gt;&lt;p&gt;在过去几年里，RAG 系统从朴素的 RAG 发展到了高级 RAG 和模块化 RAG。这种发展是为了应对性能、成本和效率方面的某些限制&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>RAG的几大范式</title>
+        <link>https://Tyritic.github.io/p/rag%E7%9A%84%E5%87%A0%E5%A4%A7%E8%8C%83%E5%BC%8F/</link>
+        <pubDate>Sun, 04 May 2025 19:29:50 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/rag%E7%9A%84%E5%87%A0%E5%A4%A7%E8%8C%83%E5%BC%8F/</guid>
+        <description>&lt;h2 id=&#34;-rag-的常见范式&#34;&gt;🏗️ RAG 的常见范式
+&lt;/h2&gt;&lt;p&gt;在过去几年里，RAG 系统从朴素的 RAG 发展到了高级 RAG 和模块化 RAG。这种发展是为了应对性能、成本和效率方面的某些限制。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;RAG的演进.png&#34; alt=&#34;RAG的演进&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
-&lt;h3 id=&#34;-原生-ragnaive-rag&#34;&gt;🌱 原生 RAG（Naive RAG）
-&lt;/h3&gt;&lt;p&gt;原生RAG，即Naive RAG，遵循传统的索引、检索和生成过程。Native RAG是整个RAG系统的“入门示例”。它将检索视为简单的一次性查找。其存在是为了让模型基于特定数据运行，而无需微调的开销，但它假设你的检索引擎是完美的。它最适合于低风险环境，其中速度比绝对的事实密度更重要。简而言之，用户输入用于查询相关文档，然后将这些文档与提示结合并传递给模型以生成最终响应。如果应用程序涉及多轮对话交互，可以将对话历史集成到提示中。
-工作流程如下&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-原生-ragnaive-rag&#34;&gt;🌱 原生 RAG（Naive RAG）
+&lt;/h2&gt;&lt;p&gt;原生RAG，即 &lt;strong&gt;Naive RAG&lt;/strong&gt;，遵循传统的索引、检索和生成过程。&lt;strong&gt;Native RAG&lt;/strong&gt; 是整个RAG系统的&amp;quot;入门示例&amp;quot;。它将检索视为简单的一次性查找。其存在是为了让模型基于特定数据运行，而无需微调的开销，但它假设你的检索引擎是完美的。它最适合于低风险环境，其中速度比绝对的事实密度更重要。简而言之，用户输入用于查询相关文档，然后将这些文档与提示结合并传递给模型以生成最终响应。如果应用程序涉及多轮对话交互，可以将对话历史集成到提示中。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;工作流程如下：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;分块处理:将文档分割成易于处理的小型文本片段。&lt;/li&gt;
-&lt;li&gt;向量化:每个片段被转换为向量并存储于数据库(如Pinecone 或Weaviate)&lt;/li&gt;
-&lt;li&gt;检索阶段:将用户查询向量化后，通过余弦相似度算法召回&amp;quot;Top-K&amp;quot;最相似的文本片
-殳。&lt;/li&gt;
-&lt;li&gt;生成阶段:将这些片段作为&amp;quot;上下文&amp;quot;输入LLM，从而生成基于事实依据的回应。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;分块处理&lt;/strong&gt;：将文档分割成易于处理的小型文本片段。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;向量化&lt;/strong&gt;：每个片段被转换为向量并存储于数据库（如 &lt;strong&gt;Pinecone&lt;/strong&gt; 或 &lt;strong&gt;Weaviate&lt;/strong&gt;）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;检索阶段&lt;/strong&gt;：将用户查询向量化后，通过 &lt;strong&gt;余弦相似度&lt;/strong&gt; 算法召回&amp;quot;&lt;strong&gt;Top-K&lt;/strong&gt;&amp;ldquo;最相似的文本片段。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;生成阶段&lt;/strong&gt;：将这些片段作为&amp;quot;上下文&amp;quot;输入 &lt;strong&gt;LLM&lt;/strong&gt;，从而生成基于事实依据的回应。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;Native RAG.png&#34; alt=&#34;Native RAG&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
-&lt;p&gt;&lt;strong&gt;Naive RAG&lt;/strong&gt; 有一些局限性，例如较低的精度(检索到的片段对齐不准确)和较低的召回率(未能检索到所有相关片段)。此外，LLM可能会接收到过时的信息，这也是RAG系统最初需要解决的主要问题之一。这会导致幻觉问题和不准确的响应
-当应用增强时，还可能出现冗余和重复的问题。使用多个检索段落时，排名和协调风格/语气也是关键。另一个挑战是确保生成任务不要过度依赖增强信息，这可能导致模型只是重复检索的内容&lt;/p&gt;
-&lt;p&gt;优点:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Naive RAG&lt;/strong&gt; 有一些局限性，例如较低的精度（检索到的片段对齐不准确）和较低的召回率（未能检索到所有相关片段）。此外，&lt;strong&gt;LLM&lt;/strong&gt; 可能会接收到过时的信息，这也是 RAG 系统最初需要解决的主要问题之一。这会导致幻觉问题和不准确的响应。当应用增强时，还可能出现冗余和重复的问题。使用多个检索段落时，排名和协调风格/语气也是关键。另一个挑战是确保生成任务不要过度依赖增强信息，这可能导致模型只是重复检索的内容。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;响应速度快&lt;/li&gt;
-&lt;li&gt;极低的计算成本。&lt;/li&gt;
-&lt;li&gt;易于调试和监控。&lt;/li&gt;
+&lt;li&gt;极低的计算成本&lt;/li&gt;
+&lt;li&gt;易于调试和监控&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;缺点:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;极易受到“噪声”影响(检索到无关的文本块)。&lt;/li&gt;
-&lt;li&gt;无法处理复杂的多部分问题。&lt;/li&gt;
-&lt;li&gt;如果检索到的数据有误，系统缺乏自我修正能力。&lt;/li&gt;
+&lt;li&gt;极易受到&amp;quot;噪声&amp;quot;影响（检索到无关的文本块）&lt;/li&gt;
+&lt;li&gt;无法处理复杂的多部分问题&lt;/li&gt;
+&lt;li&gt;如果检索到的数据有误，系统缺乏自我修正能力&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;-高级-rag&#34;&gt;🚀 高级 RAG
-&lt;/h3&gt;&lt;p&gt;高级 RAG 有助于解决朴素 RAG 存在的问题，如通过优化预检索、检索和后检索过程来提高检索质量。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-高级-rag&#34;&gt;🚀 高级 RAG
+&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;高级 RAG&lt;/strong&gt; 有助于解决朴素 RAG 存在的问题，如通过优化预检索、检索和后检索过程来提高检索质量。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;
-&lt;p&gt;预检索过程涉及优化数据索引，旨在通过五个阶段提升被索引数据的质量：细化数据粒度、优化索引结构、增加元数据、对齐优化以及混合检索&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;预检索过程&lt;/strong&gt;：涉及优化数据索引，旨在通过五个阶段提升被索引数据的质量：细化数据粒度、优化索引结构、增加元数据、对齐优化以及混合检索。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;检索阶段可以通过优化嵌入模型本身来进一步改进，这直接影响了构成上下文的片段的质量。这可以通过微调嵌入以优化检索相关性或采用能够更好地捕捉上下文理解的动态嵌入（例如，OpenAI 的 embeddings-ada-02 模型）来实现&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;检索阶段&lt;/strong&gt;：可以通过优化 &lt;strong&gt;嵌入模型&lt;/strong&gt; 本身来进一步改进，这直接影响了构成上下文的片段的质量。这可以通过微调嵌入以优化检索相关性或采用能够更好地捕捉上下文理解的动态嵌入（例如，OpenAI 的 &lt;strong&gt;embeddings-ada-02&lt;/strong&gt; 模型）来实现。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;检索后优化侧重于避免上下文窗口限制并处理嘈杂或可能分散注意力的信息。解决这些问题的常见方法是重新排名，这可能包括将相关上下文重新定位到提示的边缘或重新计算查询与相关文本片段之间的语义相似性。提示压缩也可能有助于解决这些问题&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;检索后优化&lt;/strong&gt;：侧重于避免上下文窗口限制并处理嘈杂或可能分散注意力的信息。解决这些问题的常见方法是重新排名，这可能包括将相关上下文重新定位到提示的边缘或重新计算查询与相关文本片段之间的语义相似性。提示压缩也可能有助于解决这些问题。&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;-模块化-rag&#34;&gt;🧩 模块化 RAG
-&lt;/h3&gt;&lt;p&gt;顾名思义，模块化RAG增强了功能模块，例如引入了相似检索的搜索模块，并在检索器中进行了微调。朴素RAG和高级RAG都是模块化RAG的特例，由固定模块组成。扩展RAG模块包括搜索、记忆、融合、路由、预测和任务适配器，它们解决了不同的问题。这些模块可以根据特定问题的上下文重新排列。因此，模块化RAG得益于更大的多样性和灵活性，你可以根据任务需求添加或替换模
-块或调整模块之间的流程&lt;/p&gt;
-&lt;h4 id=&#34;-对话式-rag&#34;&gt;💬 对话式 RAG
-&lt;/h4&gt;&lt;p&gt;对话式RAG解决了“上下文盲区”问题。在标准设置中，如果用户提出后续问题如“它要多少钱?”，系统无法理解“它”指代什么。该架构通过添加有状态记忆层，为对话的每一轮重新构建上下文。&lt;/p&gt;
-&lt;p&gt;工作流程如下&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-模块化-rag&#34;&gt;🧩 模块化 RAG
+&lt;/h2&gt;&lt;p&gt;顾名思义，&lt;strong&gt;模块化 RAG&lt;/strong&gt; 增强了功能模块，例如引入了相似检索的搜索模块，并在检索器中进行了微调。朴素RAG和高级RAG都是模块化RAG的特例，由固定模块组成。扩展RAG模块包括搜索、记忆、融合、路由、预测和任务适配器，它们解决了不同的问题。这些模块可以根据特定问题的上下文重新排列。因此，模块化RAG得益于更大的多样性和灵活性，你可以根据任务需求添加或替换模块或调整模块之间的流程。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-对话式-rag&#34;&gt;💬 对话式 RAG
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;对话式 RAG&lt;/strong&gt; 解决了&amp;quot;上下文盲区&amp;quot;问题。在标准设置中，如果用户提出后续问题如&amp;quot;它要多少钱?&amp;quot;，系统无法理解&amp;quot;它&amp;quot;指代什么。该架构通过添加有状态记忆层，为对话的每一轮重新构建上下文。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;工作流程如下：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;上下文加载:系统存储最近5-10轮对话记录&lt;/li&gt;
-&lt;li&gt;查询重写:LLM基于历史对话记录生成独立查询(例如:“企业版方案的价格是多少?&amp;quot;)。&lt;/li&gt;
-&lt;li&gt;检索:使用扩展后的查询进行向量搜索。&lt;/li&gt;
-&lt;li&gt;生成:答案基于新上下文生成。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;上下文加载&lt;/strong&gt;：系统存储最近 5-10 轮对话记录。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;查询重写&lt;/strong&gt;：&lt;strong&gt;LLM&lt;/strong&gt; 基于历史对话记录生成独立查询（例如：&amp;ldquo;企业版方案的价格是多少?&amp;quot;）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;检索&lt;/strong&gt;：使用扩展后的查询进行向量搜索。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;生成&lt;/strong&gt;：答案基于新上下文生成。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;对话式RAG.png&#34; alt=&#34;对话式RAG&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
-&lt;p&gt;优点:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;提供自然、拟人化的聊天体验。&lt;/li&gt;
-&lt;li&gt;防止用户不得不重复自己的话。
-缺点:&lt;/li&gt;
-&lt;li&gt;记忆漂移:10分钟前的不相关上下文可能会污染当前的搜索。&lt;/li&gt;
-&lt;li&gt;由于“查询重写”步骤，导致更高的token成本。&lt;/li&gt;
+&lt;li&gt;提供自然、拟人化的聊天体验&lt;/li&gt;
+&lt;li&gt;防止用户不得不重复自己的话&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;-纠正式-ragcrag&#34;&gt;🔧 纠正式 RAG（CRAG）
-&lt;/h4&gt;&lt;p&gt;纠正式RAG(CRAG)是一种为高风险环境设计的架构。它引入了“决策门”机制，在检索到的文档到达生成器之前评估其质量。若内部检索结果不佳，系统将自动切换至实时网络搜索作为备选方案。根据部署CRAG式评估器的团队报告的内部基准测试，相比基础基线模型，该架构已显著降低幻觉现象的发生率。&lt;/p&gt;
-&lt;p&gt;工作流程如下&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;检索:从内部向量存储中获取文档。&lt;/li&gt;
-&lt;li&gt;评估:轻量级“评分器”模型为每个文档片段分配评分(正确、模糊、不正确)&lt;/li&gt;
-&lt;li&gt;触发门:如果正确:继续执行生成器。否则丢弃数据并触发外部API(如谷歌搜索或Tavily)。&lt;/li&gt;
-&lt;li&gt;合成:使用已验证的内部数据或新鲜的外部数据生成答案。&lt;/li&gt;
+&lt;li&gt;记忆漂移：10 分钟前的不相关上下文可能会污染当前的搜索&lt;/li&gt;
+&lt;li&gt;由于&amp;quot;查询重写&amp;quot;步骤，导致更高的 token 成本&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-纠正式-ragcrag&#34;&gt;🔧 纠正式 RAG（CRAG）
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;纠正式 RAG（CRAG）&lt;/strong&gt; 是一种为高风险环境设计的架构。它引入了&amp;quot;决策门&amp;quot;机制，在检索到的文档到达生成器之前评估其质量。若内部检索结果不佳，系统将自动切换至实时网络搜索作为备选方案。根据部署 CRAG 式评估器的团队报告的内部基准测试，相比基础基线模型，该架构已显著降低幻觉现象的发生率。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;工作流程如下：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;检索&lt;/strong&gt;：从内部向量存储中获取文档。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;评估&lt;/strong&gt;：轻量级&amp;quot;评分器&amp;quot;模型为每个文档片段分配评分（正确、模糊、不正确）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;触发门&lt;/strong&gt;：如果正确，继续执行生成器；否则丢弃数据并触发外部 API（如谷歌搜索或 &lt;strong&gt;Tavily&lt;/strong&gt;）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;合成&lt;/strong&gt;：使用已验证的内部数据或新鲜的外部数据生成答案。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;纠正式RAG.png&#34; alt=&#34;纠正式RAG&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
-&lt;p&gt;优点:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;显著减少幻觉现象。&lt;/li&gt;
+&lt;li&gt;显著减少幻觉现象&lt;/li&gt;
 &lt;li&gt;弥合内部数据与实时现实信息之间的差距&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;缺点:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;显著增加延迟(增加2-4秒)。&lt;/li&gt;
-&lt;li&gt;管理外部API成本和速率限制。&lt;/li&gt;
+&lt;li&gt;显著增加延迟（增加 2-4 秒）&lt;/li&gt;
+&lt;li&gt;管理外部 API 成本和速率限制&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;-自适应-rag&#34;&gt;🎯 自适应 RAG
-&lt;/h4&gt;&lt;p&gt;自适应 RAG 是 “效率冠军”。它认识到并非每个查询都需要动用重火力武器。 它通过路由器分析用户意图的复杂度，并选择最经济、最快捷的解答路径。&lt;/p&gt;
-&lt;p&gt;工作原理如下&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-自适应-rag&#34;&gt;🎯 自适应 RAG
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;自适应 RAG&lt;/strong&gt; 是&amp;quot;效率冠军&amp;rdquo;。它认识到并非每个查询都需要动用重火力武器。它通过路由器分析用户意图的复杂度，并选择最经济、最快捷的解答路径。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;工作原理如下：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;复杂度分析： 由小型分类器模型对查询进行路径分配。&lt;/li&gt;
-&lt;li&gt;路径 A（无需检索）： 适用于问候语或 LLM 已掌握的常识性问题。&lt;/li&gt;
-&lt;li&gt;路径 B（标准 RAG）： 适用于简单的事实查询。&lt;/li&gt;
-&lt;li&gt;路径 C（多步智能体）： 适用于需要搜索多个来源的复杂分析性问题。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;复杂度分析&lt;/strong&gt;：由小型分类器模型对查询进行路径分配。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;路径 A（无需检索）&lt;/strong&gt;：适用于问候语或 &lt;strong&gt;LLM&lt;/strong&gt; 已掌握的常识性问题。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;路径 B（标准 RAG）&lt;/strong&gt;：适用于简单的事实查询。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;路径 C（多步智能体）&lt;/strong&gt;：适用于需要搜索多个来源的复杂分析性问题。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;自适应 RAG.png&#34; alt=&#34;自适应 RAG&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
-&lt;p&gt;优点：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;通过跳过不必要的检索实现大幅成本节约。&lt;/li&gt;
-&lt;li&gt;针对简单查询实现最佳延迟。&lt;/li&gt;
+&lt;li&gt;通过跳过不必要的检索实现大幅成本节约&lt;/li&gt;
+&lt;li&gt;针对简单查询实现最佳延迟&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;缺点：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;分类错误风险：若系统误判难题为简单问题，将导致搜索失败。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;需要高度可靠的路由模型。&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;分类错误风险：若系统误判难题为简单问题，将导致搜索失败&lt;/li&gt;
+&lt;li&gt;需要高度可靠的路由模型&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;-自我反思-rag&#34;&gt;🪞 自我反思 RAG
-&lt;/h4&gt;&lt;p&gt;自我反思 RAG 是精密架构，其模型经过训练能够批判自身的推理过程。 它不仅进行检索，还会生成“反思标记”，作为对自身输出的实时审查。
-工作原理如下&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-自我反思-rag&#34;&gt;🪞 自我反思 RAG
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;自我反思 RAG&lt;/strong&gt; 是精密架构，其模型经过训练能够批判自身的推理过程。它不仅进行检索，还会生成&amp;quot;反思标记&amp;rdquo;，作为对自身输出的实时审查。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;工作原理如下：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;检索： 由模型自身触发的标准搜索。&lt;/li&gt;
-&lt;li&gt;带标记生成： 模型在生成文本的同时，会伴随特殊标记，如 [IsRel]（是否相关？）、[IsSup]（此主张是否有支持？）和 [IsUse]（是否有帮助？）。&lt;/li&gt;
-&lt;li&gt;自我修正： 如果模型输出 [NoSup] 标记，它会暂停、重新检索并重写句子。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;检索&lt;/strong&gt;：由模型自身触发的标准搜索。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;带标记生成&lt;/strong&gt;：模型在生成文本的同时，会伴随特殊标记，如 &lt;code&gt;[IsRel]&lt;/code&gt;（是否相关？）、&lt;code&gt;[IsSup]&lt;/code&gt;（此主张是否有支持？）和 &lt;code&gt;[IsUse]&lt;/code&gt;（是否有帮助？）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;自我修正&lt;/strong&gt;：如果模型输出 &lt;code&gt;[NoSup]&lt;/code&gt; 标记，它会暂停、重新检索并重写句子。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;自我反思RAG.png&#34; alt=&#34;自我反思 RAG&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;  
-&lt;p&gt;优势：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;最高级别的事实&amp;quot;依据性&amp;quot;。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;推理过程具有内置透明度。&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;最高级别的事实&amp;quot;依据性&amp;quot;&lt;/li&gt;
+&lt;li&gt;推理过程具有内置透明度&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;缺点：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;需要专门的、经过微调的模型（例如 Self-RAG Llama）。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;计算开销极高。&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;需要专门的、经过微调的模型（例如 Self-RAG Llama）&lt;/li&gt;
+&lt;li&gt;计算开销极高&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;-融合式-rag&#34;&gt;🔀 融合式 RAG
-&lt;/h4&gt;&lt;p&gt;融合式 RAG 旨在解决 “模糊性问题”。大多数用户并不擅长搜索。 融合式 RAG 会接收单一查询，并从多个角度审视它，以确保高召回率。
-工作原理如下&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-融合式-rag&#34;&gt;🔀 融合式 RAG
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;融合式 RAG&lt;/strong&gt; 旨在解决&amp;quot;模糊性问题&amp;quot;。大多数用户并不擅长搜索。融合式 RAG 会接收单一查询，并从多个角度审视它，以确保高召回率。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;工作原理如下：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;查询扩展： 生成用户问题的 3 到 5 个变体。&lt;/li&gt;
-&lt;li&gt;并行检索： 在向量数据库中搜索所有变体。&lt;/li&gt;
-&lt;li&gt;互逆排序融合（RRF）： 使用数学公式对结果进行重新排序。&lt;/li&gt;
-&lt;li&gt;最终排序： 在多次搜索中排名靠前的文档会被提升至顶部。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;查询扩展&lt;/strong&gt;：生成用户问题的 3 到 5 个变体。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;并行检索&lt;/strong&gt;：在向量数据库中搜索所有变体。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;互逆排序融合（RRF）&lt;/strong&gt;：使用数学公式对结果进行重新排序。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;最终排序&lt;/strong&gt;：在多次搜索中排名靠前的文档会被提升至顶部。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;融合式RAG.png&#34; alt=&#34;融合式 RAG&#34; width=&#34;78%&#34; /&gt;
+  &lt;img src=&#34;融合式 RAG.png&#34; alt=&#34;融合式 RAG&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
-&lt;p&gt;优点：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;卓越的召回能力（能发现单一查询会遗漏的文档）。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;对用户表述不佳的情况具有鲁棒性。&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;卓越的召回能力（能发现单一查询会遗漏的文档）&lt;/li&gt;
+&lt;li&gt;对用户表述不佳的情况具有鲁棒性&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;缺点：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;搜索成本增加（3-5倍）。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;由于重新排序计算导致延迟更高。&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;搜索成本增加（3-5 倍）&lt;/li&gt;
+&lt;li&gt;由于重新排序计算导致延迟更高&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;-hyde&#34;&gt;🎭 HyDE
-&lt;/h4&gt;&lt;p&gt;HyDE 是一种反直觉却精妙的模式，它先生成答案，再查找相似文档 。它认识到&amp;quot;问题&amp;quot;和&amp;quot;答案&amp;quot;在语义上存在差异。 通过首先生成一个&amp;quot;虚假&amp;quot;答案，它在两者之间搭建了桥梁。
-工作原理如下&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-hyde&#34;&gt;🎭 HyDE
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;HyDE&lt;/strong&gt; 是一种反直觉却精妙的模式，它先生成答案，再查找相似文档。它认识到&amp;quot;问题&amp;quot;和&amp;quot;答案&amp;quot;在语义上存在差异。通过首先生成一个&amp;quot;虚假&amp;quot;答案，它在两者之间搭建了桥梁。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;工作原理如下：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;假设生成：LLM 针对查询撰写一个*虚假的 *（假设性）答案。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;向量化： 将虚假答案转换为向量表示。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;检索： 利用该向量查找与虚构答案相似的现实文档。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;生成： 基于真实文档撰写最终答复。&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;假设生成&lt;/strong&gt;：&lt;strong&gt;LLM&lt;/strong&gt; 针对查询撰写一个虚假的（假设性）答案。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;向量化&lt;/strong&gt;：将虚假答案转换为向量表示。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;检索&lt;/strong&gt;：利用该向量查找与虚构答案相似的现实文档。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;生成&lt;/strong&gt;：基于真实文档撰写最终答复。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;HyDE.png&#34; alt=&#34;HyDE&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
-&lt;p&gt;优势：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;显著提升对概念性或模糊查询的检索效果。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;无需复杂的“代理”逻辑。&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;显著提升对概念性或模糊查询的检索效果&lt;/li&gt;
+&lt;li&gt;无需复杂的&amp;quot;代理&amp;quot;逻辑&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;缺点：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;偏见风险：若“虚假答案”从根本上就是错误的，搜索将被误导。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;对于简单的事实查询效率低下（例如，“2+2等于多少？”）。&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;偏见风险：若&amp;quot;虚假答案&amp;quot;从根本上就是错误的，搜索将被误导&lt;/li&gt;
+&lt;li&gt;对于简单的事实查询效率低下（例如，&amp;ldquo;2+2等于多少?&amp;quot;）&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;-图-raggraph-rag&#34;&gt;🕸️ 图 RAG（Graph RAG）
-&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;知识图谱增强检索（Graph RAG）&lt;strong&gt;解决的是&lt;/strong&gt;向量检索&lt;/strong&gt;天然不擅长的“关系推理”问题。向量检索更擅长回答“&lt;strong&gt;是什么&lt;/strong&gt;”，但不擅长回答“&lt;strong&gt;A 和 B 之间是什么关系&lt;/strong&gt;”“&lt;strong&gt;从 A 到 C 需要经过哪些步骤&lt;/strong&gt;”这类需要跨文档关联推理的问题。 GraphRAG 检索的是 &lt;strong&gt;实体及其之间的明确关系&lt;/strong&gt;。它不再追问“哪些文本看起来相似”，而是探究“事物之间如何关联，以及关联的方式是什么？”&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Graph RAG&lt;/strong&gt; 的做法，是在传统&lt;strong&gt;向量索引&lt;/strong&gt;之外，再额外构建一个&lt;strong&gt;知识图谱&lt;/strong&gt;，把文档中的实体与关系抽取出来形成图结构。检索时，先从向量库中找到相关内容片段，再沿着知识图谱中的关系边扩展关联实体和上下文，最后把两路信息合并后送给 &lt;strong&gt;LLM&lt;/strong&gt;。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-图-raggraph-rag&#34;&gt;🕸️ 图 RAG（Graph RAG）
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;知识图谱增强检索（Graph RAG）&lt;/strong&gt; 解决的是 &lt;strong&gt;向量检索&lt;/strong&gt; 天然不擅长的&amp;quot;关系推理&amp;quot;问题。向量检索更擅长回答&amp;rdquo;&lt;strong&gt;是什么&lt;/strong&gt;&amp;quot;，但不擅长回答&amp;quot;&lt;strong&gt;A 和 B 之间是什么关系&lt;/strong&gt;&amp;quot;&amp;quot;&lt;strong&gt;从 A 到 C 需要经过哪些步骤&lt;/strong&gt;&amp;ldquo;这类需要跨文档关联推理的问题。&lt;strong&gt;GraphRAG&lt;/strong&gt; 检索的是 &lt;strong&gt;实体及其之间的明确关系&lt;/strong&gt;。它不再追问&amp;quot;哪些文本看起来相似&amp;rdquo;，而是探究&amp;quot;事物之间如何关联，以及关联的方式是什么？&amp;quot;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Graph RAG&lt;/strong&gt; 的做法，是在传统 &lt;strong&gt;向量索引&lt;/strong&gt; 之外，再额外构建一个 &lt;strong&gt;知识图谱&lt;/strong&gt;，把文档中的实体与关系抽取出来形成图结构。检索时，先从向量库中找到相关内容片段，再沿着知识图谱中的关系边扩展关联实体和上下文，最后把两路信息合并后送给 &lt;strong&gt;LLM&lt;/strong&gt;。&lt;/p&gt;
 &lt;p&gt;微软开源的 &lt;strong&gt;GraphRAG&lt;/strong&gt; 项目就是这个方向的代表：它会先用 &lt;strong&gt;LLM&lt;/strong&gt; 从文档中抽取实体关系图，再利用社区检测算法做聚类摘要，查询时结合图结构和摘要完成检索。&lt;/p&gt;
-&lt;p&gt;工作原理如下&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;工作原理如下：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;图结构构建：知识被建模为图结构，其中节点代表实体（如人物、组织、概念、事件），边则代表关系（如影响、依赖、资助、监管）。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;查询解析：系统会分析用户查询，以识别关键实体和关系类型，而不仅仅是关键词。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;图遍历：系统遍历图结构，寻找能够跨越多跳连接实体的有意义路径。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;可选混合检索：向量搜索常与图检索结合使用，以在非结构化文本中定位实体。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;生成：LLM 将发现的关系路径转化为结构清晰、可解释的答案。&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;图结构构建&lt;/strong&gt;：知识被建模为图结构，其中节点代表实体（如人物、组织、概念、事件），边则代表关系（如影响、依赖、资助、监管）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;查询解析&lt;/strong&gt;：系统会分析用户查询，以识别关键实体和关系类型，而不仅仅是关键词。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;图遍历&lt;/strong&gt;：系统遍历图结构，寻找能够跨越多跳连接实体的有意义路径。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;可选混合检索&lt;/strong&gt;：向量搜索常与图检索结合使用，以在非结构化文本中定位实体。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;生成&lt;/strong&gt;：&lt;strong&gt;LLM&lt;/strong&gt; 将发现的关系路径转化为结构清晰、可解释的答案。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;GraphRAG.png&#34; alt=&#34;GraphRAG&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
-&lt;h4 id=&#34;-自适应检索agentic-rag&#34;&gt;🤖 自适应检索（Agentic RAG）
-&lt;/h4&gt;&lt;p&gt;**自适应检索（Agentic RAG）**是更进一步的演进。传统 &lt;strong&gt;RAG&lt;/strong&gt; 的检索策略通常是固定的，不管什么问题都走同一套流程；但现实里，不同类型的查询其实需要不同策略：&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-自适应检索agentic-rag&#34;&gt;🤖 自适应检索（Agentic RAG）
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;自适应检索（Agentic RAG）&lt;/strong&gt; 是更进一步的演进。传统 &lt;strong&gt;RAG&lt;/strong&gt; 的检索策略通常是固定的，不管什么问题都走同一套流程；但现实里，不同类型的查询其实需要不同策略：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;简单事实型问题&lt;/strong&gt;：一次检索往往就够了。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;复杂分析型问题&lt;/strong&gt;：可能需要多轮检索，每轮根据上一轮结果继续改写查询。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;探索型问题&lt;/strong&gt;：可能需要先找背景，再找细节，再补充证据。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;&lt;strong&gt;自适应检索（Agentic RAG）&lt;/strong&gt; 并非盲目地获取文档， 而是引入了一个自主代理，该代理在生成答案前会规划、推理并决定如何以及从何处检索信息。它将信息检索视为研究，而非简单的查找。&lt;strong&gt;自适应检索（Agentic RAG）&lt;/strong&gt; 会把这部分检索过程交给 &lt;strong&gt;Agent&lt;/strong&gt; 自主决策，它可以判断：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;自适应检索（Agentic RAG）&lt;/strong&gt; 并非盲目地获取文档，而是引入了一个自主代理，该代理在生成答案前会规划、推理并决定如何以及从何处检索信息。它将信息检索视为研究，而非简单的查找。&lt;strong&gt;自适应检索（Agentic RAG）&lt;/strong&gt; 会把这部分检索过程交给 &lt;strong&gt;Agent&lt;/strong&gt; 自主决策，它可以判断：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;是否真的需要检索&lt;/li&gt;
 &lt;li&gt;该使用哪种检索策略&lt;/li&gt;
 &lt;li&gt;当前结果是否足够好&lt;/li&gt;
 &lt;li&gt;是否要继续追加一轮检索&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;工作流程如下&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;工作流程如下：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;分析：智能体首先解析用户查询，判断其属于简单问题、多步骤任务、模糊需求，还是需要实时数据支持。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;计划：它将查询分解为子任务并决定策略。 例如，应该先进行向量搜索吗？还是网络搜索？调用 API？或者提出后续问题？&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;执行：代理通过调用向量数据库、网络搜索、内部 API 或计算器等工具来执行这些步骤。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;迭代：基于中间结果，代理可能会优化查询、获取更多数据或验证来源。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;生成：一旦收集到足够的证据，LLM 就会生成一个基于事实、具有上下文感知能力的最终回答。&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;分析&lt;/strong&gt;：智能体首先解析用户查询，判断其属于简单问题、多步骤任务、模糊需求，还是需要实时数据支持。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;计划&lt;/strong&gt;：它将查询分解为子任务并决定策略。例如，应该先进行向量搜索吗？还是网络搜索？调用 API？或者提出后续问题？&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;执行&lt;/strong&gt;：代理通过调用向量数据库、网络搜索、内部 API 或计算器等工具来执行这些步骤。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;迭代&lt;/strong&gt;：基于中间结果，代理可能会优化查询、获取更多数据或验证来源。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;生成&lt;/strong&gt;：一旦收集到足够的证据，&lt;strong&gt;LLM&lt;/strong&gt; 就会生成一个基于事实、具有上下文感知能力的最终回答。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;代理式 RAG.png&#34; alt=&#34;Agentic RAG&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
 这种方式更灵活，但工程复杂度也更高，落地时通常要在效果、延迟和系统可控性之间做权衡。
-&lt;h2 id=&#34;-rag-的常见瓶颈&#34;&gt;⚠️ RAG 的常见瓶颈
-&lt;/h2&gt;&lt;p&gt;很多人一开始会把“检索优化”理解成“换一个向量库”或“把 Top-K 从 3 调到 5”。但真正影响效果的，往往是整条检索链路：&lt;strong&gt;查询怎么改写、索引怎么组织、召回怎么融合、候选怎么精排&lt;/strong&gt;。&lt;/p&gt;
+</description>
+        </item>
+        <item>
+        <title>RAG的评估体系</title>
+        <link>https://Tyritic.github.io/p/rag%E7%9A%84%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB/</link>
+        <pubDate>Sun, 04 May 2025 19:29:50 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/rag%E7%9A%84%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB/</guid>
+        <description>&lt;h2 id=&#34;-分阶段评估&#34;&gt;📊 分阶段评估
+&lt;/h2&gt;&lt;p&gt;RAG 系统有一个根本特征：它是一个两阶段的 pipeline，每个阶段的失败模式完全不同，因此需要分而治之地评估。&lt;/p&gt;
+&lt;p&gt;要理解 RAG 评估为什么难，先得理解 RAG 系统的&amp;quot;责任链&amp;quot;结构。用户提了一个问题，先经过检索模块从知识库中找出若干相关文档片段（&lt;strong&gt;Chunks&lt;/strong&gt;），再把这些 Chunks 连同问题一起交给 &lt;strong&gt;LLM&lt;/strong&gt; 生成最终回答。这意味着最终回答的质量取决于两个环节的连乘：如果检索没找对文档，LLM 再强也是&amp;quot;巧妇难为无米之炊&amp;quot;；反过来，即使检索完美地找到了所有相关信息，如果 &lt;strong&gt;LLM&lt;/strong&gt; 没有正确地理解和整合这些信息，甚至编造了检索结果中不存在的内容（即&amp;quot;幻觉&amp;quot;），最终结果同样不合格。更麻烦的是，当最终回答出了问题，你必须能定位到底是哪个环节出了错——是检索阶段的锅还是生成阶段的锅——否则优化就无从下手。这就是为什么 RAG 评估必须分阶段进行。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;分阶段评估.png&#34; alt=&#34;分阶段评估&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;以下是用于评估 RAG 系统不同方面的指标总结：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;RAG评估指标.png&#34; alt=&#34;RAG评估指标&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-检索阶段评估&#34;&gt;🔍 检索阶段评估
+&lt;/h2&gt;&lt;p&gt;检索阶段的核心任务是从知识库中找出与用户问题相关的文档片段。评估这个阶段的好坏，本质上就是在回答三个问题：找到的东西是不是真的相关？该找到的东西有没有漏掉？找到的东西排列顺序合不合理？&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;检索阶段评估.png&#34; alt=&#34;检索阶段评估&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;-基础指标&#34;&gt;📏 基础指标
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;Precision（精确率）&lt;/strong&gt; 和 &lt;strong&gt;Recall（召回率）&lt;/strong&gt; 是最基础也最重要的两个指标。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Precision&lt;/strong&gt; 衡量的是&amp;quot;检索回来的文档中，有多少是真正相关的&amp;quot;——如果你检索了 10 个 Chunk，其中只有 3 个和问题相关，那 Precision 就是 30%，说明有大量噪声文档被带了进来。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Recall&lt;/strong&gt; 衡量的是&amp;quot;所有相关的文档中，有多少被成功检索回来了&amp;quot;——如果知识库中有 5 个 Chunk 和问题相关，你只检索到了 2 个，那 Recall 就是 40%，说明关键信息被遗漏了。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在 RAG 场景中，这两个指标存在一个天然的张力。你想提高 Recall，最简单的办法就是多检索一些 Chunk（提高 &lt;strong&gt;Top-K&lt;/strong&gt;），但这会导致 Precision 下降，大量无关的 Chunk 涌入上下文不仅浪费 token，还可能干扰 &lt;strong&gt;LLM&lt;/strong&gt; 的理解。反之，如果 Top-K 设得太小，Precision 上去了，但可能漏掉了关键信息。实际工程中通常要在两者之间找到一个甜蜜点，这就是为什么 &lt;strong&gt;F1 Score&lt;/strong&gt;（Precision 和 Recall 的调和平均）在检索评估中也很常用。&lt;/p&gt;
+&lt;h3 id=&#34;-排序指标&#34;&gt;📈 排序指标
+&lt;/h3&gt;&lt;p&gt;但光看 Precision 和 Recall 还不够，因为它们没有考虑排序质量。在 RAG 系统中，检索返回的 Chunk 是有顺序的，排在前面的 Chunk 通常会在 &lt;strong&gt;LLM&lt;/strong&gt; 的上下文中占据更显眼的位置，对生成结果的影响更大。如果最相关的 Chunk 被排在了第 8 位而一个勉强沾边的 Chunk 排在了第 1 位，即使整体的 Precision 和 Recall 看起来还行，实际效果也会大打折扣。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;MRR（Mean Reciprocal Rank，平均倒数排名）&lt;/strong&gt; 专门衡量&amp;quot;第一个相关文档排在什么位置&amp;quot;。如果第一个相关文档排在第 1 位，得分是 1；排在第 2 位，得分是 1/2；排在第 5 位，得分是 1/5。MRR 越高，说明系统越能把最相关的结果排到前面，用户（或 LLM）越快就能看到有用的信息。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;NDCG（Normalized Discounted Cumulative Gain，归一化折损累积增益）&lt;/strong&gt; 则更进一步，它不仅关心第一个相关文档的位置，而是评估整个排序列表的质量。它的核心思想是：排在前面的文档对最终结果的贡献应该更大，排在后面的文档即使相关，其贡献也要被&amp;quot;折损&amp;quot;。NDCG 考虑了每个文档的相关性程度（不只是&amp;quot;相关/不相关&amp;quot;的二值判断，还可以有&amp;quot;非常相关/部分相关/不太相关&amp;quot;的多级标注），并且用理论最优排序作为归一化基准，所以它在评估分级相关性场景下特别有价值。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Context Relevance（上下文相关性）&lt;/strong&gt;，这是 &lt;strong&gt;RAGAS&lt;/strong&gt; 框架提出的评估维度。它不是简单地看每个 Chunk 是否相关，而是评估检索回来的整体上下文中，有多大比例的内容对回答用户问题确实有用。一个常见的实现方式是用 &lt;strong&gt;LLM&lt;/strong&gt; 从检索到的上下文中提取所有能用于回答问题的句子，然后计算这些有用句子占总上下文的比例。这个指标特别适合发现&amp;quot;检索了很多 Chunk 但大部分是废话&amp;quot;的情况。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;-生成阶段评估&#34;&gt;✨ 生成阶段评估
+&lt;/h2&gt;&lt;p&gt;检索阶段把相关文档找回来了，接下来就看 &lt;strong&gt;LLM&lt;/strong&gt; 拿这些文档能产出什么质量的回答。生成阶段的评估比检索阶段更微妙，因为它要评判的是一段自然语言文本的质量，而自然语言的&amp;quot;好坏&amp;quot;远不像检索命中率那样容易量化。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Faithfulness（忠实度）&lt;/strong&gt; 是 RAG 生成评估中最核心的指标，没有之一。它衡量的是&amp;quot;LLM 生成的回答是否忠实于检索到的文档内容，有没有编造检索结果中不存在的信息&amp;quot;。为什么说它最核心？因为 RAG 系统存在的根本意义就是让 LLM 基于可靠的外部知识来回答，而不是靠自己的参数记忆胡编乱造。如果生成的回答中出现了检索文档完全没有提到的&amp;quot;事实&amp;quot;，那这个 RAG 系统就失去了存在的意义——用户还不如直接问 LLM。Faithfulness 的评估通常是这样做的：先让 &lt;strong&gt;LLM&lt;/strong&gt; 把生成的回答拆分成若干独立的事实性陈述（&lt;strong&gt;Claims&lt;/strong&gt;），然后逐一检验每个陈述是否能被检索到的上下文所支持。Faithfulness 得分 = 被上下文支持的陈述数 / 总陈述数。这个拆分-验证的思路在 &lt;strong&gt;RAGAS&lt;/strong&gt; 和 &lt;strong&gt;TruLens&lt;/strong&gt; 等评估框架中被广泛使用。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Answer Relevance（回答相关性）&lt;/strong&gt; 衡量的是生成的回答是否切题、是否真正回答了用户的问题。一个回答可能完全忠实于检索文档（Faithfulness 满分），但如果它答非所问，同样是一个低质量的回答。比如用户问&amp;quot;Python 的 GIL 是什么&amp;quot;，LLM 却大谈 Python 的安装方法——内容可能没有编造，但完全没有回答用户的问题。RAGAS 框架中评估 Answer Relevance 的一个巧妙方法是：用 &lt;strong&gt;LLM&lt;/strong&gt; 根据生成的回答反向生成几个问题，然后计算这些反向生成的问题与原始问题之间的语义相似度，相似度越高说明回答越切题。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Answer Completeness / Correctness（回答完整性/正确性）&lt;/strong&gt; 关注的是回答是否覆盖了问题的所有要点。一个忠实且切题的回答，如果只回答了问题的一半，也不算好答案。这个指标通常需要一个参考答案（&lt;strong&gt;Ground Truth&lt;/strong&gt;）来对比，评估生成的回答覆盖了参考答案中多少关键信息点。在有标注数据的场景下，这是一个很有说服力的指标。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;生成阶段评估.png&#34; alt=&#34;生成阶段评估&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-传统-nlp-指标&#34;&gt;📐 传统 NLP 指标
+&lt;/h2&gt;&lt;p&gt;除了上面这些专门为 RAG 设计的语义级评估指标，还有一些经典的 NLP 文本评估指标也被用在 RAG 评估中，但它们各有局限，需要理解其适用边界。&lt;strong&gt;BLEU&lt;/strong&gt; 和 &lt;strong&gt;ROUGE&lt;/strong&gt; 是最常见的两个。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;BLEU&lt;/strong&gt; 原本用于机器翻译评估，衡量生成文本与参考文本之间的 n-gram 重叠度&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;ROUGE&lt;/strong&gt; 原本用于摘要评估，侧重衡量参考文本中的关键 n-gram 是否被生成文本覆盖。
+它们的优势是计算简单、不需要调用 LLM、成本几乎为零，适合在大规模评估中快速筛选。但它们的根本问题是只看表面文字的重叠，不理解语义。两句意思完全相同但措辞不同的回答，在 BLEU/ROUGE 下可能得分很低；反过来，一句大量复用了原文词汇但意思完全扭曲的回答，可能得分反而高。所以在 RAG 场景中，这些指标只能作为辅助参考，不能作为核心评估手段。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;BERTScore&lt;/strong&gt; 是一个改进方向，它用预训练语言模型的 &lt;strong&gt;Embedding&lt;/strong&gt; 来计算生成文本和参考文本之间的语义相似度，而不是简单的词汇重叠。这在一定程度上解决了&amp;quot;同义不同词&amp;quot;的问题，但仍然依赖参考答案的存在，而且对于 RAG 这种开放式生成任务，参考答案本身就很难穷举。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;评估维度.png&#34; alt=&#34;评估维度&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-llm-as-judge让-llm-作为裁判&#34;&gt;🤖 LLM-as-Judge（让 LLM 作为裁判）
+&lt;/h2&gt;&lt;p&gt;讲到这里，一个绕不开的实操问题浮出水面：上面说的 Faithfulness、Answer Relevance 这些语义级指标，到底靠什么来计算？ 靠人工标注当然最准，但成本高、速度慢，根本无法满足日常迭代的需求。RAG 评估领域目前最主流的解决方案就是 &lt;strong&gt;LLM-as-Judge&lt;/strong&gt;——用一个 LLM（通常是 GPT-4 级别的强模型）来充当评估者，自动对 RAG 系统的输出进行评分。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;RAGAS&lt;/strong&gt; 框架是目前最成熟的 RAG 自动化评估工具，它的核心就是用 LLM 来评估前面提到的 Faithfulness、Answer Relevance、Context Relevance 等指标。&lt;strong&gt;TruLens&lt;/strong&gt; 则提供了更灵活的反馈函数（&lt;strong&gt;Feedback Functions&lt;/strong&gt;）机制，可以自定义各种评估逻辑。这些框架让 RAG 评估从&amp;quot;每次改动都要找人标注&amp;quot;变成了&amp;quot;改完代码跑一遍评估脚本就能看到效果&amp;quot;，极大地加速了迭代效率。&lt;/p&gt;
+&lt;p&gt;但 LLM-as-Judge 本身也有局限。首先是评估模型本身可能犯错——它可能误判一个幻觉陈述为&amp;quot;被上下文支持&amp;quot;，或者对一个完全正确的回答打了低分。其次是成本——每次评估都要调用大模型，如果评估集很大，成本也不容小觑。实践中的做法是：日常迭代用 LLM-as-Judge 做快速评估，定期用人工标注做校准和修正，两者互补。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;LLM-as-Judge.png&#34; alt=&#34;LLM-as-Judge&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-完整的评估流程&#34;&gt;🔄 完整的评估流程
+&lt;/h2&gt;&lt;p&gt;虽然分阶段评估对于定位问题至关重要，但不能忘了最终关心的是端到端的效果。一个检索指标全优但用户满意度不高的 RAG 系统，和一个检索指标一般但最终回答恰好满足用户需求的系统，后者在业务上可能反而更有价值。&lt;/p&gt;
+&lt;p&gt;所以在实际项目中，一套完善的 RAG 评估体系通常是这样分层的：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;最底层是各阶段的细粒度指标（&lt;strong&gt;Precision&lt;/strong&gt;、&lt;strong&gt;Recall&lt;/strong&gt;、&lt;strong&gt;MRR&lt;/strong&gt;、&lt;strong&gt;Faithfulness&lt;/strong&gt; 等），用于日常开发中的问题诊断和快速迭代&lt;/li&gt;
+&lt;li&gt;中间层是端到端的自动化指标（&lt;strong&gt;Answer Correctness&lt;/strong&gt;、整体 RAGAS 分数），用于版本间的效果对比&lt;/li&gt;
+&lt;li&gt;最上层是人工评估和用户反馈，用于校准自动化指标的准确性和把握真实的用户体验。三层互补，缺一不可。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;分层评估.png&#34; alt=&#34;分层评估体系&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+</description>
+        </item>
+        <item>
+        <title>RAG的优化策略</title>
+        <link>https://Tyritic.github.io/p/rag%E7%9A%84%E4%BC%98%E5%8C%96%E7%AD%96%E7%95%A5/</link>
+        <pubDate>Sun, 04 May 2025 19:29:50 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/rag%E7%9A%84%E4%BC%98%E5%8C%96%E7%AD%96%E7%95%A5/</guid>
+        <description>&lt;h2 id=&#34;-rag-的常见瓶颈&#34;&gt;⚠️ RAG 的常见瓶颈
+&lt;/h2&gt;&lt;p&gt;很多人一开始会把&amp;quot;检索优化&amp;quot;理解成&amp;quot;换一个向量库&amp;quot;或&amp;quot;把 Top-K 从 3 调到 5&amp;quot;。但真正影响效果的，往往是整条检索链路：&lt;strong&gt;查询怎么改写、索引怎么组织、召回怎么融合、候选怎么精排&lt;/strong&gt;。&lt;/p&gt;
 &lt;h3 id=&#34;-基础向量检索的瓶颈&#34;&gt;🔍 基础向量检索的瓶颈
-&lt;/h3&gt;&lt;p&gt;在进入各种优化手段之前，先要看清楚 &lt;strong&gt;基础向量检索本身的瓶颈&lt;/strong&gt;。很多问题不是“参数没调好”，而是方案本身就有边界：&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;在进入各种优化手段之前，先要看清楚 &lt;strong&gt;基础向量检索本身的瓶颈&lt;/strong&gt;。很多问题不是&amp;quot;参数没调好&amp;quot;，而是方案本身就有边界：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;查询和文档之间存在语义鸿沟&lt;/strong&gt;：用户提问常常是口语化、问题体，但知识库里的文档往往是陈述句、术语化表达。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;向量检索不擅长精确匹配&lt;/strong&gt;：涉及时间、数字、型号、版本号等条件时，单纯做语义相似度很容易把“接近但不正确”的内容一起召回。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;固定切片容易割裂上下文&lt;/strong&gt;：如果一个完整结论恰好被切开，返回的 chunk 往往只有半段，模型即使看到了也很难稳定作答。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;向量检索不擅长精确匹配&lt;/strong&gt;：涉及时间、数字、型号、版本号等条件时，单纯做语义相似度很容易把&amp;quot;接近但不正确&amp;quot;的内容一起召回。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;固定切片容易割裂上下文&lt;/strong&gt;：如果一个完整结论恰好被切开，返回的 &lt;strong&gt;chunk&lt;/strong&gt; 往往只有半段，模型即使看到了也很难稳定作答。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;rag-vector-retrieval-bottlenecks.png&#34; alt=&#34;基础向量检索的瓶颈&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
-&lt;div
+&lt;style type=&#34;text/css&#34;&gt;
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+&lt;/style&gt;&lt;div
   class=&#34;notice warning&#34;
   
 &gt;
@@ -613,17 +2107,17 @@
 &lt;/svg&gt;
 
     &lt;/span&gt;警告&lt;/p&gt;
-  &lt;p&gt;如果底层问题出在“查询表达不清、切块不合理、候选噪声太多”，那么单纯调大 &lt;code&gt;Top-K&lt;/code&gt; 往往只会把更多噪声送进模型，而不是稳定提升效果。&lt;/p&gt;
+  &lt;p&gt;如果底层问题出在&amp;quot;查询表达不清、切块不合理、候选噪声太多&amp;quot;，那么单纯调大 &lt;code&gt;Top-K&lt;/code&gt; 往往只会把更多噪声送进模型，而不是稳定提升效果。&lt;/p&gt;
   &lt;/div&gt;
 
 &lt;h3 id=&#34;-rag-本身的局限性&#34;&gt;📌 RAG 本身的局限性
 &lt;/h3&gt;&lt;p&gt;一个成熟的系统不应该只讲优势而忽略局限。RAG 也有它的短板：&lt;/p&gt;
 &lt;ol&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;检索质量是天花板&lt;/strong&gt;：RAG 的效果高度依赖检索的准确率——如果检索到的文本块和问题不相关甚至矛盾，LLM 会基于错误的上下文生成错误的答案，这有时会比没有 RAG 更危险（因为模型&amp;quot;有理有据地说错话&amp;quot;，用户更容易相信）。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;检索质量是天花板&lt;/strong&gt;：RAG 的效果高度依赖检索的准确率——如果检索到的文本块和问题不相关甚至矛盾，&lt;strong&gt;LLM&lt;/strong&gt; 会基于错误的上下文生成错误的答案，这有时会比没有 RAG 更危险（因为模型&amp;quot;有理有据地说错话&amp;quot;，用户更容易相信）。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;上下文窗口的瓶颈&lt;/strong&gt;：检索出来的文本块要塞进 Prompt，受限于 LLM 的上下文长度。虽然长上下文模型（128K 甚至更长）在一定程度上缓解了这个问题，但&amp;quot;长上下文 ≠ 好利用&amp;quot;—— LLM 对超长上下文中间部分的注意力会下降（&lt;strong&gt;Lost in the Middle&lt;/strong&gt; 现象）。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;上下文窗口的瓶颈&lt;/strong&gt;：检索出来的文本块要塞进 &lt;strong&gt;Prompt&lt;/strong&gt;，受限于 &lt;strong&gt;LLM&lt;/strong&gt; 的上下文长度。虽然长上下文模型（128K 甚至更长）在一定程度上缓解了这个问题，但&amp;quot;长上下文 ≠ 好利用&amp;quot;—— &lt;strong&gt;LLM&lt;/strong&gt; 对超长上下文中间部分的注意力会下降（&lt;strong&gt;Lost in the Middle&lt;/strong&gt; 现象）。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
 &lt;p&gt;&lt;strong&gt;不擅长改变模型行为&lt;/strong&gt;：RAG 解决的是&amp;quot;知识获取&amp;quot;问题，而不是&amp;quot;行为模式&amp;quot;问题。如果想让模型学会一种新的推理风格或适应特定的输出格式，这些需要微调来解决。&lt;/p&gt;
@@ -643,13 +2137,14 @@
   &lt;p&gt;实际上，&lt;strong&gt;RAG 和微调最好的关系是互补而非互斥&lt;/strong&gt;。很多生产级系统中，两者是一起用的：先微调让模型具备领域专业能力和特定行为模式，再用 RAG 为它提供实时的、可更新的事实性知识。&lt;/p&gt;
   &lt;/div&gt;
 
+&lt;hr&gt;
 &lt;h2 id=&#34;-rag-优化策略&#34;&gt;🚀 RAG 优化策略
 &lt;/h2&gt;&lt;h3 id=&#34;-查询阶段的优化&#34;&gt;💡 查询阶段的优化
-&lt;/h3&gt;&lt;p&gt;很多时候检索质量差，根源并不在检索引擎，而在用户查询本身。用户的提问可能太模糊、太口语化，或者把多个子问题混在一起。如果能在检索之前先把查询“加工”一下，效果往往会明显提升。&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;很多时候检索质量差，根源并不在检索引擎，而在用户查询本身。用户的提问可能太模糊、太口语化，或者把多个子问题混在一起。如果能在检索之前先把查询&amp;quot;加工&amp;quot;一下，效果往往会明显提升。&lt;/p&gt;
 &lt;p&gt;查询侧最常见的做法包括：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Query Rewriting&lt;/strong&gt;：把口语化、模糊化的问题改写成更适合检索的表达。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;HyDE&lt;/strong&gt;：先让模型生成一段“假想答案”，再用这段答案的向量去检索，缩小查询和文档之间的表达鸿沟。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;HyDE&lt;/strong&gt;：先让模型生成一段&amp;quot;假想答案&amp;quot;，再用这段答案的向量去检索，缩小查询和文档之间的表达鸿沟。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Multi-Query&lt;/strong&gt;：从多个角度生成查询变体，合并结果以提高召回率。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Sub-Question Decomposition&lt;/strong&gt;：把复杂问题拆成多个子问题分别检索，再汇总回答。&lt;/li&gt;
 &lt;/ul&gt;
@@ -660,8 +2155,8 @@
 &lt;/h3&gt;&lt;p&gt;索引侧优化解决的核心问题是：&lt;strong&gt;知识该如何被切分、编码、组织，才能在查询发生时被更准确地找出来。&lt;/strong&gt;&lt;/p&gt;
 &lt;h4 id=&#34;-选择合适的分块策略&#34;&gt;✂️ 选择合适的分块策略
 &lt;/h4&gt;&lt;h5 id=&#34;-文本切块在-rag-中的角色&#34;&gt;📌 文本切块在 RAG 中的角色
-&lt;/h5&gt;&lt;p&gt;RAG 的基本流程是：用户提问 → 检索相关文档片段 → 将片段拼入 Prompt → LLM 基于这些片段生成回答。而&amp;quot;切块&amp;quot;发生在更早的离线阶段——把原始文档切分成小片段，每个片段生成一个 Embedding 向量存入向量数据库。用户查询时，查询向量和这些片段向量做相似度匹配，找出最相关的 Top-K 片段。&lt;/p&gt;
-&lt;p&gt;这意味着切块质量直接决定了两件事：检索能不能找到对的片段，以及找到的片段能不能让 LLM 生成好的回答。切得不好，要么检索阶段就漏掉了关键信息，要么检索到了但片段内容残缺不全导致 LLM 无法正确理解。可以说，切块是 RAG 系统中&amp;quot;最不起眼但影响最深远&amp;quot;的环节——很多人花大量精力调 Prompt、换 Embedding 模型、调 Top-K，最后发现问题根源其实出在切块策略上。&lt;/p&gt;
+&lt;/h5&gt;&lt;p&gt;RAG 的基本流程是：用户提问 → 检索相关文档片段 → 将片段拼入 &lt;strong&gt;Prompt&lt;/strong&gt; → &lt;strong&gt;LLM&lt;/strong&gt; 基于这些片段生成回答。而&amp;quot;切块&amp;quot;发生在更早的离线阶段——把原始文档切分成小片段，每个片段生成一个 &lt;strong&gt;Embedding&lt;/strong&gt; 向量存入向量数据库。用户查询时，查询向量和这些片段向量做相似度匹配，找出最相关的 &lt;strong&gt;Top-K&lt;/strong&gt; 片段。&lt;/p&gt;
+&lt;p&gt;这意味着切块质量直接决定了两件事：检索能不能找到对的片段，以及找到的片段能不能让 &lt;strong&gt;LLM&lt;/strong&gt; 生成好的回答。切得不好，要么检索阶段就漏掉了关键信息，要么检索到了但片段内容残缺不全导致 &lt;strong&gt;LLM&lt;/strong&gt; 无法正确理解。可以说，切块是 RAG 系统中&amp;quot;最不起眼但影响最深远&amp;quot;的环节——很多人花大量精力调 &lt;strong&gt;Prompt&lt;/strong&gt;、换 &lt;strong&gt;Embedding 模型&lt;/strong&gt;、调 &lt;strong&gt;Top-K&lt;/strong&gt;，最后发现问题根源其实出在切块策略上。&lt;/p&gt;
 &lt;p&gt;分块的本质，是把原始长文本拆成若干个较小但语义相对完整的片段。每个片段通常控制在几百字到上千字之间，比如一个段落、若干段落，或者一个小节。&lt;/p&gt;
 &lt;p&gt;之所以要分块，主要有几个原因：&lt;/p&gt;
 &lt;ul&gt;
@@ -676,8 +2171,8 @@
 &lt;h5 id=&#34;-chunk-size-的权衡&#34;&gt;⚖️ Chunk Size 的权衡
 &lt;/h5&gt;&lt;p&gt;从实战调优角度看，分块通常要同时考虑两个参数：&lt;strong&gt;&lt;code&gt;chunk size&lt;/code&gt;&lt;/strong&gt; 和 &lt;strong&gt;&lt;code&gt;overlap&lt;/code&gt;&lt;/strong&gt;。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;块太小&lt;/strong&gt;：每个 chunk 的内容非常聚焦，大概率只包含一个知识点。这带来的好处是 Embedding 向量更精准地代表那个知识点，检索时更容易被&amp;quot;命中&amp;quot;——也就是检索精度（Precision）高。但问题也很明显：一个太小的 chunk 很可能缺少必要的上下文。比如原文是&amp;quot;该方法在实验中将准确率提升了 15%，但仅在数据量超过 10 万条时才有效&amp;quot;，如果从&amp;quot;但&amp;quot;字处切开，前半段 chunk 只说了&amp;quot;提升 15%&amp;ldquo;而丢失了限制条件，LLM 读到这个片段就可能给出一个过于乐观的回答。此外，小 chunk 意味着数量多，检索到的 Top-K 片段可能来自文档的不同角落，LLM 需要整合多个碎片化的信息，增加了理解难度和幻觉风险。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;块太大&lt;/strong&gt;：每个 chunk 包含更丰富的上下文，语义完整性好，LLM 拿到后更容易理解和推理。但大 chunk 的 Embedding 向量不可避免地变成了多个知识点的&amp;quot;混合体&amp;rdquo;，一个向量要同时代表好几层含义，检索时就容易&amp;quot;模糊匹配&amp;quot;——用户问的是 A，但因为某个 chunk 里 A 和 B 混在一起，B 的部分也被捎带检索出来了，稀释了相关性。更实际的问题是，大 chunk 意味着每个片段占用更多的 Prompt 空间（即 Context Window），能放进去的片段数量就更少，可能导致召回率（Recall）不够。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;块太小&lt;/strong&gt;：每个 &lt;strong&gt;chunk&lt;/strong&gt; 的内容非常聚焦，大概率只包含一个知识点。这带来的好处是 &lt;strong&gt;Embedding&lt;/strong&gt; 向量更精准地代表那个知识点，检索时更容易被&amp;quot;命中&amp;quot;——也就是检索精度（&lt;strong&gt;Precision&lt;/strong&gt;）高。但问题也很明显：一个太小的 &lt;strong&gt;chunk&lt;/strong&gt; 很可能缺少必要的上下文。比如原文是&amp;quot;该方法在实验中将准确率提升了 15%，但仅在数据量超过 10 万条时才有效&amp;quot;，如果从&amp;quot;但&amp;quot;字处切开，前半段 &lt;strong&gt;chunk&lt;/strong&gt; 只说了&amp;quot;提升 15%&amp;ldquo;而丢失了限制条件，&lt;strong&gt;LLM&lt;/strong&gt; 读到这个片段就可能给出一个过于乐观的回答。此外，小 &lt;strong&gt;chunk&lt;/strong&gt; 意味着数量多，检索到的 &lt;strong&gt;Top-K&lt;/strong&gt; 片段可能来自文档的不同角落，&lt;strong&gt;LLM&lt;/strong&gt; 需要整合多个碎片化的信息，增加了理解难度和幻觉风险。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;块太大&lt;/strong&gt;：每个 &lt;strong&gt;chunk&lt;/strong&gt; 包含更丰富的上下文，语义完整性好，&lt;strong&gt;LLM&lt;/strong&gt; 拿到后更容易理解和推理。但大 &lt;strong&gt;chunk&lt;/strong&gt; 的 &lt;strong&gt;Embedding&lt;/strong&gt; 向量不可避免地变成了多个知识点的&amp;quot;混合体&amp;rdquo;，一个向量要同时代表好几层含义，检索时就容易&amp;quot;模糊匹配&amp;quot;——用户问的是 A，但因为某个 &lt;strong&gt;chunk&lt;/strong&gt; 里 A 和 B 混在一起，B 的部分也被捎带检索出来了，稀释了相关性。更实际的问题是，大 &lt;strong&gt;chunk&lt;/strong&gt; 意味着每个片段占用更多的 &lt;strong&gt;Prompt&lt;/strong&gt; 空间（即 &lt;strong&gt;Context Window&lt;/strong&gt;），能放进去的片段数量就更少，可能导致召回率（&lt;strong&gt;Recall&lt;/strong&gt;）不够。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;chunk-size-tradeoff.png&#34; alt=&#34;Chunk Size 的权衡&#34; width=&#34;82%&#34; /&gt;
@@ -688,44 +2183,41 @@
 &lt;li&gt;&lt;strong&gt;技术文档、法律条款、分析型内容&lt;/strong&gt; 更适合偏大的块，例如 &lt;code&gt;512 ~ 1024 token&lt;/code&gt;。因为上下文完整性更关键。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h5 id=&#34;-overlap-的作用&#34;&gt;🔗 Overlap 的作用
-&lt;/h5&gt;&lt;p&gt;&lt;code&gt;overlap&lt;/code&gt; 的作用，则是缓解块边界处的信息断裂。想象一下，一段连贯的论述横跨了两个 chunk 的边界：前一个 chunk 的结尾讲了原因，后一个 chunk 的开头讲了结论。如果没有重叠，这两个 chunk 各自都是&amp;quot;半截话&amp;quot;——前一个有原因没结论，后一个有结论没原因。Embedding 分别编码后，两个向量都无法完整代表这段论述的含义，检索时就可能漏掉这条关键信息。此时两个向量都不够完整，召回质量会明显下降。&lt;/p&gt;
+&lt;/h5&gt;&lt;p&gt;&lt;code&gt;overlap&lt;/code&gt; 的作用，则是缓解块边界处的信息断裂。想象一下，一段连贯的论述横跨了两个 &lt;strong&gt;chunk&lt;/strong&gt; 的边界：前一个 &lt;strong&gt;chunk&lt;/strong&gt; 的结尾讲了原因，后一个 &lt;strong&gt;chunk&lt;/strong&gt; 的开头讲了结论。如果没有重叠，这两个 &lt;strong&gt;chunk&lt;/strong&gt; 各自都是&amp;quot;半截话&amp;quot;——前一个有原因没结论，后一个有结论没原因。&lt;strong&gt;Embedding&lt;/strong&gt; 分别编码后，两个向量都无法完整代表这段论述的含义，检索时就可能漏掉这条关键信息。此时两个向量都不够完整，召回质量会明显下降。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;chunk-overlap.png&#34; alt=&#34;Overlap 对切块边界的补偿&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
 &lt;p&gt;常见的经验值是 &lt;code&gt;overlap&lt;/code&gt; 设为 &lt;code&gt;chunk size&lt;/code&gt; 的 &lt;code&gt;10% ~ 25%&lt;/code&gt;。比如 chunk size 是 512 token，overlap 可以设 50-128 token。过小起不到衔接作用，过大又会带来两个副作用：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;存储膨胀&lt;/strong&gt;：同一段内容被重复编码多次。向量数据库的体积和索引成本显著增加&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;检索重复&lt;/strong&gt;：多个 chunk 包含大量相同内容，检索时可能返回一堆&amp;quot;长得差不多&amp;quot;的片段，浪费了宝贵的 Top-K 配额，等于你明明可以看到 5 条不同信息，结果其中 3 条都在重复同一段话。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;检索重复&lt;/strong&gt;：多个 &lt;strong&gt;chunk&lt;/strong&gt; 包含大量相同内容，检索时可能返回一堆&amp;quot;长得差不多&amp;quot;的片段，浪费了宝贵的 &lt;strong&gt;Top-K&lt;/strong&gt; 配额，等于你明明可以看到 5 条不同信息，结果其中 3 条都在重复同一段话。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h5 id=&#34;-常见的切块策略&#34;&gt;📋 常见的切块策略
-&lt;/h5&gt;&lt;p&gt;常用切块策略除了固定大小切块（Fixed-size Chunking），还有更精细的做法：&lt;/p&gt;
+&lt;/h5&gt;&lt;p&gt;常用切块策略除了固定大小切块（&lt;strong&gt;Fixed-size Chunking&lt;/strong&gt;），还有更精细的做法：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;语义切块（Semantic Chunking）&lt;/strong&gt;：不按固定 token 数切，而是按语义边界切。先把文本按句子分割，然后计算相邻句子之间的 Embedding 相似度，当相似度出现明显下降时（说明话题发生了转换），就在那里切一刀。这样每个 chunk 自然地对应一个完整的语义单元，不需要 overlap 来&amp;quot;缝合&amp;quot;了。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;语义切块（Semantic Chunking）&lt;/strong&gt;：不按固定 token 数切，而是按语义边界切。先把文本按句子分割，然后计算相邻句子之间的 &lt;strong&gt;Embedding&lt;/strong&gt; 相似度，当相似度出现明显下降时（说明话题发生了转换），就在那里切一刀。这样每个 &lt;strong&gt;chunk&lt;/strong&gt; 自然地对应一个完整的语义单元，不需要 &lt;strong&gt;overlap&lt;/strong&gt; 来&amp;quot;缝合&amp;quot;了。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;基于文档结构的切块&lt;/strong&gt;：利用文档自身的结构信息。Markdown 文档有标题层级，HTML 有标签结构，PDF 有段落和章节。按这些天然边界来切块，既简单又有效。比如按 Markdown 的二级标题（&lt;code&gt;##&lt;/code&gt;）切，每个 chunk 就是一个完整的章节，语义自然完整。这种方法特别适合结构化程度高的文档，例如技术文档、产品手册、法律合同等。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;基于文档结构的切块&lt;/strong&gt;：利用文档自身的结构信息。Markdown 文档有标题层级，HTML 有标签结构，PDF 有段落和章节。按这些天然边界来切块，既简单又有效。比如按 Markdown 的二级标题（&lt;code&gt;##&lt;/code&gt;）切，每个 &lt;strong&gt;chunk&lt;/strong&gt; 就是一个完整的章节，语义自然完整。这种方法特别适合结构化程度高的文档，例如技术文档、产品手册、法律合同等。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;递归切块（Recursive Chunking）&lt;/strong&gt;：设定一组分隔符优先级（比如先按段落 &lt;code&gt;\n\n&lt;/code&gt; 切，太大了再按句子 &lt;code&gt;\n&lt;/code&gt; 切，还太大了再按固定长度切），逐级递归直到每个 chunk 都在目标大小范围内。它兼顾了结构化和大小控制，是实践中最常用的默认策略。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;递归切块（Recursive Chunking）&lt;/strong&gt;：设定一组分隔符优先级（比如先按段落 &lt;code&gt;\n\n&lt;/code&gt; 切，太大了再按句子 &lt;code&gt;\n&lt;/code&gt; 切，还太大了再按固定长度切），逐级递归直到每个 &lt;strong&gt;chunk&lt;/strong&gt; 都在目标大小范围内。它兼顾了结构化和大小控制，是实践中最常用的默认策略。&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;chunking-overview.png&#34; alt=&#34;常见分块策略总览&#34; width=&#34;85%&#34; /&gt;
-&lt;/div&gt;
 &lt;h5 id=&#34;-实战调优的步骤&#34;&gt;🧪 实战调优的步骤
 &lt;/h5&gt;&lt;ol&gt;
 &lt;li&gt;
 &lt;p&gt;&lt;strong&gt;先看数据&lt;/strong&gt;：在动手切之前，先抽样看看原始文档长什么样——平均段落长度、内容结构化程度、信息密度。技术文档和闲聊记录显然需要完全不同的策略。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;建立评估闭环&lt;/strong&gt;：准备一组有标准答案的测试问题，跑一轮 RAG 看效果，调整参数后再跑一轮对比。核心指标有两个：检索召回率（相关片段有没有被检索到）和生成准确率（最终回答对不对）。很多时候你会发现检索层面已经召回了正确片段，但因为 chunk 太碎导致 LLM 无法正确理解，这就是切块的锅。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;建立评估闭环&lt;/strong&gt;：准备一组有标准答案的测试问题，跑一轮 RAG 看效果，调整参数后再跑一轮对比。核心指标有两个：检索召回率（相关片段有没有被检索到）和生成准确率（最终回答对不对）。很多时候你会发现检索层面已经召回了正确片段，但因为 &lt;strong&gt;chunk&lt;/strong&gt; 太碎导致 &lt;strong&gt;LLM&lt;/strong&gt; 无法正确理解，这就是切块的锅。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;考虑多级索引&lt;/strong&gt;：不只存一种粒度的 chunk，而是同时维护多个层级：比如用小 chunk（256 token）做精准检索，命中后把对应的大 chunk（1024 token）或原始段落送给 LLM。LlamaIndex 中的 &lt;code&gt;SentenceWindowNodeParser&lt;/code&gt; 和 &lt;code&gt;HierarchicalNodeParser&lt;/code&gt; 就是这个思路的实现。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;考虑多级索引&lt;/strong&gt;：不只存一种粒度的 &lt;strong&gt;chunk&lt;/strong&gt;，而是同时维护多个层级：比如用小 &lt;strong&gt;chunk&lt;/strong&gt;（256 token）做精准检索，命中后把对应的大 &lt;strong&gt;chunk&lt;/strong&gt;（1024 token）或原始段落送给 &lt;strong&gt;LLM&lt;/strong&gt;。&lt;strong&gt;LlamaIndex&lt;/strong&gt; 中的 &lt;code&gt;SentenceWindowNodeParser&lt;/code&gt; 和 &lt;code&gt;HierarchicalNodeParser&lt;/code&gt; 就是这个思路的实现。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;匹配 Embedding 模型能力&lt;/strong&gt;：不同 Embedding 模型的最佳输入长度不同——有些模型在短文本上表现更好，有些模型专门针对长文本优化（如 jina-embeddings-v2 支持 8192 token）。如果你用的是一个短文本模型却切了很大的 chunk，Embedding 质量会明显下降。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;匹配 Embedding 模型能力&lt;/strong&gt;：不同 &lt;strong&gt;Embedding 模型&lt;/strong&gt; 的最佳输入长度不同——有些模型在短文本上表现更好，有些模型专门针对长文本优化（如 &lt;strong&gt;jina-embeddings-v2&lt;/strong&gt; 支持 8192 token）。如果你用的是一个短文本模型却切了很大的 &lt;strong&gt;chunk&lt;/strong&gt;，&lt;strong&gt;Embedding&lt;/strong&gt; 质量会明显下降。&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ol&gt;
 &lt;p&gt;如果文档结构比较稳定，更进一步的做法是结合 &lt;strong&gt;语义切块、按标题分块、递归分块&lt;/strong&gt;，甚至引入 &lt;strong&gt;多级索引&lt;/strong&gt;。例如用小块做精确召回，命中后再回溯父块或原始段落给模型，这样检索和生成两端都能拿到更合适的粒度。&lt;/p&gt;
@@ -736,14 +2228,14 @@
 &lt;h5 id=&#34;-parent-child-索引&#34;&gt;🕸️ Parent-Child 索引
 &lt;/h5&gt;&lt;p&gt;&lt;strong&gt;Parent-Child 索引&lt;/strong&gt;是一种非常实用的索引架构。核心思想是：用小 &lt;code&gt;chunk&lt;/code&gt; 做检索，但返回大 &lt;code&gt;chunk&lt;/code&gt; 给 &lt;strong&gt;LLM&lt;/strong&gt;。具体来说，先把文档切成较大的 &lt;code&gt;chunk&lt;/code&gt;（比如 &lt;code&gt;2000 token&lt;/code&gt;），再把每个大 &lt;code&gt;chunk&lt;/code&gt; 进一步切成小的子 &lt;code&gt;chunk&lt;/code&gt;（比如 &lt;code&gt;200 token&lt;/code&gt;）。检索时用小 &lt;code&gt;chunk&lt;/code&gt; 的向量做匹配，小 &lt;code&gt;chunk&lt;/code&gt; 语义集中，匹配更精准；命中后，返回它所属的父级大 &lt;code&gt;chunk&lt;/code&gt; 给 &lt;strong&gt;LLM&lt;/strong&gt;，大 &lt;code&gt;chunk&lt;/code&gt; 上下文完整，&lt;strong&gt;LLM&lt;/strong&gt; 能更好地理解和利用。这种设计同时兼顾了检索精度和上下文完整性，在实际项目中效果很好。&lt;/p&gt;
 &lt;h5 id=&#34;-文档摘要索引&#34;&gt;📄 文档摘要索引
-&lt;/h5&gt;&lt;p&gt;对于每篇文档，先用 &lt;strong&gt;LLM&lt;/strong&gt; 生成一段摘要，把摘要也做向量化存入索引。检索时，除了匹配原文 &lt;code&gt;chunk&lt;/code&gt;，还会匹配摘要。摘要天然是对全文内容的高度凝练，很多时候用户的查询和摘要的匹配度反而比和原文碎片的匹配度更高。命中摘要后，再定位到对应的原文段落，返回详细内容。这种“先粗后细”的两级检索在处理长文档时特别有效。&lt;/p&gt;
+&lt;/h5&gt;&lt;p&gt;对于每篇文档，先用 &lt;strong&gt;LLM&lt;/strong&gt; 生成一段摘要，把摘要也做向量化存入索引。检索时，除了匹配原文 &lt;code&gt;chunk&lt;/code&gt;，还会匹配摘要。摘要天然是对全文内容的高度凝练，很多时候用户的查询和摘要的匹配度反而比和原文碎片的匹配度更高。命中摘要后，再定位到对应的原文段落，返回详细内容。这种&amp;quot;先粗后细&amp;quot;的两级检索在处理长文档时特别有效。&lt;/p&gt;
 &lt;h5 id=&#34;-多层级索引&#34;&gt;🏗️ 多层级索引
 &lt;/h5&gt;&lt;p&gt;&lt;strong&gt;多层级索引&lt;/strong&gt; 不只是文档-chunk 两层，而是构建多层级的索引结构——比如**&amp;ldquo;领域 → 主题 → 文档 → 段落&amp;rdquo;**。查询时先在高层级（如领域、主题）做粗筛，快速定位相关范围，再在低层级（如段落）做精确匹配。这种分层策略在文档量很大（数十万篇以上）时优势明显，因为它避免了在全量向量中做暴力搜索，大幅减少检索范围的同时提高了匹配准确率。&lt;/p&gt;
 &lt;h4 id=&#34;-选取合适的嵌入模型&#34;&gt;🧠 选取合适的嵌入模型
-&lt;/h4&gt;&lt;p&gt;如果说分块决定了“知识被切成什么样”，那么 &lt;strong&gt;Embedding 模型&lt;/strong&gt; 决定的就是“这些知识被表示成什么样”。两者共同决定了检索上限。&lt;/p&gt;
+&lt;/h4&gt;&lt;p&gt;如果说分块决定了&amp;quot;知识被切成什么样&amp;quot;，那么 &lt;strong&gt;Embedding 模型&lt;/strong&gt; 决定的就是&amp;quot;这些知识被表示成什么样&amp;quot;。两者共同决定了检索上限。&lt;/p&gt;
 &lt;h5 id=&#34;-embedding-模型的角色&#34;&gt;🧩 Embedding 模型的角色
-&lt;/h5&gt;&lt;p&gt;在 &lt;strong&gt;RAG&lt;/strong&gt;、语义搜索、推荐系统、文档聚类等场景中，&lt;strong&gt;Embedding 模型&lt;/strong&gt;是连接“自然语言”和“数学空间”的桥梁。它把一段文字转化为一个高维向量，使得语义相近的文本在向量空间中彼此靠近，语义不同的文本彼此远离。桥梁质量越高，后续检索、重排、生成的上限就越高。&lt;/p&gt;
-&lt;p&gt;这个“桥梁”的质量直接决定了下游任务的天花板。以 &lt;strong&gt;RAG&lt;/strong&gt; 为例，如果 &lt;strong&gt;Embedding 模型&lt;/strong&gt;不能准确捕捉查询和文档之间的语义关系，那么即使你的 &lt;strong&gt;LLM&lt;/strong&gt; 再强大、&lt;strong&gt;Prompt&lt;/strong&gt; 写得再好，也无法弥补检索阶段的信息缺失，这就是业界常说的 &lt;strong&gt;Garbage In, Garbage Out&lt;/strong&gt;。所以选好 &lt;strong&gt;Embedding 模型&lt;/strong&gt;是整个系统的地基，地基不稳，上层建筑再精美也没用。&lt;/p&gt;
+&lt;/h5&gt;&lt;p&gt;在 &lt;strong&gt;RAG&lt;/strong&gt;、语义搜索、推荐系统、文档聚类等场景中，&lt;strong&gt;Embedding 模型&lt;/strong&gt;是连接&amp;quot;自然语言&amp;quot;和&amp;quot;数学空间&amp;quot;的桥梁。它把一段文字转化为一个高维向量，使得语义相近的文本在向量空间中彼此靠近，语义不同的文本彼此远离。桥梁质量越高，后续检索、重排、生成的上限就越高。&lt;/p&gt;
+&lt;p&gt;这个&amp;quot;桥梁&amp;quot;的质量直接决定了下游任务的天花板。以 &lt;strong&gt;RAG&lt;/strong&gt; 为例，如果 &lt;strong&gt;Embedding 模型&lt;/strong&gt;不能准确捕捉查询和文档之间的语义关系，那么即使你的 &lt;strong&gt;LLM&lt;/strong&gt; 再强大、&lt;strong&gt;Prompt&lt;/strong&gt; 写得再好，也无法弥补检索阶段的信息缺失，这就是业界常说的 &lt;strong&gt;Garbage In, Garbage Out&lt;/strong&gt;。所以选好 &lt;strong&gt;Embedding 模型&lt;/strong&gt;是整个系统的地基，地基不稳，上层建筑再精美也没用。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;embedding-role.png&#34; alt=&#34;Embedding 在 RAG 中的角色&#34; width=&#34;80%&#34; /&gt;
 &lt;/div&gt;
@@ -758,19 +2250,19 @@
 &lt;/ul&gt;
 &lt;p&gt;除了上面这些通用因素，真正做选型时还要额外注意 4 个问题：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;任务类型匹配度&lt;/strong&gt;：&lt;strong&gt;Embedding 模型&lt;/strong&gt;的训练目标不同，擅长的任务也不同。有些模型是为语义相似度（&lt;strong&gt;Semantic Textual Similarity&lt;/strong&gt;）优化的，擅长判断两段文本说的是不是同一件事；有些是为检索（&lt;strong&gt;Retrieval&lt;/strong&gt;）优化的，擅长从一堆候选文档中找出和查询最相关的那几篇；还有些是为聚类或分类任务优化的。在 &lt;strong&gt;RAG&lt;/strong&gt; 场景中，你需要的核心能力是检索，那就应该优先选在检索任务上表现好的模型，而不是在句子相似度任务上跑分最高的模型。**MTEB 排行榜（Massive Text Embedding Benchmark）**之所以有价值，就是因为它把不同任务类型拆开评估，你可以针对自己的任务类型去看对应的分数。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;任务类型匹配度&lt;/strong&gt;：&lt;strong&gt;Embedding 模型&lt;/strong&gt;的训练目标不同，擅长的任务也不同。有些模型是为语义相似度（&lt;strong&gt;Semantic Textual Similarity&lt;/strong&gt;）优化的，擅长判断两段文本说的是不是同一件事；有些是为检索（&lt;strong&gt;Retrieval&lt;/strong&gt;）优化的，擅长从一堆候选文档中找出和查询最相关的那几篇；还有些是为聚类或分类任务优化的。在 &lt;strong&gt;RAG&lt;/strong&gt; 场景中，你需要的核心能力是检索，那就应该优先选在检索任务上表现好的模型，而不是在句子相似度任务上跑分最高的任务。**MTEB 排行榜（Massive Text Embedding Benchmark）**之所以有价值，就是因为它把不同任务类型拆开评估，你可以针对自己的任务类型去看对应的分数。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;语言和领域匹配度&lt;/strong&gt;：这一点在国内场景尤为关键。很多在英文上表现优秀的模型，在中文上的效果可能大打折扣。如果你的业务场景是中文为主，就必须选在中文数据上训练过或专门针对中文优化过的模型，比如 &lt;strong&gt;BGE（BAAI General Embedding）&lt;/strong&gt; 系列、&lt;strong&gt;M3E&lt;/strong&gt;、&lt;strong&gt;Cohere&lt;/strong&gt; 的多语言模型等。更进一步，如果是垂直领域（如医疗、法律、金融），通用模型的效果往往不够好，因为这些领域有大量专业术语和特定的语义关系，通用训练数据中覆盖不足。这时候要么选在该领域数据上微调过的模型，要么自己基于开源模型做领域微调。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;是否支持非对称检索&lt;/strong&gt;：对称检索指的是查询和文档在形式上是相似的（比如两个句子比较相似度），非对称检索指的是查询和文档形式不同（比如一个短问题去检索一篇长文档）。RAG 场景几乎都是非对称检索——用户的查询通常是一句简短的问题，而候选文档是完整的段落甚至文章。有些模型专门为非对称检索做了优化（比如在训练时使用了 query-document 对，并且对 query 和 document 分别使用不同的前缀指令），在这种场景下效果会明显好于对称模型。E5 系列和 BGE 系列都支持通过 instruction prefix 来区分 query 和 passage，实际测试中这个小技巧对检索效果的提升不可忽视。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;向量维度与成本的平衡&lt;/strong&gt;：维度越高，表达能力通常更强，但索引体积、检索延迟和内存占用也会同步增加。选型不能只看效果，还要考虑实际部署时的约束。API 调用模型（如 OpenAI、Cohere）使用方便但有持续成本，且数据要发送到第三方；开源模型（如 BGE、E5、GTE）可以自部署，数据不出域，但需要 GPU 资源和运维能力。在实际项目中，还需要考虑模型的推理速度（高并发下能不能扛住）、最大输入长度（你的文档分块策略和模型的 max_tokens 是否匹配）、以及是否支持批量推理等工程细节。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;是否支持非对称检索&lt;/strong&gt;：对称检索指的是查询和文档在形式上是相似的（比如两个句子比较相似度），非对称检索指的是查询和文档形式不同（比如一个短问题去检索一篇长文档）。RAG 场景几乎都是非对称检索——用户的查询通常是一句简短的问题，而候选文档是完整的段落甚至文章。有些模型专门为非对称检索做了优化（比如在训练时使用了 query-document 对，并且对 query 和 document 分别使用不同的前缀指令），在这种场景下效果会明显好于对称模型。&lt;strong&gt;E5&lt;/strong&gt; 系列和 &lt;strong&gt;BGE&lt;/strong&gt; 系列都支持通过 instruction prefix 来区分 query 和 passage，实际测试中这个小技巧对检索效果的提升不可忽视。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;向量维度与成本的平衡&lt;/strong&gt;：维度越高，表达能力通常更强，但索引体积、检索延迟和内存占用也会同步增加。选型不能只看效果，还要考虑实际部署时的约束。API 调用模型（如 &lt;strong&gt;OpenAI&lt;/strong&gt;、&lt;strong&gt;Cohere&lt;/strong&gt;）使用方便但有持续成本，且数据要发送到第三方；开源模型（如 &lt;strong&gt;BGE&lt;/strong&gt;、&lt;strong&gt;E5&lt;/strong&gt;、&lt;strong&gt;GTE&lt;/strong&gt;）可以自部署，数据不出域，但需要 GPU 资源和运维能力。在实际项目中，还需要考虑模型的推理速度（高并发下能不能扛住）、最大输入长度（你的文档分块策略和模型的 max_tokens 是否匹配）、以及是否支持批量推理等工程细节。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;embedding-selection-dimensions.png&#34; alt=&#34;Embedding 模型选型维度&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
 &lt;p&gt;一些典型取舍如下：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;轻量模型&lt;/strong&gt;：如 MiniLM、DistilBERT，速度快，更适合在线问答。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;重型模型&lt;/strong&gt;：如 BERT-large 或更大的 Embedding 模型，表达能力强，更适合离线批处理。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;领域模型或微调方案&lt;/strong&gt;：适合对专业术语理解要求较高的场景，也可以通过 LoRA 等方式做轻量适配。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;轻量模型&lt;/strong&gt;：如 &lt;strong&gt;MiniLM&lt;/strong&gt;、&lt;strong&gt;DistilBERT&lt;/strong&gt;，速度快，更适合在线问答。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;重型模型&lt;/strong&gt;：如 &lt;strong&gt;BERT-large&lt;/strong&gt; 或更大的 Embedding 模型，表达能力强，更适合离线批处理。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;领域模型或微调方案&lt;/strong&gt;：适合对专业术语理解要求较高的场景，也可以通过 &lt;strong&gt;LoRA&lt;/strong&gt; 等方式做轻量适配。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h5 id=&#34;-评估-embedding-模型的核心指标&#34;&gt;📊 评估 Embedding 模型的核心指标
 &lt;/h5&gt;&lt;p&gt;选好了候选模型之后，还需要做评估。&lt;/p&gt;
@@ -781,14 +2273,8 @@
 &lt;li&gt;&lt;strong&gt;NDCG@K（Normalized Discounted Cumulative Gain，归一化折损累积增益）&lt;/strong&gt;：这是最全面的排序指标，它不仅考虑相关文档有没有被检索到，还考虑相关程度更高的文档是否排在更前面。NDCG 的&amp;quot;折损&amp;quot;机制给排在前面的结果更高的权重，越往后权重衰减越快，这和用户的实际行为是吻合的——没人会翻到第 50 页去找答案。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;MAP（Mean Average Precision，平均精度均值）&lt;/strong&gt;：对每个查询计算 Precision 在不同召回点的平均值，再对所有查询求均值。它综合衡量了检索结果的精确度和排序质量。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;语义相似度指标则用于衡量模型在判断文本对相似性上的能力。&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Spearman相关系数&lt;/strong&gt;：计算模型预测的相似度分数与人工标注的相似度分数之间的排序相关性。Spearman 不关心绝对值，只关心排序是否一致——如果人工标注认为 A 比 B 更相似，模型的分数也应该给 A 更高。这个指标对于 Embedding 模型来说非常合理，因为我们在实际使用中通常是比较相对排序（&amp;ldquo;哪个更相似&amp;rdquo;），而不是看绝对的分数值。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Person相关系数&lt;/strong&gt;：衡量模型分数与人工标注之间的线性相关程度。相比 Spearman，它对绝对值更敏感，但在实际评估中两者通常配合使用。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;聚类和分类指标&lt;/strong&gt;：用于评估向量在下游分类或聚类任务中的区分能力。如果一个 Embedding 模型足够好，那么同类文本的向量应该自然聚拢，不同类的向量应该分开。常用指标包括：V-Measure（衡量聚类结果与真实标签的一致性）、聚类纯度（每个簇中主类别的占比）、以及用向量作为特征训练分类器后的 Accuracy 和 F1。&lt;/li&gt;
-&lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;embedding-metrics.png&#34; alt=&#34;Embedding 评估指标&#34; width=&#34;82%&#34; /&gt;
+  &lt;img src=&#34;embedding-metrics.png&#34; alt=&#34;Embedding 模型评估指标&#34; width=&#34;80%&#34; /&gt;
 &lt;/div&gt;
 &lt;p&gt;公开基准里最常见的是 &lt;strong&gt;MTEB（Massive Text Embedding Benchmark）&lt;/strong&gt;。它很适合拿来做候选筛选。第一，总分不能直接拿来做选型依据，因为总分是各任务的平均，一个在检索上表现一般但在聚类上特别好的模型，总分可能和一个检索很强但聚类一般的模型差不多。你需要看和你业务场景对应的那个任务类型的子分数。第二，排行榜上的数据集和你的真实数据分布可能差异很大。一个在 MTEB 英文检索任务上排名第一的模型，在你的中文法律文档检索场景下可能排不进前五。所以 MTEB 是选候选模型的起点，不是终点——最终必须在你自己的数据上做评估。&lt;/p&gt;
 &lt;p&gt;更稳妥的做法通常是：先在 MTEB 或同类榜单里筛出 3 到 5 个候选模型，再在自己的标注数据上跑一轮 Recall、NDCG 和线上 A/B 验证。&lt;/p&gt;
@@ -811,7 +2297,7 @@
 &lt;/h4&gt;&lt;p&gt;单纯的&lt;strong&gt;向量检索&lt;/strong&gt;再怎么优化，也有它的能力天花板，因为 &lt;strong&gt;Embedding 模型&lt;/strong&gt;本身就有局限。真正在生产环境中效果好的方案，几乎都不是只用向量检索，而是混合多种检索方式。&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;Hybrid Search（混合检索）&lt;/strong&gt; 是目前工业界最常见的方案。它会同时使用&lt;strong&gt;稀疏检索&lt;/strong&gt;（如 &lt;strong&gt;BM25&lt;/strong&gt;）和&lt;strong&gt;稠密检索&lt;/strong&gt;（向量检索），再通过融合策略合并结果。之所以有效，是因为两种检索方式的能力边界刚好互补：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;向量检索&lt;/strong&gt; 擅长理解语义，例如“汽车”和“轿车”字面不同，但向量距离可能很近。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;向量检索&lt;/strong&gt; 擅长理解语义，例如&amp;quot;汽车&amp;quot;和&amp;quot;轿车&amp;quot;字面不同，但向量距离可能很近。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;BM25&lt;/strong&gt;  等稀疏检索擅长精确关键词匹配，例如查询 &lt;code&gt;GPT-4o&lt;/code&gt; 时，不容易把 &lt;code&gt;GPT-3.5&lt;/code&gt; 的结果混进来。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;Rank Fusion&lt;/strong&gt; 指的是对初步召回的候选文档再次做融合排序，以提高召回率和准确性。&lt;/p&gt;
@@ -827,14 +2313,14 @@
 &lt;/div&gt;
 &lt;h4 id=&#34;-元数据过滤&#34;&gt;🔽 元数据过滤
 &lt;/h4&gt;&lt;p&gt;元数据过滤是另一个经常被忽视、但非常实用的检索增强手段。它的做法是在向量检索之前或之后，利用文档的元数据（如时间、来源、类别、作者、权限范围）做预过滤。&lt;/p&gt;
-&lt;p&gt;例如用户问“最新的产品定价策略”，可以先用元数据过滤出最近 3 个月的文档，再在这个子集内做向量检索。这样有两个直接好处：&lt;/p&gt;
+&lt;p&gt;例如用户问&amp;quot;最新的产品定价策略&amp;quot;，可以先用元数据过滤出最近 3 个月的文档，再在这个子集内做向量检索。这样有两个直接好处：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;准确率更高&lt;/strong&gt;：先把明显不可能相关的数据排除掉。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;检索成本更低&lt;/strong&gt;：缩小候选集合后，召回与精排压力都会下降。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;元数据过滤对“&lt;strong&gt;精确条件 + 语义理解&lt;/strong&gt;”的混合型查询尤其有效，而现实业务中的问题，大多都属于这一类。&lt;/p&gt;
+&lt;p&gt;元数据过滤对&amp;quot;&lt;strong&gt;精确条件 + 语义理解&lt;/strong&gt;&amp;ldquo;的混合型查询尤其有效，而现实业务中的问题，大多都属于这一类。&lt;/p&gt;
 &lt;h3 id=&#34;-后处理阶段的优化&#34;&gt;🔧 后处理阶段的优化
-&lt;/h3&gt;&lt;p&gt;检索完成后，在结果送进 &lt;strong&gt;LLM&lt;/strong&gt; 之前，还有一个重要的优化环节，就是&lt;strong&gt;后处理&lt;/strong&gt;。它的核心价值在于：用更精细的模型对检索结果做“二次筛选”，把真正相关的内容留下，把噪声过滤掉。&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;检索完成后，在结果送进 &lt;strong&gt;LLM&lt;/strong&gt; 之前，还有一个重要的优化环节，就是&lt;strong&gt;后处理&lt;/strong&gt;。它的核心价值在于：用更精细的模型对检索结果做&amp;quot;二次筛选&amp;rdquo;，把真正相关的内容留下，把噪声过滤掉。&lt;/p&gt;
 &lt;h4 id=&#34;-rerank-重排序&#34;&gt;🔄 Rerank 重排序
 &lt;/h4&gt;&lt;p&gt;前面检索阶段的 &lt;strong&gt;Rank Fusion&lt;/strong&gt;，其目标通常是&lt;strong&gt;在海量文档中快速筛出一批大致相关的候选结果&lt;/strong&gt;，所以它更偏向效率，准确性不是最高。&lt;strong&gt;Rerank&lt;/strong&gt; 则会在这批候选结果上继续精排，挑出最匹配的问题上下文，再交给大模型使用。&lt;/p&gt;
 &lt;p&gt;典型流程是：先用&lt;strong&gt;向量检索&lt;/strong&gt;做粗召回（比如返回 &lt;strong&gt;top-20&lt;/strong&gt;），再用专门的 &lt;strong&gt;&lt;code&gt;Cross-Encoder&lt;/code&gt;&lt;/strong&gt; 重排序模型对这 20 个结果逐一精排，重新排序后取 &lt;strong&gt;top-5&lt;/strong&gt; 送给 &lt;strong&gt;LLM&lt;/strong&gt;。&lt;/p&gt;
@@ -849,12 +2335,12 @@
 &lt;li&gt;&lt;strong&gt;向量检索&lt;/strong&gt;使用的是 &lt;strong&gt;Bi-Encoder&lt;/strong&gt;：查询和文档分别编码成向量，再做相似度计算，优点是快，适合大规模召回。但代价是查询和文档之间没有交互，模型看不到它们的细粒度关联。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Reranker&lt;/strong&gt; 使用的是 &lt;strong&gt;Cross-Encoder&lt;/strong&gt;：把查询和文档拼接后一起送进模型，模型能逐 &lt;code&gt;token&lt;/code&gt; 地分析查询和文档之间的交叉关系，自然能更准确地判断相关性。优点是准，适合小规模精排。代价是慢（每对 &lt;strong&gt;&lt;code&gt;query-doc&lt;/code&gt;&lt;/strong&gt; 都要过一遍模型），所以只能用在候选量较小的重排阶段。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;这就是 &lt;strong&gt;RAG&lt;/strong&gt; 里常见的“&lt;strong&gt;粗召回 + 精重排&lt;/strong&gt;”两阶段架构。第一阶段用速度快但精度一般的 &lt;strong&gt;Bi-Encoder&lt;/strong&gt; 做大范围召回，第二阶段用精度高但速度慢的 &lt;strong&gt;Cross-Encoder&lt;/strong&gt; 做小范围精排。这个架构在搜索引擎和推荐系统中已经用了很多年，移植到 &lt;strong&gt;RAG&lt;/strong&gt; 中同样非常有效。常用的 &lt;strong&gt;Reranker&lt;/strong&gt; 模型包括 &lt;strong&gt;Cohere Rerank&lt;/strong&gt;、&lt;strong&gt;bge-reranker&lt;/strong&gt;，以及基于 &lt;strong&gt;cross-encoder&lt;/strong&gt; 架构的各类模型。&lt;/p&gt;
+&lt;p&gt;这就是 &lt;strong&gt;RAG&lt;/strong&gt; 里常见的&amp;quot;&lt;strong&gt;粗召回 + 精重排&lt;/strong&gt;&amp;ldquo;两阶段架构。第一阶段用速度快但精度一般的 &lt;strong&gt;Bi-Encoder&lt;/strong&gt; 做大范围召回，第二阶段用精度高但速度慢的 &lt;strong&gt;Cross-Encoder&lt;/strong&gt; 做小范围精排。这个架构在搜索引擎和推荐系统中已经用了很多年，移植到 &lt;strong&gt;RAG&lt;/strong&gt; 中同样非常有效。常用的 &lt;strong&gt;Reranker&lt;/strong&gt; 模型包括 &lt;strong&gt;Cohere Rerank&lt;/strong&gt;、&lt;strong&gt;bge-reranker&lt;/strong&gt;，以及基于 &lt;strong&gt;cross-encoder&lt;/strong&gt; 架构的各类模型。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;rag-rerank-two-stage.png&#34; alt=&#34;RAG 中的两阶段召回与精排&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
 &lt;h4 id=&#34;-contextual-compression-上下文压缩&#34;&gt;💾 Contextual Compression 上下文压缩
-&lt;/h4&gt;&lt;p&gt;**Contextual Compression（上下文压缩）**是另一种常见的后处理策略。检索回来的 &lt;code&gt;chunk&lt;/code&gt; 里，往往会有大量和查询无关的“水分”。例如一个 &lt;strong&gt;&lt;code&gt;500 token&lt;/code&gt;&lt;/strong&gt; 的 &lt;code&gt;chunk&lt;/code&gt; 中，真正与问题强相关的内容可能只有两三句话。&lt;/p&gt;
+&lt;/h4&gt;&lt;p&gt;**Contextual Compression（上下文压缩）**是另一种常见的后处理策略。检索回来的 &lt;code&gt;chunk&lt;/code&gt; 里，往往会有大量和查询无关的&amp;quot;水分&amp;rdquo;。例如一个 &lt;strong&gt;&lt;code&gt;500 token&lt;/code&gt;&lt;/strong&gt; 的 &lt;code&gt;chunk&lt;/code&gt; 中，真正与问题强相关的内容可能只有两三句话。&lt;/p&gt;
 &lt;p&gt;上下文压缩的思路，就是用 &lt;strong&gt;LLM&lt;/strong&gt; 或专门的提取模型，把每个 &lt;code&gt;chunk&lt;/code&gt; 中与查询相关的核心信息提取出来，压缩成更精炼的片段。这样做的价值很明确：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;减少输入 &lt;code&gt;token&lt;/code&gt; 数量&lt;/strong&gt;，从而降低生成成本。&lt;/li&gt;
@@ -867,13 +2353,13 @@
 &lt;/h4&gt;&lt;p&gt;高质量的**提示词（Prompt）**设计，可以显著提升 &lt;strong&gt;RAG&lt;/strong&gt; 的最终效果。常见做法包括：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;明确角色与任务&lt;/strong&gt;：清晰说明模型身份、能力边界与回答目标，例如要求模型只能基于提供资料作答。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;结构化组织输入&lt;/strong&gt;：将提示拆成“背景 + 问题 + 输出格式”之类的清晰结构。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;结构化组织输入&lt;/strong&gt;：将提示拆成&amp;quot;背景 + 问题 + 输出格式&amp;quot;之类的清晰结构。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;加入上下文约束&lt;/strong&gt;：明确禁止模型脱离检索内容自由发挥，减少幻觉。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;设置兜底机制&lt;/strong&gt;：如果没有检索到相关资料，就要求模型明确返回“未找到相关内容”。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;设置兜底机制&lt;/strong&gt;：如果没有检索到相关资料，就要求模型明确返回&amp;quot;未找到相关内容&amp;quot;。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr&gt;
 &lt;h2 id=&#34;-小结&#34;&gt;✅ 小结
-&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;RAG&lt;/strong&gt; 的核心价值，不是简单地“给大模型加个数据库”，而是通过 &lt;strong&gt;检索能力 + 上下文增强 + 生成能力&lt;/strong&gt; 的协同，解决大模型在知识实时性、准确性和可控性上的不足。&lt;/p&gt;
+&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;RAG&lt;/strong&gt; 的核心价值，不是简单地&amp;quot;给大模型加个数据库&amp;quot;，而是通过 &lt;strong&gt;检索能力 + 上下文增强 + 生成能力&lt;/strong&gt; 的协同，解决大模型在知识实时性、准确性和可控性上的不足。&lt;/p&gt;
 &lt;p&gt;如果从工程视角来看，RAG 的效果往往取决于三个关键点：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;索引是否合理&lt;/strong&gt;：文档切分与向量化质量决定了知识底座的可用性。&lt;/li&gt;
@@ -883,7 +2369,7 @@
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;RAG的优化分层.png&#34; alt=&#34;RAG 的优化分层&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
-&lt;p&gt;如果继续往进阶方向走，还会逐步接触到 &lt;strong&gt;Graph RAG&lt;/strong&gt; 和 &lt;strong&gt;Agentic RAG&lt;/strong&gt;。前者强调把实体关系也纳入检索，补足跨文档关系推理；后者强调让 Agent 根据问题复杂度动态决定是否检索、检索几轮、用哪种召回策略。它们本质上都在做同一件事：让 RAG 从“能检索”进化到“会检索、会取舍、会组织上下文”。&lt;/p&gt;
+&lt;p&gt;如果继续往进阶方向走，还会逐步接触到 &lt;strong&gt;Graph RAG&lt;/strong&gt; 和 &lt;strong&gt;Agentic RAG&lt;/strong&gt;。前者强调把实体关系也纳入检索，补足跨文档关系推理；后者强调让 Agent 根据问题复杂度动态决定是否检索、检索几轮、用哪种召回策略。它们本质上都在做同一件事：让 RAG 从&amp;quot;能检索&amp;quot;进化到&amp;quot;会检索、会取舍、会组织上下文&amp;quot;。&lt;/p&gt;
 &lt;div
   class=&#34;notice note&#34;
   
@@ -919,7 +2405,10 @@
 &lt;hr&gt;
 &lt;h2 id=&#34;-传统方案函数调用&#34;&gt;🧰 传统方案：函数调用
 &lt;/h2&gt;&lt;p&gt;Function Call 于 &lt;strong&gt;2023 年&lt;/strong&gt; 由 OpenAI 推出。在此之前，LLM 主要只能通过自然语言回答问题，无法直接触发 API 调用或插件交互。Function Call 的关键能力在于：&lt;strong&gt;模型能够以结构化 JSON 的形式输出函数参数，再交由应用程序执行对应逻辑。&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;一个典型流程如下：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;Function Calling.png&#34; alt=&#34;Function Call&#34; width=&#34;78%&#34;&gt;
+&lt;/div&gt;
+一个典型流程如下：
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;识别意图&lt;/strong&gt;：模型根据用户输入判断是否需要调用函数。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;生成参数&lt;/strong&gt;：模型输出结构化 JSON，用于描述目标函数及其参数。&lt;/li&gt;
