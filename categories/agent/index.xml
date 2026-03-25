@@ -19,9 +19,6 @@
 &lt;li&gt;&lt;strong&gt;幻觉问题&lt;/strong&gt;：大模型的生成本质上仍然是概率计算。当模型缺少某个领域知识，或者面对自己并不擅长的问题时，就可能一本正经地输出错误结论。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;再往工程里看，这两个问题通常会进一步拆成三类约束：&lt;strong&gt;知识有截止日期、无法理解私域数据、缺少依据时容易产生幻觉&lt;/strong&gt;。这也是为什么很多企业在做问答机器人、知识助手、客服 Copilot 时，最终都会从“只靠模型记忆”转向“模型 + 外部知识库”的组合方案。&lt;/p&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;rag-knowledge-gaps.png&#34; alt=&#34;RAG 解决的大模型知识缺口&#34; width=&#34;82%&#34; /&gt;
-&lt;/div&gt;
 &lt;div
   class=&#34;notice info&#34;
   
@@ -40,12 +37,20 @@
 &lt;h2 id=&#34;-什么是-rag&#34;&gt;📖 什么是 RAG
 &lt;/h2&gt;&lt;p&gt;&lt;strong&gt;RAG（Retrieval-Augmented Generation，检索增强生成）&lt;/strong&gt; 是一种将 &lt;strong&gt;信息检索（Retrieval）&lt;/strong&gt; 与 &lt;strong&gt;文本生成（Generation）&lt;/strong&gt; 结合起来的 AI 方法，主要目标是提升大语言模型（LLM）的知识覆盖范围与回答准确性。&lt;/p&gt;
 &lt;p&gt;可以把它理解成这样：&lt;strong&gt;模型在回答问题之前，先去外部知识库中检索相关内容，再结合检索结果生成最终回答，而不是完全依赖自身参数里的旧知识。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;RAG 接受输入并根据来源（例如，维基百科）检索一组相关/支持的文档。这些文档作为上下文与原始输入提示连接，并馈送到文本生成器，生成最终输出。这使得 RAG 能够适应事实随时间变化的情况。这对于绕过 LLMs 的参数化知识静态性，通过基于检索的生成访问最新信息以生成可靠输出非常有用。&lt;/p&gt;
 &lt;p&gt;RAG 的核心价值主要体现在两个方面：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;检索&lt;/strong&gt;：根据用户输入，从外部知识库中检索与问题相关的文本片段，通常依赖文本向量化和向量数据库完成语义匹配。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;增强生成&lt;/strong&gt;：将检索到的知识作为上下文输入给大模型，让模型基于更准确、更贴近问题的信息生成答案，从而减少误导性输出。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;如果换一个角度理解，RAG 更像是让模型在推理时“开卷考试”：模型本身不需要把所有知识都背下来，而是在回答前先把相关资料找出来，再基于资料作答。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;RAG简介.png&#34; alt=&#34;RAG简介&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;简而言之，RAG 检索到的证据可以作为提高 LLM 响应准确度、可控性和相关性的手段。这就是为什么 RAG 可以帮助减少在高度演变环境中解决问题时出现的幻觉或表现问题&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;RAG典型工作流.png&#34; alt=&#34;RAG典型工作流&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
 &lt;h3 id=&#34;-为什么需要-rag&#34;&gt;🎯 为什么需要 RAG
 &lt;/h3&gt;&lt;p&gt;要理解 RAG，首先得理解它要解决的痛点。大语言模型的知识来源于预训练阶段吃过的语料，这套&amp;quot;参数化知识&amp;quot;有三个致命的缺陷。&lt;/p&gt;
 &lt;ul&gt;
@@ -120,10 +125,12 @@
 &lt;li&gt;&lt;strong&gt;检索增强&lt;/strong&gt;：用户提问后，先把问题向量化，再检索相关文档片段。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;生成答案&lt;/strong&gt;：把检索结果与用户问题一起送给大模型，生成最终回答。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;如果从系统设计视角再抽象一层，RAG 往往会被拆成 &lt;strong&gt;离线索引阶段&lt;/strong&gt; 和 &lt;strong&gt;在线查询阶段&lt;/strong&gt;：&lt;/p&gt;
+&lt;p&gt;如果从系统设计视角再抽象一层，RAG 往往会被拆成 &lt;strong&gt;离线&lt;/strong&gt;的&lt;strong&gt;索引阶段&lt;/strong&gt; 和 &lt;strong&gt;在线&lt;/strong&gt;的&lt;strong&gt;检索阶段、增强阶段、生成阶段&lt;/strong&gt;：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;离线索引阶段&lt;/strong&gt;：把原始文档解析、切块、向量化后写入向量数据库，提前构建好可检索的知识底座。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;在线查询阶段&lt;/strong&gt;：用户提问后，再用同一个嵌入模型把问题向量化，做相似度检索、重排序、上下文组装，最后交给 LLM 生成答案。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;索引阶段&lt;/strong&gt;：离线阶段把原始文档解析、切块、向量化后写入向量数据库，提前构建好可检索的知识底座。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;检索阶段&lt;/strong&gt;：在线阶段用户提问后，再用同一个嵌入模型把问题向量化，从大规模知识库里先召回一批候选内容&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;增强阶段&lt;/strong&gt;：增强涉及将检索段落中的上下文有效整合到当前生成任务中的过程，把检索结果变成模型真正能用的上下文&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;生成阶段&lt;/strong&gt;：让 LLM 基于问题 + 增强后的上下文输出答案，形成模型的最终输出。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div
   class=&#34;notice tip&#34;
@@ -144,22 +151,24 @@
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;image-20250504194757791.png&#34; alt=&#34;RAG 的基本流程&#34; width=&#34;85%&#34; /&gt;
 &lt;/div&gt;
-&lt;p&gt;进一步抽象后，RAG 也可以理解成两个个阶段：&lt;strong&gt;索引、检索生成&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;进一步抽象后，RAG 也可以理解成三个阶段：&lt;strong&gt;索引阶段、查询阶段、增强生成阶段&lt;/strong&gt;。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;image-20250504195224385.png&#34; alt=&#34;RAG 的两个阶段&#34; width=&#34;80%&#34; /&gt;
+  &lt;img src=&#34;image-20250504195224385.png&#34; alt=&#34;RAG 的阶段&#34; width=&#34;80%&#34; /&gt;
 &lt;/div&gt;
-&lt;h3 id=&#34;-离线索引阶段&#34;&gt;🗂️ 离线索引阶段
-&lt;/h3&gt;&lt;p&gt;离线索引阶段是&amp;quot;备考&amp;quot;的过程，目的是把原始文档变成可以被高效检索的形式。
+&lt;h3 id=&#34;-离线阶段&#34;&gt;🗂️ 离线阶段
+&lt;/h3&gt;&lt;p&gt;在离线阶段，在RAG系统中只有索引阶段。提前构建好可检索的知识底座。&lt;/p&gt;
+&lt;h4 id=&#34;索引阶段&#34;&gt;索引阶段
+&lt;/h4&gt;&lt;p&gt;离线索引阶段是&amp;quot;备考&amp;quot;的过程，目的是把原始文档变成可以被高效检索的形式。
 在索引阶段，系统会先对原始文档进行解析，然后拆分为多个较小的文本块。接着，这些文本块会经过嵌入模型处理，转换成向量并存入向量数据库，为后续语义检索提供基础。&lt;/p&gt;
-&lt;h4 id=&#34;-文档加载与切分chunking&#34;&gt;📂 文档加载与切分（Chunking）
-&lt;/h4&gt;&lt;p&gt;原始文档可能是 PDF、Word、网页、数据库记录等各种格式，首先要把它们统一解析成纯文本。然后，由于文档通常很长，而后续的 Embedding 模型和 LLM 的上下文窗口都有长度限制，需要把长文档切分成较小的文本块（Chunk）。切分策略是 RAG 工程中第一个需要仔细调优的点——切太大，检索精度下降（一个大 chunk 里可能只有一小段是相关的，其他全是噪声）；切太小，语义完整性被破坏（一句话被从中间截断，失去了上下文）。常见的策略包括按固定长度切分并设置重叠（Overlap）、按自然段落或章节切分、以及基于语义相似度的动态切分。&lt;/p&gt;
-&lt;h4 id=&#34;-文本向量化embedding&#34;&gt;🧮 文本向量化（Embedding）
-&lt;/h4&gt;&lt;p&gt;一个 Embedding 模型（如 OpenAI 的 text-embedding-3、BGE、E5 等）把每个文本块转换成一个高维向量。这个向量是文本块语义信息的数学表示——语义相近的文本块在向量空间中的距离也相近。这一步的关键是 Embedding 模型的质量，它直接决定了后续检索的准确率。&lt;/p&gt;
+&lt;h5 id=&#34;-文档加载与切分chunking&#34;&gt;📂 文档加载与切分（Chunking）
+&lt;/h5&gt;&lt;p&gt;原始文档可能是 PDF、Word、网页、数据库记录等各种格式，首先要把它们统一解析成纯文本。然后，由于文档通常很长，而后续的 Embedding 模型和 LLM 的上下文窗口都有长度限制，需要把长文档切分成较小的文本块（Chunk）。切分策略是 RAG 工程中第一个需要仔细调优的点——切太大，检索精度下降（一个大 chunk 里可能只有一小段是相关的，其他全是噪声）；切太小，语义完整性被破坏（一句话被从中间截断，失去了上下文）。常见的策略包括按固定长度切分并设置重叠（Overlap）、按自然段落或章节切分、以及基于语义相似度的动态切分。&lt;/p&gt;
+&lt;h5 id=&#34;-文本向量化embedding&#34;&gt;🧮 文本向量化（Embedding）
+&lt;/h5&gt;&lt;p&gt;一个 Embedding 模型（如 OpenAI 的 text-embedding-3、BGE、E5 等）把每个文本块转换成一个高维向量。这个向量是文本块语义信息的数学表示——语义相近的文本块在向量空间中的距离也相近。这一步的关键是 Embedding 模型的质量，它直接决定了后续检索的准确率。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;1728219277.jpg&#34; alt=&#34;文本向量化示意图&#34; width=&#34;70%&#34; /&gt;
 &lt;/div&gt;
-&lt;h4 id=&#34;存入向量数据库vector-database&#34;&gt;🗄️存入向量数据库（Vector Database）
-&lt;/h4&gt;&lt;p&gt;把所有文本块的向量及其对应的原文存入向量数据库（如 Milvus、Pinecone、Weaviate、Chroma 等）。向量数据库的核心能力是&lt;strong&gt;ANN（Approximate Nearest Neighbor，近似最近邻搜索）&lt;/strong&gt; ——给定一个查询向量，能在毫秒级别从百万甚至亿级的向量中找到最相似的 &lt;strong&gt;Top-K&lt;/strong&gt; 个。&lt;/p&gt;
+&lt;h5 id=&#34;存入向量数据库vector-database&#34;&gt;🗄️存入向量数据库（Vector Database）
+&lt;/h5&gt;&lt;p&gt;把所有文本块的向量及其对应的原文存入向量数据库（如 Milvus、Pinecone、Weaviate、Chroma 等）。向量数据库的核心能力是&lt;strong&gt;ANN（Approximate Nearest Neighbor，近似最近邻搜索）&lt;/strong&gt; ——给定一个查询向量，能在毫秒级别从百万甚至亿级的向量中找到最相似的 &lt;strong&gt;Top-K&lt;/strong&gt; 个。&lt;/p&gt;
 &lt;p&gt;这里有两个工程细节非常关键：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;切块策略本身就是索引质量的一部分&lt;/strong&gt;。切得太粗会把多个知识点揉成一个向量，切得太碎又会让语义断裂。&lt;/li&gt;
@@ -185,22 +194,406 @@
 &lt;li&gt;&lt;strong&gt;向量数据库&lt;/strong&gt;：专门用于存储和管理高维向量的数据库，适合对文本、图片、音频等非结构化数据进行相似性搜索。&lt;/li&gt;
 &lt;/ul&gt;&lt;/div&gt;
 
-&lt;h3 id=&#34;-检索阶段&#34;&gt;🔍 检索阶段
-&lt;/h3&gt;&lt;p&gt;在线查询阶段是&amp;quot;开卷考试&amp;quot;的过程，用户提出一个问题后，系统实时检索相关知识并交给 LLM 生成回答。&lt;/p&gt;
-&lt;h4 id=&#34;-查询向量化embedding&#34;&gt;🔄 查询向量化（Embedding）
-&lt;/h4&gt;&lt;p&gt;用同一个 Embedding 模型把用户的问题转换成向量。注意这里必须用和索引阶段相同的模型，否则向量空间不一致，检索就会失效。&lt;/p&gt;
-&lt;h4 id=&#34;-相似度检索&#34;&gt;🎯 相似度检索
-&lt;/h4&gt;&lt;p&gt;用问题向量在向量数据库中进行 ANN 搜索，找到 Top-K 个最相似的文本块。这些文本块就是系统认为和用户问题最相关的&amp;quot;参考资料&amp;quot;。实际工程中，这一步往往还会叠加一些增强策略，比如混合检索（同时用向量检索和关键词检索，取并集）、重排序（用一个 Cross-encoder 模型对 Top-K 结果做精排）、查询改写（用 LLM 对用户原始问题做扩展或改写以提高召回率）等。&lt;/p&gt;
+&lt;h3 id=&#34;在线阶段&#34;&gt;在线阶段
+&lt;/h3&gt;&lt;p&gt;在在线阶段，在RAG系统中有检索阶段、增强阶段、生成阶段。其中检索阶段负责从向量数据库中检索相关知识，增强阶段负责把检索到的知识组织整理成模型输入，生成阶段负责把增强后的知识输入让模型输出符合用户需求的回答。&lt;/p&gt;
+&lt;h4 id=&#34;-检索阶段&#34;&gt;🔍 检索阶段
+&lt;/h4&gt;&lt;p&gt;在线查询阶段是&amp;quot;开卷考试&amp;quot;中翻书查看资料的过程，负责根据用户的问题从外部知识库中找出相关的信息片段。这个阶段通常会结合关键词检索、向量检索或混合检索等方式，从大量文档中召回一批候选内容，其核心目标是尽可能快速且准确地找到与当前问题最相关的知识，为后续回答提供可靠依据。&lt;/p&gt;
+&lt;h5 id=&#34;-查询向量化embedding&#34;&gt;🔄 查询向量化（Embedding）
+&lt;/h5&gt;&lt;p&gt;用同一个 Embedding 模型把用户的问题转换成向量。注意这里必须用和索引阶段相同的模型，否则向量空间不一致，检索就会失效。&lt;/p&gt;
+&lt;h5 id=&#34;-相似度检索&#34;&gt;🎯 相似度检索
+&lt;/h5&gt;&lt;p&gt;用问题向量在向量数据库中进行 ANN 搜索，找到 Top-K 个最相似的文本块。这些文本块就是系统认为和用户问题最相关的&amp;quot;参考资料&amp;quot;。实际工程中，这一步往往还会叠加一些增强策略，比如混合检索（同时用向量检索和关键词检索，取并集）、重排序（用一个 Cross-encoder 模型对 Top-K 结果做精排）、查询改写（用 LLM 对用户原始问题做扩展或改写以提高召回率）等。&lt;/p&gt;
 &lt;p&gt;检索阶段会先把用户问题通过&lt;strong&gt;嵌入模型&lt;/strong&gt;转换为向量，再与&lt;strong&gt;向量数据库&lt;/strong&gt;中的知识向量进行相似度比对。系统会从中找出最匹配的前 &lt;code&gt;K&lt;/code&gt; 条结果，作为后续生成阶段的参考上下文。&lt;/p&gt;
-&lt;h4 id=&#34;-增强生成&#34;&gt;⚙️ 增强生成
-&lt;/h4&gt;&lt;p&gt;增强生成阶段会把用户问题与检索到的相关文本块进行组合，再通过**提示工程（Prompt Engineering）**组织成适合模型理解的输入格式。大模型在拥有外部知识上下文之后，就能输出更准确、更贴近问题的回答。&lt;/p&gt;
+&lt;h4 id=&#34;-增强阶段&#34;&gt;⚙️ 增强阶段
+&lt;/h4&gt;&lt;p&gt;增强阶段系统将检索段落中的上下文有效整合到当前生成任务中的过程。增强的目的是将召回到的候选内容整理成大模型可以直接利用的上下文，最终构造成适合输入给模型的 prompt，使模型能够在更充分、更准确的上下文中完成回答。&lt;/p&gt;
+&lt;p&gt;RAG 的增强可以在预训练、微调和推理等不同阶段应用&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;augmentation Stages: RETRO 是一个利用检索增强进行大规模从头预训练的系统示例；它使用了基于外部知识的附加编码器。RAG 还可以与微调结合使用，以帮助开发和提高 RAG 系统的有效性。在推理阶段，应用了许多技术来有效地结合检索内容，以满足特定任务需求，并进一步细化 RAG 过程&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;增强数据源：RAG 模型的效果受增强数据源的选择影响很大。数据可以分为无结构、结构化和 LLM 生成的数据&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;增强过程：对于许多问题（例如多步推理），一次检索是不够的，因此已经提出了几种方法&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;迭代检索使模型能够进行多次检索循环，以增强信息的深度和相关性。利用这种方法的知名方法包括 RETRO 和 GAR-meets-RA&lt;/li&gt;
+&lt;li&gt;递归检索递归地将上一步检索的输出作为下一步检索的输入；这使得对于复杂和多步查询（例如学术研究和法律案例分析）能够更深入地挖掘相关信息。利用这种方法的知名方法包括 IRCoT 和澄清树&lt;/li&gt;
+&lt;li&gt;适应性检索根据特定需求调整检索过程，确定检索的最佳时机和内容。利用这种方法的知名方法包括 FLARE 和 Self-RAG&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;生成阶段&#34;&gt;生成阶段
+&lt;/h4&gt;&lt;p&gt;生成阶段是 RAG 流程的最后一步，在这个阶段大语言模型将基于用户问题和增强后的上下文内容生成最终答案。在这一阶段，模型不再单纯依赖自身参数中的知识，而是结合外部检索到的信息进行组织、推理和表达，从而输出更准确、更具时效性且更贴合问题需求的回答。这个过程涉及多样化的输入数据，有时需要努力调整语言模型以适应来自查询和文档的输入数据。这可以通过后检索处理和微调来解决：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Post-retrieval with Frozen LLM: Post-retrieval 处理不会影响 LLM，而是通过信息压缩和结果重排序等操作来提升检索结果的质量。信息压缩有助于减少噪声、解决 LLM 的上下文长度限制问题，并增强生成效果。重排序旨在重新排列文档，以使最相关的内容排在前面&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;使用 LLM 进行 RAG 微调：为了改进 RAG 系统，生成器可以进一步优化或微调，以确保生成的文本自然且有效地利用了检索到的文档&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;80d5236e087e619edced930b19fb653a.png&#34; alt=&#34;增强生成阶段&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
 &lt;hr&gt;
+&lt;h2 id=&#34;评价体系&#34;&gt;评价体系
+&lt;/h2&gt;&lt;p&gt;RAG 系统有一个根本特征：它是一个两阶段的 pipeline，每个阶段的失败模式完全不同，因此需要分而治之地评估。&lt;/p&gt;
+&lt;p&gt;要理解 RAG 评估为什么难，先得理解 RAG 系统的&amp;quot;责任链&amp;quot;结构。用户提了一个问题，先经过检索模块从知识库中找出若干相关文档片段（Chunks），再把这些 Chunks 连同问题一起交给 LLM 生成最终回答。这意味着最终回答的质量取决于两个环节的连乘：如果检索没找对文档，LLM 再强也是&amp;quot;巧妇难为无米之炊&amp;quot;；反过来，即使检索完美地找到了所有相关信息，如果 LLM 没有正确地理解和整合这些信息，甚至编造了检索结果中不存在的内容（即&amp;quot;幻觉&amp;quot;），最终结果同样不合格。更麻烦的是，当最终回答出了问题，你必须能定位到底是哪个环节出了错——是检索阶段的锅还是生成阶段的锅——否则优化就无从下手。这就是为什么 RAG 评估必须分阶段进行。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+&lt;img src=&#34;分阶段评估.png&#34; alt=&#34;分阶段评估&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;以下是用于评估 RAG 系统不同方面的指标总结：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+&lt;img src=&#34;RAG评估指标.png&#34; alt=&#34;RAG评估指标&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;检索阶段评估&#34;&gt;检索阶段评估
+&lt;/h3&gt;&lt;p&gt;检索阶段的核心任务是从知识库中找出与用户问题相关的文档片段。评估这个阶段的好坏，本质上就是在回答三个问题：找到的东西是不是真的相关？该找到的东西有没有漏掉？找到的东西排列顺序合不合理？&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;检索阶段评估.png&#34; alt=&#34;检索阶段评估&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;h4 id=&#34;基础指标&#34;&gt;基础指标
+&lt;/h4&gt;&lt;p&gt;Precision（精确率）和 Recall（召回率） 是最基础也最重要的两个指标。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Precision 衡量的是&amp;quot;检索回来的文档中，有多少是真正相关的&amp;quot;——如果你检索了 10 个 Chunk，其中只有 3 个和问题相关，那 Precision 就是 30%，说明有大量噪声文档被带了进来。&lt;/li&gt;
+&lt;li&gt;Recall 衡量的是&amp;quot;所有相关的文档中，有多少被成功检索回来了&amp;quot;——如果知识库中有 5 个 Chunk 和问题相关，你只检索到了 2 个，那 Recall 就是 40%，说明关键信息被遗漏了。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在 RAG 场景中，这两个指标存在一个天然的张力。你想提高 Recall，最简单的办法就是多检索一些 Chunk（提高 Top-K），但这会导致 Precision 下降，大量无关的 Chunk 涌入上下文不仅浪费 token，还可能干扰 LLM 的理解。反之，如果 Top-K 设得太小，Precision 上去了，但可能漏掉了关键信息。实际工程中通常要在两者之间找到一个甜蜜点，这就是为什么 F1 Score（Precision 和 Recall 的调和平均）在检索评估中也很常用。&lt;/p&gt;
+&lt;h4 id=&#34;排序指标&#34;&gt;排序指标
+&lt;/h4&gt;&lt;p&gt;但光看 Precision 和 Recall 还不够，因为它们没有考虑排序质量。在 RAG 系统中，检索返回的 Chunk 是有顺序的，排在前面的 Chunk 通常会在 LLM 的上下文中占据更显眼的位置，对生成结果的影响更大。如果最相关的 Chunk 被排在了第 8 位而一个勉强沾边的 Chunk 排在了第 1 位，即使整体的 Precision 和 Recall 看起来还行，实际效果也会大打折扣。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;MRR（Mean Reciprocal Rank，平均倒数排名） 专门衡量&amp;quot;第一个相关文档排在什么位置&amp;quot;。如果第一个相关文档排在第 1 位，得分是 1；排在第 2 位，得分是 1/2；排在第 5 位，得分是 1/5。MRR 越高，说明系统越能把最相关的结果排到前面，用户（或 LLM）越快就能看到有用的信息。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;NDCG（Normalized Discounted Cumulative Gain，归一化折损累积增益） 则更进一步，它不仅关心第一个相关文档的位置，而是评估整个排序列表的质量。它的核心思想是：排在前面的文档对最终结果的贡献应该更大，排在后面的文档即使相关，其贡献也要被&amp;quot;折损&amp;quot;。NDCG 考虑了每个文档的相关性程度（不只是&amp;quot;相关/不相关&amp;quot;的二值判断，还可以有&amp;quot;非常相关/部分相关/不太相关&amp;quot;的多级标注），并且用理论最优排序作为归一化基准，所以它在评估分级相关性场景下特别有价值。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Context Relevance（上下文相关性），这是 RAGAS 框架提出的评估维度。它不是简单地看每个 Chunk 是否相关，而是评估检索回来的整体上下文中，有多大比例的内容对回答用户问题确实有用。一个常见的实现方式是用 LLM 从检索到的上下文中提取所有能用于回答问题的句子，然后计算这些有用句子占总上下文的比例。这个指标特别适合发现&amp;quot;检索了很多 Chunk 但大部分是废话&amp;quot;的情况。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;生成阶段评估&#34;&gt;生成阶段评估
+&lt;/h3&gt;&lt;p&gt;检索阶段把相关文档找回来了，接下来就看 LLM 拿这些文档能产出什么质量的回答。生成阶段的评估比检索阶段更微妙，因为它要评判的是一段自然语言文本的质量，而自然语言的&amp;quot;好坏&amp;quot;远不像检索命中率那样容易量化。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Faithfulness（忠实度） 是 RAG 生成评估中最核心的指标，没有之一。它衡量的是&amp;quot;LLM 生成的回答是否忠实于检索到的文档内容，有没有编造检索结果中不存在的信息&amp;quot;。为什么说它最核心？因为 RAG 系统存在的根本意义就是让 LLM 基于可靠的外部知识来回答，而不是靠自己的参数记忆胡编乱造。如果生成的回答中出现了检索文档完全没有提到的&amp;quot;事实&amp;quot;，那这个 RAG 系统就失去了存在的意义——用户还不如直接问 LLM。Faithfulness 的评估通常是这样做的：先让 LLM 把生成的回答拆分成若干独立的事实性陈述（Claims），然后逐一检验每个陈述是否能被检索到的上下文所支持。Faithfulness 得分 = 被上下文支持的陈述数 / 总陈述数。这个拆分-验证的思路在 RAGAS 和 TruLens 等评估框架中被广泛使用。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Answer Relevance（回答相关性） 衡量的是生成的回答是否切题、是否真正回答了用户的问题。一个回答可能完全忠实于检索文档（Faithfulness 满分），但如果它答非所问，同样是一个低质量的回答。比如用户问&amp;quot;Python 的 GIL 是什么&amp;quot;，LLM 却大谈 Python 的安装方法——内容可能没有编造，但完全没有回答用户的问题。RAGAS 框架中评估 Answer Relevance 的一个巧妙方法是：用 LLM 根据生成的回答反向生成几个问题，然后计算这些反向生成的问题与原始问题之间的语义相似度，相似度越高说明回答越切题。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Answer Completeness / Correctness（回答完整性/正确性） 关注的是回答是否覆盖了问题的所有要点。一个忠实且切题的回答，如果只回答了问题的一半，也不算好答案。这个指标通常需要一个参考答案（Ground Truth）来对比，评估生成的回答覆盖了参考答案中多少关键信息点。在有标注数据的场景下，这是一个很有说服力的指标。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+&lt;img src=&#34;生成阶段评估.png&#34; alt=&#34;生成阶段评估&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;传统nlp指标&#34;&gt;传统NLP指标
+&lt;/h3&gt;&lt;p&gt;除了上面这些专门为 RAG 设计的语义级评估指标，还有一些经典的 NLP 文本评估指标也被用在 RAG 评估中，但它们各有局限，需要理解其适用边界。BLEU 和 ROUGE 是最常见的两个。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;BLEU 原本用于机器翻译评估，衡量生成文本与参考文本之间的 n-gram 重叠度&lt;/li&gt;
+&lt;li&gt;ROUGE 原本用于摘要评估，侧重衡量参考文本中的关键 n-gram 是否被生成文本覆盖。
+它们的优势是计算简单、不需要调用 LLM、成本几乎为零，适合在大规模评估中快速筛选。但它们的根本问题是只看表面文字的重叠，不理解语义。两句意思完全相同但措辞不同的回答，在 BLEU/ROUGE 下可能得分很低；反过来，一句大量复用了原文词汇但意思完全扭曲的回答，可能得分反而高。所以在 RAG 场景中，这些指标只能作为辅助参考，不能作为核心评估手段。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;BERTScore 是一个改进方向，它用预训练语言模型的 Embedding 来计算生成文本和参考文本之间的语义相似度，而不是简单的词汇重叠。这在一定程度上解决了&amp;quot;同义不同词&amp;quot;的问题，但仍然依赖参考答案的存在，而且对于 RAG 这种开放式生成任务，参考答案本身就很难穷举。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;评估维度.png&#34; alt=&#34;评估维度&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;llm-as-judge让llm作为裁判&#34;&gt;LLM-as-Judge(让LLM作为裁判)
+&lt;/h3&gt;&lt;p&gt;讲到这里，一个绕不开的实操问题浮出水面：上面说的 Faithfulness、Answer Relevance 这些语义级指标，到底靠什么来计算？ 靠人工标注当然最准，但成本高、速度慢，根本无法满足日常迭代的需求。RAG 评估领域目前最主流的解决方案就是 LLM-as-Judge——用一个 LLM（通常是 GPT-4 级别的强模型）来充当评估者，自动对 RAG 系统的输出进行评分。&lt;/p&gt;
+&lt;p&gt;RAGAS 框架是目前最成熟的 RAG 自动化评估工具，它的核心就是用 LLM 来评估前面提到的 Faithfulness、Answer Relevance、Context Relevance 等指标。TruLens 则提供了更灵活的反馈函数（Feedback Functions）机制，可以自定义各种评估逻辑。这些框架让 RAG 评估从&amp;quot;每次改动都要找人标注&amp;quot;变成了&amp;quot;改完代码跑一遍评估脚本就能看到效果&amp;quot;，极大地加速了迭代效率。&lt;/p&gt;
+&lt;p&gt;但 LLM-as-Judge 本身也有局限。首先是评估模型本身可能犯错——它可能误判一个幻觉陈述为&amp;quot;被上下文支持&amp;quot;，或者对一个完全正确的回答打了低分。其次是成本——每次评估都要调用大模型，如果评估集很大，成本也不容小觑。实践中的做法是：日常迭代用 LLM-as-Judge 做快速评估，定期用人工标注做校准和修正，两者互补。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;LLM-as-Judge.png&#34; alt=&#34;LLM-as-Judge&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;完整的评估流程&#34;&gt;完整的评估流程
+&lt;/h3&gt;&lt;p&gt;虽然分阶段评估对于定位问题至关重要，但不能忘了最终关心的是端到端的效果。一个检索指标全优但用户满意度不高的 RAG 系统，和一个检索指标一般但最终回答恰好满足用户需求的系统，后者在业务上可能反而更有价值。&lt;/p&gt;
+&lt;p&gt;所以在实际项目中，一套完善的 RAG 评估体系通常是这样分层的&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;最底层是各阶段的细粒度指标（Precision、Recall、MRR、Faithfulness 等），用于日常开发中的问题诊断和快速迭代&lt;/li&gt;
+&lt;li&gt;中间层是端到端的自动化指标（Answer Correctness、整体 RAGAS 分数），用于版本间的效果对比&lt;/li&gt;
+&lt;li&gt;最上层是人工评估和用户反馈，用于校准自动化指标的准确性和把握真实的用户体验。三层互补，缺一不可。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;分层评估体系.png&#34; alt=&#34;分层评估体系&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;h2 id=&#34;rag的常见范式&#34;&gt;RAG的常见范式
+&lt;/h2&gt;&lt;p&gt;在过去几年里，RAG 系统从朴素的 RAG 发展到了高级 RAG 和模块化 RAG。这种发展是为了应对性能、成本和效率方面的某些限制&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;RAG的演进.png&#34; alt=&#34;RAG的演进&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;原生ragnaive-rag&#34;&gt;原生RAG(Naive RAG)
+&lt;/h3&gt;&lt;p&gt;原生RAG，即Naive RAG，遵循传统的索引、检索和生成过程。Native RAG是整个RAG系统的“入门示例”。它将检索视为简单的一次性查找。其存在是为了让模型基于特定数据运行，而无需微调的开销，但它假设你的检索引擎是完美的。它最适合于低风险环境，其中速度比绝对的事实密度更重要。简而言之，用户输入用于查询相关文档，然后将这些文档与提示结合并传递给模型以生成最终响应。如果应用程序涉及多轮对话交互，可以将对话历史集成到提示中。
+工作流程如下&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;分块处理:将文档分割成易于处理的小型文本片段。&lt;/li&gt;
+&lt;li&gt;向量化:每个片段被转换为向量并存储于数据库(如Pinecone 或Weaviate)&lt;/li&gt;
+&lt;li&gt;检索阶段:将用户查询向量化后，通过余弦相似度算法召回&amp;quot;Top-K&amp;quot;最相似的文本片
+殳。&lt;/li&gt;
+&lt;li&gt;生成阶段:将这些片段作为&amp;quot;上下文&amp;quot;输入LLM，从而生成基于事实依据的回应。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;Native RAG.png&#34; alt=&#34;Native RAG&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;Naive RAG&lt;/strong&gt; 有一些局限性，例如较低的精度(检索到的片段对齐不准确)和较低的召回率(未能检索到所有相关片段)。此外，LLM可能会接收到过时的信息，这也是RAG系统最初需要解决的主要问题之一。这会导致幻觉问题和不准确的响应
+当应用增强时，还可能出现冗余和重复的问题。使用多个检索段落时，排名和协调风格/语气也是关键。另一个挑战是确保生成任务不要过度依赖增强信息，这可能导致模型只是重复检索的内容&lt;/p&gt;
+&lt;p&gt;优点:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;响应速度快&lt;/li&gt;
+&lt;li&gt;极低的计算成本。&lt;/li&gt;
+&lt;li&gt;易于调试和监控。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;缺点:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;极易受到“噪声”影响(检索到无关的文本块)。&lt;/li&gt;
+&lt;li&gt;无法处理复杂的多部分问题。&lt;/li&gt;
+&lt;li&gt;如果检索到的数据有误，系统缺乏自我修正能力。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;高级rag&#34;&gt;高级RAG
+&lt;/h3&gt;&lt;p&gt;高级 RAG 有助于解决朴素 RAG 存在的问题，如通过优化预检索、检索和后检索过程来提高检索质量。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;预检索过程涉及优化数据索引，旨在通过五个阶段提升被索引数据的质量：细化数据粒度、优化索引结构、增加元数据、对齐优化以及混合检索&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;检索阶段可以通过优化嵌入模型本身来进一步改进，这直接影响了构成上下文的片段的质量。这可以通过微调嵌入以优化检索相关性或采用能够更好地捕捉上下文理解的动态嵌入（例如，OpenAI 的 embeddings-ada-02 模型）来实现&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;检索后优化侧重于避免上下文窗口限制并处理嘈杂或可能分散注意力的信息。解决这些问题的常见方法是重新排名，这可能包括将相关上下文重新定位到提示的边缘或重新计算查询与相关文本片段之间的语义相似性。提示压缩也可能有助于解决这些问题&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;模块化rag&#34;&gt;模块化RAG
+&lt;/h3&gt;&lt;p&gt;顾名思义，模块化RAG增强了功能模块，例如引入了相似检索的搜索模块，并在检索器中进行了微调。朴素RAG和高级RAG都是模块化RAG的特例，由固定模块组成。扩展RAG模块包括搜索、记忆、融合、路由、预测和任务适配器，它们解决了不同的问题。这些模块可以根据特定问题的上下文重新排列。因此，模块化RAG得益于更大的多样性和灵活性，你可以根据任务需求添加或替换模
+块或调整模块之间的流程&lt;/p&gt;
+&lt;h4 id=&#34;对话式rag&#34;&gt;对话式RAG
+&lt;/h4&gt;&lt;p&gt;对话式RAG解决了“上下文盲区”问题。在标准设置中，如果用户提出后续问题如“它要多少钱?”，系统无法理解“它”指代什么。该架构通过添加有状态记忆层，为对话的每一轮重新构建上下文。&lt;/p&gt;
+&lt;p&gt;工作流程如下&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;上下文加载:系统存储最近5-10轮对话记录&lt;/li&gt;
+&lt;li&gt;查询重写:LLM基于历史对话记录生成独立查询(例如:“企业版方案的价格是多少?&amp;quot;)。&lt;/li&gt;
+&lt;li&gt;检索:使用扩展后的查询进行向量搜索。&lt;/li&gt;
+&lt;li&gt;生成:答案基于新上下文生成。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;对话式RAG.png&#34; alt=&#34;对话式RAG&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;优点:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;提供自然、拟人化的聊天体验。&lt;/li&gt;
+&lt;li&gt;防止用户不得不重复自己的话。
+缺点:&lt;/li&gt;
+&lt;li&gt;记忆漂移:10分钟前的不相关上下文可能会污染当前的搜索。&lt;/li&gt;
+&lt;li&gt;由于“查询重写”步骤，导致更高的token成本。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;纠正式ragcrag&#34;&gt;纠正式RAG(CRAG)
+&lt;/h4&gt;&lt;p&gt;纠正式RAG(CRAG)是一种为高风险环境设计的架构。它引入了“决策门”机制，在检索到的文档到达生成器之前评估其质量。若内部检索结果不佳，系统将自动切换至实时网络搜索作为备选方案。根据部署CRAG式评估器的团队报告的内部基准测试，相比基础基线模型，该架构已显著降低幻觉现象的发生率。&lt;/p&gt;
+&lt;p&gt;工作流程如下&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;检索:从内部向量存储中获取文档。&lt;/li&gt;
+&lt;li&gt;评估:轻量级“评分器”模型为每个文档片段分配评分(正确、模糊、不正确)&lt;/li&gt;
+&lt;li&gt;触发门:如果正确:继续执行生成器。否则丢弃数据并触发外部API(如谷歌搜索或Tavily)。&lt;/li&gt;
+&lt;li&gt;合成:使用已验证的内部数据或新鲜的外部数据生成答案。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;纠正式RAG.png&#34; alt=&#34;纠正式RAG&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;优点:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;显著减少幻觉现象。&lt;/li&gt;
+&lt;li&gt;弥合内部数据与实时现实信息之间的差距&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;缺点:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;显著增加延迟(增加2-4秒)。&lt;/li&gt;
+&lt;li&gt;管理外部API成本和速率限制。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;自适应-rag&#34;&gt;自适应 RAG
+&lt;/h4&gt;&lt;p&gt;自适应 RAG 是 “效率冠军”。它认识到并非每个查询都需要动用重火力武器。 它通过路由器分析用户意图的复杂度，并选择最经济、最快捷的解答路径。&lt;/p&gt;
+&lt;p&gt;工作原理如下&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;复杂度分析： 由小型分类器模型对查询进行路径分配。&lt;/li&gt;
+&lt;li&gt;路径 A（无需检索）： 适用于问候语或 LLM 已掌握的常识性问题。&lt;/li&gt;
+&lt;li&gt;路径 B（标准 RAG）： 适用于简单的事实查询。&lt;/li&gt;
+&lt;li&gt;路径 C（多步智能体）： 适用于需要搜索多个来源的复杂分析性问题。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;自适应 RAG.png&#34; alt=&#34;自适应 RAG&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;优点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;通过跳过不必要的检索实现大幅成本节约。&lt;/li&gt;
+&lt;li&gt;针对简单查询实现最佳延迟。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;缺点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;分类错误风险：若系统误判难题为简单问题，将导致搜索失败。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;需要高度可靠的路由模型。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;自我反思-rag&#34;&gt;自我反思 RAG
+&lt;/h4&gt;&lt;p&gt;自我反思 RAG 是精密架构，其模型经过训练能够批判自身的推理过程。 它不仅进行检索，还会生成“反思标记”，作为对自身输出的实时审查。
+工作原理如下&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;检索： 由模型自身触发的标准搜索。&lt;/li&gt;
+&lt;li&gt;带标记生成： 模型在生成文本的同时，会伴随特殊标记，如 [IsRel]（是否相关？）、[IsSup]（此主张是否有支持？）和 [IsUse]（是否有帮助？）。&lt;/li&gt;
+&lt;li&gt;自我修正： 如果模型输出 [NoSup] 标记，它会暂停、重新检索并重写句子。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;自我反思RAG.png&#34; alt=&#34;自我反思 RAG&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;  
+&lt;p&gt;优势：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;最高级别的事实&amp;quot;依据性&amp;quot;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;推理过程具有内置透明度。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;缺点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;需要专门的、经过微调的模型（例如 Self-RAG Llama）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;计算开销极高。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;融合式rag&#34;&gt;融合式RAG
+&lt;/h4&gt;&lt;p&gt;融合式 RAG 旨在解决 “模糊性问题”。大多数用户并不擅长搜索。 融合式 RAG 会接收单一查询，并从多个角度审视它，以确保高召回率。
+工作原理如下&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;查询扩展： 生成用户问题的 3 到 5 个变体。&lt;/li&gt;
+&lt;li&gt;并行检索： 在向量数据库中搜索所有变体。&lt;/li&gt;
+&lt;li&gt;互逆排序融合（RRF）： 使用数学公式对结果进行重新排序。&lt;/li&gt;
+&lt;li&gt;最终排序： 在多次搜索中排名靠前的文档会被提升至顶部。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;融合式RAG.png&#34; alt=&#34;融合式 RAG&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;优点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;卓越的召回能力（能发现单一查询会遗漏的文档）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;对用户表述不佳的情况具有鲁棒性。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;缺点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;搜索成本增加（3-5倍）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;由于重新排序计算导致延迟更高。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;hyde&#34;&gt;HyDE
+&lt;/h4&gt;&lt;p&gt;HyDE 是一种反直觉却精妙的模式，它先生成答案，再查找相似文档 。它认识到&amp;quot;问题&amp;quot;和&amp;quot;答案&amp;quot;在语义上存在差异。 通过首先生成一个&amp;quot;虚假&amp;quot;答案，它在两者之间搭建了桥梁。
+工作原理如下&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;假设生成：LLM 针对查询撰写一个*虚假的 *（假设性）答案。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;向量化： 将虚假答案转换为向量表示。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;检索： 利用该向量查找与虚构答案相似的现实文档。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;生成： 基于真实文档撰写最终答复。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;HyDE.png&#34; alt=&#34;HyDE&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;优势：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;显著提升对概念性或模糊查询的检索效果。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;无需复杂的“代理”逻辑。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;缺点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;偏见风险：若“虚假答案”从根本上就是错误的，搜索将被误导。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;对于简单的事实查询效率低下（例如，“2+2等于多少？”）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-图raggraph-rag&#34;&gt;🕸️ 图RAG（Graph RAG）
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;知识图谱增强检索（Graph RAG）&lt;strong&gt;解决的是&lt;/strong&gt;向量检索&lt;/strong&gt;天然不擅长的“关系推理”问题。向量检索更擅长回答“&lt;strong&gt;是什么&lt;/strong&gt;”，但不擅长回答“&lt;strong&gt;A 和 B 之间是什么关系&lt;/strong&gt;”“&lt;strong&gt;从 A 到 C 需要经过哪些步骤&lt;/strong&gt;”这类需要跨文档关联推理的问题。 GraphRAG 检索的是 &lt;strong&gt;实体及其之间的明确关系&lt;/strong&gt;。它不再追问“哪些文本看起来相似”，而是探究“事物之间如何关联，以及关联的方式是什么？”&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Graph RAG&lt;/strong&gt; 的做法，是在传统&lt;strong&gt;向量索引&lt;/strong&gt;之外，再额外构建一个&lt;strong&gt;知识图谱&lt;/strong&gt;，把文档中的实体与关系抽取出来形成图结构。检索时，先从向量库中找到相关内容片段，再沿着知识图谱中的关系边扩展关联实体和上下文，最后把两路信息合并后送给 &lt;strong&gt;LLM&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;微软开源的 &lt;strong&gt;GraphRAG&lt;/strong&gt; 项目就是这个方向的代表：它会先用 &lt;strong&gt;LLM&lt;/strong&gt; 从文档中抽取实体关系图，再利用社区检测算法做聚类摘要，查询时结合图结构和摘要完成检索。&lt;/p&gt;
+&lt;p&gt;工作原理如下&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;图结构构建：知识被建模为图结构，其中节点代表实体（如人物、组织、概念、事件），边则代表关系（如影响、依赖、资助、监管）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;查询解析：系统会分析用户查询，以识别关键实体和关系类型，而不仅仅是关键词。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;图遍历：系统遍历图结构，寻找能够跨越多跳连接实体的有意义路径。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;可选混合检索：向量搜索常与图检索结合使用，以在非结构化文本中定位实体。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;生成：LLM 将发现的关系路径转化为结构清晰、可解释的答案。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;GraphRAG.png&#34; alt=&#34;GraphRAG&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;h4 id=&#34;-自适应检索agentic-rag&#34;&gt;🧠 自适应检索(Agentic RAG)
+&lt;/h4&gt;&lt;p&gt;**自适应检索（Agentic RAG）**是更进一步的演进。传统 &lt;strong&gt;RAG&lt;/strong&gt; 的检索策略通常是固定的，不管什么问题都走同一套流程；但现实里，不同类型的查询其实需要不同策略：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;简单事实型问题&lt;/strong&gt;：一次检索往往就够了。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;复杂分析型问题&lt;/strong&gt;：可能需要多轮检索，每轮根据上一轮结果继续改写查询。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;探索型问题&lt;/strong&gt;：可能需要先找背景，再找细节，再补充证据。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;自适应检索（Agentic RAG）&lt;/strong&gt; 并非盲目地获取文档， 而是引入了一个自主代理，该代理在生成答案前会规划、推理并决定如何以及从何处检索信息。它将信息检索视为研究，而非简单的查找。&lt;strong&gt;自适应检索（Agentic RAG）&lt;/strong&gt; 会把这部分检索过程交给 &lt;strong&gt;Agent&lt;/strong&gt; 自主决策，它可以判断：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;是否真的需要检索&lt;/li&gt;
+&lt;li&gt;该使用哪种检索策略&lt;/li&gt;
+&lt;li&gt;当前结果是否足够好&lt;/li&gt;
+&lt;li&gt;是否要继续追加一轮检索&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;工作流程如下&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;分析：智能体首先解析用户查询，判断其属于简单问题、多步骤任务、模糊需求，还是需要实时数据支持。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;计划：它将查询分解为子任务并决定策略。 例如，应该先进行向量搜索吗？还是网络搜索？调用 API？或者提出后续问题？&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;执行：代理通过调用向量数据库、网络搜索、内部 API 或计算器等工具来执行这些步骤。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;迭代：基于中间结果，代理可能会优化查询、获取更多数据或验证来源。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;生成：一旦收集到足够的证据，LLM 就会生成一个基于事实、具有上下文感知能力的最终回答。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;代理式 RAG.png&#34; alt=&#34;Agentic RAG&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+这种方式更灵活，但工程复杂度也更高，落地时通常要在效果、延迟和系统可控性之间做权衡。
 &lt;h2 id=&#34;-rag-的常见瓶颈&#34;&gt;⚠️ RAG 的常见瓶颈
 &lt;/h2&gt;&lt;p&gt;很多人一开始会把“检索优化”理解成“换一个向量库”或“把 Top-K 从 3 调到 5”。但真正影响效果的，往往是整条检索链路：&lt;strong&gt;查询怎么改写、索引怎么组织、召回怎么融合、候选怎么精排&lt;/strong&gt;。&lt;/p&gt;
-&lt;p&gt;在进入各种优化手段之前，先要看清楚 &lt;strong&gt;基础向量检索本身的瓶颈&lt;/strong&gt;。很多问题不是“参数没调好”，而是方案本身就有边界：&lt;/p&gt;
+&lt;h3 id=&#34;-基础向量检索的瓶颈&#34;&gt;🔍 基础向量检索的瓶颈
+&lt;/h3&gt;&lt;p&gt;在进入各种优化手段之前，先要看清楚 &lt;strong&gt;基础向量检索本身的瓶颈&lt;/strong&gt;。很多问题不是“参数没调好”，而是方案本身就有边界：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;查询和文档之间存在语义鸿沟&lt;/strong&gt;：用户提问常常是口语化、问题体，但知识库里的文档往往是陈述句、术语化表达。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;向量检索不擅长精确匹配&lt;/strong&gt;：涉及时间、数字、型号、版本号等条件时，单纯做语义相似度很容易把“接近但不正确”的内容一起召回。&lt;/li&gt;
@@ -223,7 +616,7 @@
   &lt;p&gt;如果底层问题出在“查询表达不清、切块不合理、候选噪声太多”，那么单纯调大 &lt;code&gt;Top-K&lt;/code&gt; 往往只会把更多噪声送进模型，而不是稳定提升效果。&lt;/p&gt;
   &lt;/div&gt;
 
-&lt;h3 id=&#34;-rag-的局限性&#34;&gt;📌 RAG 的局限性
+&lt;h3 id=&#34;-rag-本身的局限性&#34;&gt;📌 RAG 本身的局限性
 &lt;/h3&gt;&lt;p&gt;一个成熟的系统不应该只讲优势而忽略局限。RAG 也有它的短板：&lt;/p&gt;
 &lt;ol&gt;
 &lt;li&gt;
@@ -262,15 +655,6 @@
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;rag-query-optimization.png&#34; alt=&#34;查询侧优化策略&#34; width=&#34;82%&#34; /&gt;
-&lt;/div&gt;
-&lt;p&gt;除了查询侧优化，工业界里几乎都会使用 &lt;strong&gt;混合检索（Hybrid Search）&lt;/strong&gt;，把&lt;strong&gt;向量检索&lt;/strong&gt;和&lt;strong&gt;关键词检索&lt;/strong&gt;结合起来。原因很直接：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;向量检索&lt;/strong&gt; 擅长语义理解。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;BM25&lt;/strong&gt; 等&lt;strong&gt;稀疏检索&lt;/strong&gt;擅长精确匹配关键字、数字、型号、日期等条件。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;两者结合后，通常会通过 &lt;strong&gt;RRF（Reciprocal Rank Fusion）&lt;/strong&gt; 这类方法按排名融合结果。相比直接融合原始分数，&lt;strong&gt;RRF&lt;/strong&gt; 对不同量纲的检索分更稳健，也更容易落地。同时还可以叠加 &lt;strong&gt;元数据过滤&lt;/strong&gt;，例如先按时间、来源、类别、权限范围做预筛，再做向量召回。&lt;/p&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;rag-hybrid-retrieval.png&#34; alt=&#34;混合检索与多路召回&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
 &lt;h3 id=&#34;-索引阶段的优化&#34;&gt;🧩 索引阶段的优化
 &lt;/h3&gt;&lt;p&gt;索引侧优化解决的核心问题是：&lt;strong&gt;知识该如何被切分、编码、组织，才能在查询发生时被更准确地找出来。&lt;/strong&gt;&lt;/p&gt;
@@ -428,7 +812,7 @@
 &lt;p&gt;&lt;strong&gt;Hybrid Search（混合检索）&lt;/strong&gt; 是目前工业界最常见的方案。它会同时使用&lt;strong&gt;稀疏检索&lt;/strong&gt;（如 &lt;strong&gt;BM25&lt;/strong&gt;）和&lt;strong&gt;稠密检索&lt;/strong&gt;（向量检索），再通过融合策略合并结果。之所以有效，是因为两种检索方式的能力边界刚好互补：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;向量检索&lt;/strong&gt; 擅长理解语义，例如“汽车”和“轿车”字面不同，但向量距离可能很近。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;BM25&lt;/strong&gt; 擅长精确关键词匹配，例如查询 &lt;code&gt;GPT-4o&lt;/code&gt; 时，不容易把 &lt;code&gt;GPT-3.5&lt;/code&gt; 的结果混进来。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;BM25&lt;/strong&gt;  等稀疏检索擅长精确关键词匹配，例如查询 &lt;code&gt;GPT-4o&lt;/code&gt; 时，不容易把 &lt;code&gt;GPT-3.5&lt;/code&gt; 的结果混进来。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;Rank Fusion&lt;/strong&gt; 指的是对初步召回的候选文档再次做融合排序，以提高召回率和准确性。&lt;/p&gt;
 &lt;p&gt;其中最常见的方法是 &lt;strong&gt;Reciprocal Rank Fusion（RRF）&lt;/strong&gt;。它的逻辑很直接：分别根据候选文档在多路结果中的排名计算得分，再把这些得分加总为最终分数。&lt;strong&gt;RRF&lt;/strong&gt; 的优势在于：&lt;/p&gt;
@@ -487,28 +871,6 @@
 &lt;li&gt;&lt;strong&gt;加入上下文约束&lt;/strong&gt;：明确禁止模型脱离检索内容自由发挥，减少幻觉。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;设置兜底机制&lt;/strong&gt;：如果没有检索到相关资料，就要求模型明确返回“未找到相关内容”。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;-知识图谱增强检索graph-rag&#34;&gt;🕸️ 知识图谱增强检索（Graph RAG）
-&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;知识图谱增强检索（Graph RAG）&lt;strong&gt;解决的是&lt;/strong&gt;向量检索&lt;/strong&gt;天然不擅长的“关系推理”问题。向量检索更擅长回答“&lt;strong&gt;是什么&lt;/strong&gt;”，但不擅长回答“&lt;strong&gt;A 和 B 之间是什么关系&lt;/strong&gt;”“&lt;strong&gt;从 A 到 C 需要经过哪些步骤&lt;/strong&gt;”这类需要跨文档关联推理的问题。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Graph RAG&lt;/strong&gt; 的做法，是在传统&lt;strong&gt;向量索引&lt;/strong&gt;之外，再额外构建一个&lt;strong&gt;知识图谱&lt;/strong&gt;，把文档中的实体与关系抽取出来形成图结构。检索时，先从向量库中找到相关内容片段，再沿着知识图谱中的关系边扩展关联实体和上下文，最后把两路信息合并后送给 &lt;strong&gt;LLM&lt;/strong&gt;。&lt;/p&gt;
-&lt;p&gt;微软开源的 &lt;strong&gt;GraphRAG&lt;/strong&gt; 项目就是这个方向的代表：它会先用 &lt;strong&gt;LLM&lt;/strong&gt; 从文档中抽取实体关系图，再利用社区检测算法做聚类摘要，查询时结合图结构和摘要完成检索。&lt;/p&gt;
-&lt;h4 id=&#34;-agentic-rag自适应检索&#34;&gt;🧠 Agentic RAG（自适应检索）
-&lt;/h4&gt;&lt;p&gt;**Agentic RAG（自适应检索）**是更进一步的演进。传统 &lt;strong&gt;RAG&lt;/strong&gt; 的检索策略通常是固定的，不管什么问题都走同一套流程；但现实里，不同类型的查询其实需要不同策略：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;简单事实型问题&lt;/strong&gt;：一次检索往往就够了。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;复杂分析型问题&lt;/strong&gt;：可能需要多轮检索，每轮根据上一轮结果继续改写查询。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;探索型问题&lt;/strong&gt;：可能需要先找背景，再找细节，再补充证据。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;strong&gt;Agentic RAG&lt;/strong&gt; 会把这部分检索过程交给 &lt;strong&gt;Agent&lt;/strong&gt; 自主决策，它可以判断：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;是否真的需要检索&lt;/li&gt;
-&lt;li&gt;该使用哪种检索策略&lt;/li&gt;
-&lt;li&gt;当前结果是否足够好&lt;/li&gt;
-&lt;li&gt;是否要继续追加一轮检索&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;这种方式更灵活，但工程复杂度也更高，落地时通常要在效果、延迟和系统可控性之间做权衡。&lt;/p&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;RAG的优化分层.png&#34; alt=&#34;RAG 的优化分层&#34; width=&#34;82%&#34; /&gt;
-&lt;/div&gt;
 &lt;hr&gt;
 &lt;h2 id=&#34;-小结&#34;&gt;✅ 小结
 &lt;/h2&gt;&lt;p&gt;&lt;strong&gt;RAG&lt;/strong&gt; 的核心价值，不是简单地“给大模型加个数据库”，而是通过 &lt;strong&gt;检索能力 + 上下文增强 + 生成能力&lt;/strong&gt; 的协同，解决大模型在知识实时性、准确性和可控性上的不足。&lt;/p&gt;
@@ -518,6 +880,9 @@
 &lt;li&gt;&lt;strong&gt;检索是否精准&lt;/strong&gt;：召回策略与重排序决定了模型能看到什么信息。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;生成是否可控&lt;/strong&gt;：提示词设计与上下文约束决定了最终答案的稳定性。&lt;/li&gt;
 &lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;RAG的优化分层.png&#34; alt=&#34;RAG 的优化分层&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
 &lt;p&gt;如果继续往进阶方向走，还会逐步接触到 &lt;strong&gt;Graph RAG&lt;/strong&gt; 和 &lt;strong&gt;Agentic RAG&lt;/strong&gt;。前者强调把实体关系也纳入检索，补足跨文档关系推理；后者强调让 Agent 根据问题复杂度动态决定是否检索、检索几轮、用哪种召回策略。它们本质上都在做同一件事：让 RAG 从“能检索”进化到“会检索、会取舍、会组织上下文”。&lt;/p&gt;
 &lt;div
   class=&#34;notice note&#34;
@@ -545,7 +910,7 @@
         
         <guid>https://Tyritic.github.io/p/%E6%A8%A1%E5%9E%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%8F%E8%AE%AEmcp/</guid>
         <description>&lt;h2 id=&#34;-llm-的典型局限&#34;&gt;🤔 LLM 的典型局限
-&lt;/h2&gt;&lt;p&gt;在真正落地业务场景时，LLM 虽然已经具备很强的理解和生成能力，但仍然有几个明显短板：&lt;/p&gt;
+&lt;/h2&gt;&lt;p&gt;人工智能的迅速发展，尤其是大型语言模型(LLMs)，为生成类人类文本、解决复杂问题和跨行业提升生产力打开了前所未有的潜力。然而，一个持续存在的挑战是:这些模型往往与驱动现代工作流的实时动态数据隔离。在真正落地业务场景时，LLM 虽然已经具备很强的理解和生成能力，但仍然有几个明显短板：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;知识覆盖有限&lt;/strong&gt;：大多数 LLM 基于公开语料训练，对垂直领域知识掌握不足，遇到不熟悉的问题时容易出现“看起来很自信、实际上不准确”的回答。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;知识缺乏实时性&lt;/strong&gt;：模型的知识停留在训练阶段，无法天然知道“今天”的天气、最新政策或最新业务数据。&lt;/li&gt;
@@ -569,16 +934,19 @@
 &lt;/ul&gt;
 &lt;hr&gt;
 &lt;h2 id=&#34;-mcp-是什么&#34;&gt;🔌 MCP 是什么
-&lt;/h2&gt;&lt;p&gt;MCP 全称是 &lt;strong&gt;Model Context Protocol（模型上下文协议）&lt;/strong&gt;，它由 Anthropic 推出，目标是为 LLM 与外部数据源、工具之间的交互提供一种更标准化的方式。官方文档见：&lt;a class=&#34;link&#34; href=&#34;https://modelcontextprotocol.io/introduction&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+&lt;/h2&gt;&lt;p&gt;MCP 全称是 &lt;strong&gt;Model Context Protocol（模型上下文协议）&lt;/strong&gt;，它由 Anthropic 在2024年11月推出，目标是为 LLM 与外部数据源、工具之间的交互提供一种更标准化的方式，旨在使AI模型，尤其是大型语言模型(LLMs)，能够更容易地与外部数据(如文件、数据库或API)连接。它就像一个通用插头，可以让AI&amp;quot;与”不同的系统交流，而不需要为每个系统进行定制设置。官方文档见：&lt;a class=&#34;link&#34; href=&#34;https://modelcontextprotocol.io/introduction&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
     &gt;MCP Introduction&lt;/a&gt;。&lt;/p&gt;
 &lt;p&gt;官方对 MCP 的描述是：&lt;/p&gt;
 &lt;blockquote&gt;
 &lt;p&gt;MCP is an open protocol that standardizes how applications provide context to LLMs.&lt;/p&gt;
 &lt;/blockquote&gt;
-&lt;p&gt;可以把 MCP 理解成 AI 应用的 &lt;strong&gt;USB-C 接口&lt;/strong&gt;。就像 USB-C 让不同设备可以通过统一标准连接各种外设一样，MCP 也希望让不同模型、不同工具、不同数据源之间通过统一协议协作。&lt;/p&gt;
+&lt;p&gt;可以把 MCP 理解成 AI 应用的 &lt;strong&gt;USB-C 接口&lt;/strong&gt;。就像 USB-C 让不同设备可以通过统一标准连接各种外设一样，MCP 也希望让不同模型、不同工具、不同数据源之间通过统一协议协作。模型上下文协议(MCP)，由Anthropic发起的一种开放标准，就是为了解决这个问题的。MCP承诺通过提供一个通用的、标准化的框架来无缝集成数据，重新定义AI与工具的交互方式。就像 TCP/IP标准化了网络通信或ODBC改变了数据库连接一样，MCP希望成为互联AI生态系统的基础。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;MCP图示.png&#34; alt=&#34;MCP 图示&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
 &lt;p&gt;从工程角度看，MCP 的价值在于：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;统一连接方式&lt;/strong&gt;：让模型以一致的方式接入工具、资源和上下文，而不是每个平台都单独定制一套接入协议。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;统一连接方式&lt;/strong&gt;：让模型以一致的方式接入工具、资源和上下文，而不是每个平台都单独定制一套接入协议。具体来说，MCP其实是解决了“MxN”集成问题，其中M个不同的LLM需要与N个不同的工具连接，导致自定义解决方案的组合爆炸。通过提供单一协议，MCP将这种复杂性降低到N+M。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;增强模型能力&lt;/strong&gt;：模型不仅能“思考”，还可以借助外部系统去读取文件、调用服务、获取实时数据。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;提升系统可维护性&lt;/strong&gt;：协议统一之后，组件之间的职责边界会更清晰，适配和维护成本也更低。&lt;/li&gt;
 &lt;/ul&gt;
@@ -614,15 +982,25 @@
 &lt;/div&gt;
 &lt;p&gt;架构中的关键角色如下：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;主机（Host）&lt;/strong&gt;：发起连接的 LLM 应用程序，例如聊天客户端、IDE 插件或 Agent 框架。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;客户端（Client）&lt;/strong&gt;：嵌入在主机中，负责与 MCP Server 建立并维护连接。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;服务器（Server）&lt;/strong&gt;：对接具体的数据源或工具，向客户端暴露能力。
+&lt;li&gt;&lt;strong&gt;主机（Host）&lt;/strong&gt;：发起连接的 LLM 应用程序，主要是人工智能应用程序(例如，Claude桌面、集成开发环境或Agent 框架)，负责管理MCP&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;客户端（MCP Client）&lt;/strong&gt;：Host内部专门用于与MCP Server建立和维持一对一连接的模块。它负责按照MCP协议的规范发送请求、接收响应和处理数据。简单来说，MCP Client是Host内部处理RPC通信的“代理”，专注于与一个MCP Server进行标准化的数据、工具或prompt的交换&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;MCP Client.png&#34; alt=&#34;MCP Client&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Resources&lt;/strong&gt;：类似文件、接口响应、数据库查询结果这样的可读资源。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;服务器（MCP Server）&lt;/strong&gt;：对接具体的数据源或工具，向客户端暴露能力。
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Resources&lt;/strong&gt;：提供给 AI 的数据来源，如文件、数据库记录或 API 响应，为 AI 提供上下文信息。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Tools&lt;/strong&gt;：可被 LLM 调用的函数式能力，通常需要用户授权。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Prompts&lt;/strong&gt;：预定义的提示模板，帮助用户更高效地完成特定任务。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Prompts&lt;/strong&gt;：预定义的提示模板，帮助用户更高效地完成特定任务。指导 AI 响应或任务的模板消息或工作流，增强互动&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;MCP Server.png&#34; alt=&#34;MCP Server&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;资源来源&lt;/strong&gt;：既可以是本地资源，也可以是远程资源。
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;本地资源&lt;/strong&gt;：数据库、文件、服务等本机可访问对象。&lt;/li&gt;
@@ -644,7 +1022,7 @@
 &lt;p&gt;一个典型的 MCP 请求大致会经过以下步骤：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;初始化&lt;/strong&gt;：主机启动并初始化 MCP Client，每个 Client 与一个 MCP Server 建立连接。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;能力协商&lt;/strong&gt;：Client 和 Server 先确认彼此支持的功能、资源和工具。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;能力协商&lt;/strong&gt;：Client 和 Server 先确认彼此支持的功能、资源和工具。例如，当天气 API 服务器被调用时，它可以回复可用的“工具”、“提示模板”和其他资源供客户端使用。一旦此交换完成，MCP Client会确认连接成功，并继续进行进一步的消息交换。我们可以把它类比为TCP通信建立握手的过程，在正式传输消息前，TCP有一个三次握手建立连接的过程。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;请求处理&lt;/strong&gt;：Client 根据用户请求或模型推理结果，决定是否向 Server 发起资源读取或工具调用。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;模型决策&lt;/strong&gt;：LLM 根据上下文和工具描述，判断是否需要调用工具，以及该调用哪些能力。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;执行调用&lt;/strong&gt;：MCP Server 负责真正执行工具逻辑，或读取本地 / 远程资源。&lt;/li&gt;
@@ -653,6 +1031,139 @@
 &lt;/ul&gt;
 &lt;p&gt;如果从 Agent 视角理解，MCP 的意义在于：&lt;strong&gt;模型不再只是“知道很多”，而是开始具备“按协议接入外部世界”的能力。&lt;/strong&gt;&lt;/p&gt;
 &lt;hr&gt;
+&lt;style type=&#34;text/css&#34;&gt;
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+&lt;/style&gt;&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;MCP为什么需要设计一个功能交换的过程？&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;在传统的 API 服务中，如果你的 API Server最初需要两个参数（例如， location 和 date 用于天气服务），用户需要将他们的应用程序集成以发送带有这些确切参数的请求。但假设你想要添加第三个必需参数（比如 unit ，用于温度单位，如摄氏度或华氏度），那么API 的请求协议就会发生变化。这就意味着所有使用你 API Server的用户都必须更新其代码以包含新参数。如果不更新，他们的请求可能会失败、返回错误或提供不完整的结果
+而MCP的这种设计就有效的避免了这种问题，MCP 引入了一种动态且灵活的方法，与传统的 API 形成了鲜明的对比。&lt;/li&gt;
+&lt;li&gt;当客户端（例如，AI 应用程序如 Claude Desktop）连接到 MCP 服务器（例如，你的天气服务）时，它会发送一个初始请求以了解服务器的功能。服务器会响应其可用工具、资源、提示和参数的详细信息。比如，如果你的天气 API 最初支持 location 和 date ，服务器会将其作为功能的一部分进行通信。同样，假设后来你添加了一个 unit 参数，MCP 服务器可以在下一次交换中动态更新其能力描述。客户端不需要硬编码或预先定义这些参数，它只需查询服务器当前的能力并相应地进行调整。这样，客户端就可以根据需要实时调整其行为，使用更新的能力（例如，在其请求中包含单位）而无需重写或重新部署代码&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
 &lt;h2 id=&#34;-安全性设计&#34;&gt;🔐 安全性设计
 &lt;/h2&gt;&lt;p&gt;MCP 的安全设计主要体现在以下几个方面：&lt;/p&gt;
 &lt;ul&gt;
@@ -663,7 +1174,7 @@
 &lt;p&gt;这也是 MCP 能够走向工程化的重要原因之一。它不是单纯强调“模型更强了”，而是强调 &lt;strong&gt;模型能力扩展必须建立在可控、可审计、可授权的前提下&lt;/strong&gt;。&lt;/p&gt;
 &lt;hr&gt;
 &lt;h2 id=&#34;-小结&#34;&gt;✅ 小结
-&lt;/h2&gt;&lt;p&gt;MCP 的核心意义，在于为 LLM、工具、数据源之间建立了一套更统一的连接规范。&lt;/p&gt;
+&lt;/h2&gt;&lt;p&gt;模型上下文协议（MCP） 的核心意义，在于为 LLM、工具、数据源之间建立了一套更统一的连接规范，通过提供一个标准化的开源框架，MCP 简化了将 LLMs 连接到外部数据源、工具和工作流的过程，消除了复杂的一次性集成的需要。 随着 AI 的不断发展，无缝地与动态的现实世界数据进行交互的能力对于构建真正智能和响应的应用程序至关重要。MCP 为更互联的 AI 生态系统奠定了基础，使开发人员能够以最小的摩擦创建更智能、更强大的 AI 系统。随着越来越多的采用和持续的创新，MCP 有可能成为 AI 工具集成的行业标准，就像 TCP/IP 对网络通信所做的那样。&lt;/p&gt;
 &lt;p&gt;如果说 Function Call 解决的是“模型能不能调用函数”的问题，那么 MCP 进一步解决的是：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;模型如何统一接入外部能力&lt;/strong&gt;&lt;/li&gt;
