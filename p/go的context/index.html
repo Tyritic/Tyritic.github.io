@@ -10,7 +10,7 @@
 <meta property='og:description' content="从面试高频问题和工程实践两个角度，系统梳理 Go 语言中的 context：类型体系、核心接口、取消机制、超时控制与值传递">
 <meta property='og:url' content='https://Tyritic.github.io/p/go%E7%9A%84context/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-03-20T10:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-03-25T10:19:56&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:published_time' content='2026-03-20T10:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-03-26T08:52:27&#43;00:00'/>
 <meta name="twitter:title" content="Go的Context">
 <meta name="twitter:description" content="从面试高频问题和工程实践两个角度，系统梳理 Go 语言中的 context：类型体系、核心接口、取消机制、超时控制与值传递">
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -341,20 +341,20 @@
     <li><a href="#-contextwithcancel">🛑 context.WithCancel</a>
       <ol>
         <li><a href="#-基本作用">📘 基本作用</a></li>
-        <li><a href="#-示例">🧪 示例</a></li>
+        <li><a href="#-示例">📗 示例</a></li>
       </ol>
     </li>
     <li><a href="#-contextwithdeadline-与-contextwithtimeout">⏰ context.WithDeadline 与 context.WithTimeout</a>
       <ol>
         <li><a href="#-withdeadline">⌛ WithDeadline</a></li>
         <li><a href="#-withtimeout">⌚ WithTimeout</a></li>
-        <li><a href="#-超时控制示例">🧪 超时控制示例</a></li>
+        <li><a href="#-超时控制示例">📌 超时控制示例</a></li>
       </ol>
     </li>
     <li><a href="#-contextwithvalue">🧷 context.WithValue</a>
       <ol>
-        <li><a href="#-适合传什么">✅ 适合传什么</a></li>
-        <li><a href="#-不适合传什么">❌ 不适合传什么</a></li>
+        <li><a href="#-适合传什么">💡 适合传什么</a></li>
+        <li><a href="#-不适合传什么">🚫 不适合传什么</a></li>
       </ol>
     </li>
     <li><a href="#-context-的值传递机制">🔁 Context 的值传递机制</a>
@@ -367,7 +367,7 @@
     <li><a href="#-context-的取消传播机制">🌊 Context 的取消传播机制</a>
       <ol>
         <li><a href="#-调用-cancel-后会发生什么">📋 调用 <code>cancel()</code> 后会发生什么</a></li>
-        <li><a href="#-一个典型的监听写法">🧪 一个典型的监听写法</a></li>
+        <li><a href="#-一个典型的监听写法">⚙️ 一个典型的监听写法</a></li>
       </ol>
     </li>
     <li><a href="#-context-与-channel-的关系">🔗 Context 与 Channel 的关系</a></li>
@@ -379,22 +379,22 @@
     <li><a href="#-为什么-context-能防止-goroutine-泄漏">🛡️ 为什么 Context 能防止 goroutine 泄漏</a></li>
     <li><a href="#-工程实践建议">🧠 工程实践建议</a>
       <ol>
-        <li><a href="#-把-context-作为第一个参数传递">✅ 把 Context 作为第一个参数传递</a></li>
-        <li><a href="#-不要把-context-存进结构体">✅ 不要把 Context 存进结构体</a></li>
-        <li><a href="#-用完-cancel-要及时调用">✅ 用完 cancel 要及时调用</a></li>
-        <li><a href="#-只传递请求级元数据">✅ 只传递请求级元数据</a></li>
-        <li><a href="#-在阻塞点监听-ctxdone">✅ 在阻塞点监听 <code>ctx.Done()</code></a></li>
-        <li><a href="#-用自定义-key-类型避免冲突">✅ 用自定义 key 类型避免冲突</a></li>
+        <li><a href="#-把-context-作为第一个参数传递">📌 把 Context 作为第一个参数传递</a></li>
+        <li><a href="#-不要把-context-存进结构体">📎 不要把 Context 存进结构体</a></li>
+        <li><a href="#-用完-cancel-要及时调用">🔔 用完 cancel 要及时调用</a></li>
+        <li><a href="#-只传递请求级元数据">✨ 只传递请求级元数据</a></li>
+        <li><a href="#-在阻塞点监听-ctxdone">⏳ 在阻塞点监听 <code>ctx.Done()</code></a></li>
+        <li><a href="#-用自定义-key-类型避免冲突">🔒 用自定义 key 类型避免冲突</a></li>
       </ol>
     </li>
     <li><a href="#-面试高频追问">🎯 面试高频追问</a></li>
     <li><a href="#-常见误区">⚠️ 常见误区</a>
       <ol>
-        <li><a href="#-把-context-当成万能参数容器">❌ 把 Context 当成万能参数容器</a></li>
-        <li><a href="#-忘记调用-cancel">❌ 忘记调用 cancel</a></li>
-        <li><a href="#-在子函数里重新创建-background">❌ 在子函数里重新创建 Background</a></li>
-        <li><a href="#-忽略-ctxerr">❌ 忽略 <code>ctx.Err()</code></a></li>
-        <li><a href="#-在-context-里塞入大对象或核心依赖">❌ 在 Context 里塞入大对象或核心依赖</a></li>
+        <li><a href="#-把-context-当成万能参数容器">🚫 把 Context 当成万能参数容器</a></li>
+        <li><a href="#-忘记调用-cancel">⏰ 忘记调用 cancel</a></li>
+        <li><a href="#-在子函数里重新创建-background">🔄 在子函数里重新创建 Background</a></li>
+        <li><a href="#-忽略-ctxerr">📊 忽略 <code>ctx.Err()</code></a></li>
+        <li><a href="#-在-context-里塞入大对象或核心依赖">💾 在 Context 里塞入大对象或核心依赖</a></li>
       </ol>
     </li>
     <li><a href="#-小结">🧩 小结</a></li>
@@ -474,7 +474,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：5540 字
+                     字数统计：5578 字
                 </time>
             </div>
 
@@ -596,7 +596,7 @@
       </tr>
       <tr>
           <td><code>context.WithDeadline(parent, deadline)</code></td>
-          <td>到指定时间点自动取消</td>
+          <td>在指定时间点自动取消</td>
           <td>精确截止时间控制</td>
           <td>有明确结束时刻的任务</td>
       </tr>
@@ -767,8 +767,9 @@
 <li>所有监听这个 <code>ctx</code> 的 <code>goroutine</code> 都会收到退出信号</li>
 <li>当前上下文的子上下文也会递归取消</li>
 </ul>
-<h3 id="-示例">🧪 示例
-</h3><div class="highlight"><div class="chroma">
+<h3 id="-示例">📗 示例
+</h3><p>以下示例展示了基本的取消监听模式：</p>
+<div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
@@ -876,7 +877,7 @@
 </span></span></span></code></pre></td></tr></table>
 </div>
 </div><p>它更适合日常开发，因为大部分场景下我们关心的是“最多执行多久”，而不是“精确截止到哪一刻”。</p>
-<h3 id="-超时控制示例">🧪 超时控制示例
+<h3 id="-超时控制示例">📌 超时控制示例
 </h3><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
@@ -928,14 +929,14 @@
 </span></span></span><span class="line"><span class="cl"><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">traceID</span><span class="p">)</span><span class="w">
 </span></span></span></code></pre></td></tr></table>
 </div>
-</div><h3 id="-适合传什么">✅ 适合传什么
+</div><h3 id="-适合传什么">💡 适合传什么
 </h3><ul>
 <li>链路 ID</li>
 <li>请求元数据</li>
 <li>认证信息</li>
 <li>日志上下文字段</li>
 </ul>
-<h3 id="-不适合传什么">❌ 不适合传什么
+<h3 id="-不适合传什么">🚫 不适合传什么
 </h3><ul>
 <li>数据库连接</li>
 <li>大对象</li>
@@ -986,7 +987,7 @@
 <li>递归取消所有子 <code>Context</code></li>
 <li>从父 <code>Context</code> 中解除注册，避免内存泄漏</li>
 </ol>
-<h3 id="-一个典型的监听写法">🧪 一个典型的监听写法
+<h3 id="-一个典型的监听写法">⚙️ 一个典型的监听写法
 </h3><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt"> 1
@@ -1116,7 +1117,7 @@
 </ul>
 <hr>
 <h2 id="-工程实践建议">🧠 工程实践建议
-</h2><h3 id="-把-context-作为第一个参数传递">✅ 把 Context 作为第一个参数传递
+</h2><h3 id="-把-context-作为第一个参数传递">📌 把 Context 作为第一个参数传递
 </h3><p>约定俗成的写法是：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -1127,9 +1128,9 @@
 </span></span></span></code></pre></td></tr></table>
 </div>
 </div><p>把 <code>ctx</code> 放在第一个参数位置，可以让函数职责更清晰，也更符合 Go 社区约定。</p>
-<h3 id="-不要把-context-存进结构体">✅ 不要把 Context 存进结构体
+<h3 id="-不要把-context-存进结构体">📎 不要把 Context 存进结构体
 </h3><p><code>context</code> 应该跟随一次请求流动，而不是被长期持有。把它塞进结构体字段里，容易造成生命周期混乱。</p>
-<h3 id="-用完-cancel-要及时调用">✅ 用完 cancel 要及时调用
+<h3 id="-用完-cancel-要及时调用">🔔 用完 cancel 要及时调用
 </h3><p>无论是 <code>WithCancel</code>、<code>WithTimeout</code> 还是 <code>WithDeadline</code>，只要拿到了 <code>cancel</code>，通常都应该及时调用：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -1142,9 +1143,9 @@
 </span></span></span></code></pre></td></tr></table>
 </div>
 </div><p>这不仅是语义完整，也有助于尽早释放关联资源。</p>
-<h3 id="-只传递请求级元数据">✅ 只传递请求级元数据
+<h3 id="-只传递请求级元数据">✨ 只传递请求级元数据
 </h3><p><code>WithValue</code> 很方便，但不能滥用。它适合做透传，不适合做参数黑洞。</p>
-<h3 id="-在阻塞点监听-ctxdone">✅ 在阻塞点监听 <code>ctx.Done()</code>
+<h3 id="-在阻塞点监听-ctxdone">⏳ 在阻塞点监听 <code>ctx.Done()</code>
 </h3><p>尤其是在这些地方：</p>
 <ul>
 <li><code>select</code></li>
@@ -1154,7 +1155,7 @@
 <li>长时间计算任务</li>
 </ul>
 <p>否则即使上游已经取消，当前任务也可能继续白白运行。</p>
-<h3 id="-用自定义-key-类型避免冲突">✅ 用自定义 key 类型避免冲突
+<h3 id="-用自定义-key-类型避免冲突">🔒 用自定义 key 类型避免冲突
 </h3><p>推荐写法：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -1192,11 +1193,11 @@
 <p>这几个问题如果能连起来讲，基本上就已经不是“会用 context”，而是“真正理解 context 了”。</p>
 <hr>
 <h2 id="-常见误区">⚠️ 常见误区
-</h2><h3 id="-把-context-当成万能参数容器">❌ 把 Context 当成万能参数容器
+</h2><h3 id="-把-context-当成万能参数容器">🚫 把 Context 当成万能参数容器
 </h3><p><code>context</code> 不是为了代替函数参数设计的。凡是和业务逻辑强相关、而且函数明确需要的值，都应该显式传参。</p>
-<h3 id="-忘记调用-cancel">❌ 忘记调用 cancel
+<h3 id="-忘记调用-cancel">⏰ 忘记调用 cancel
 </h3><p>拿到了 <code>cancel</code> 却不调用，容易让内部定时器、子任务或资源延迟释放。</p>
-<h3 id="-在子函数里重新创建-background">❌ 在子函数里重新创建 Background
+<h3 id="-在子函数里重新创建-background">🔄 在子函数里重新创建 Background
 </h3><p>错误示例：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -1213,9 +1214,9 @@
 </span></span></span></code></pre></td></tr></table>
 </div>
 </div><p>这样会切断上游传下来的取消链路。正确做法是继续使用外部传入的 <code>ctx</code>。</p>
-<h3 id="-忽略-ctxerr">❌ 忽略 <code>ctx.Err()</code>
-</h3><p>很多代码虽然监听了 <code>Done()</code>，但没有区分到底是“主动取消”还是“超时失败”。而这两种情况在日志、重试、告警策略上往往并不相同。</p>
-<h3 id="-在-context-里塞入大对象或核心依赖">❌ 在 Context 里塞入大对象或核心依赖
+<h3 id="-忽略-ctxerr">📊 忽略 <code>ctx.Err()</code>
+</h3><p>很多代码虽然监听了 <code>Done()</code>，但没有区分到底是&quot;主动取消&quot;还是&quot;超时失败&quot;。而这两种情况在日志、重试、告警策略上往往并不相同。</p>
+<h3 id="-在-context-里塞入大对象或核心依赖">💾 在 Context 里塞入大对象或核心依赖
 </h3><p>例如数据库连接、缓存客户端、配置中心实例等，都不应该放进 <code>context</code>。这些东西应通过依赖注入或显式参数传递。</p>
 <hr>
 <h2 id="-小结">🧩 小结
@@ -1244,7 +1245,7 @@
 
 
         <span>
-            最后更新于 2026-03-25 10:19 UTC
+            最后更新于 2026-03-26 08:52 UTC
         </span>
     </section></footer>
 

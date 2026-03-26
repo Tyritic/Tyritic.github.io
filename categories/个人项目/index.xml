@@ -7,6 +7,132 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>Tyritic</copyright><atom:link href="https://Tyritic.github.io/categories/%E4%B8%AA%E4%BA%BA%E9%A1%B9%E7%9B%AE/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>智能OnCall Agent（一）项目起步</title>
+        <link>https://Tyritic.github.io/p/%E6%99%BA%E8%83%BDoncall-agent%E4%B8%80%E9%A1%B9%E7%9B%AE%E8%B5%B7%E6%AD%A5/</link>
+        <pubDate>Thu, 26 Mar 2026 15:53:00 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/%E6%99%BA%E8%83%BDoncall-agent%E4%B8%80%E9%A1%B9%E7%9B%AE%E8%B5%B7%E6%AD%A5/</guid>
+        <description>&lt;h2 id=&#34;-项目背景&#34;&gt;🧠 项目背景
+&lt;/h2&gt;&lt;p&gt;在日常的运维工作中，OnCall（值班）告警处理是一项既重要又繁琐的任务。每当线上系统出现异常，值班人员需要在第一时间收到告警通知，并根据告警信息快速定位问题、分析原因、协调处理。然而，这个过程存在诸多痛点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;告警噪音过多&lt;/strong&gt;：一次故障可能触发大量重复告警，值班人员容易被海量信息淹没&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;信息碎片化&lt;/strong&gt;：告警信息分散在多个系统，需要人工汇总分析&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;响应时效要求高&lt;/strong&gt;：即使在深夜，值班人员也必须保持警觉，及时响应&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;经验难以传承&lt;/strong&gt;：处理告警的经验主要依赖个人积累，新人上手慢&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;随着大语言模型（LLM）技术的快速发展，我们开始探索利用AI能力来辅助甚至部分替代人工处理OnCall告警。智能OnCall Agent正是为了解决这些问题而诞生的项目。&lt;/p&gt;
+&lt;h2 id=&#34;-目标功能&#34;&gt;📌 目标功能
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;文件上传知识库（知识库管理）&lt;/strong&gt;：这个功能支持团队将各种文档（比如故障处理手册、服务接入说明等）上传到系统。它为大模型提供了可靠的知识来源，实现了团队经验的持续沉淀和高效复用。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;对话交互支持（Chatbot）&lt;/strong&gt;：值班人员可以通过自然语言与系统进行交互，快速查询故障处理手册。例如，你可以直接问：错误码120000001的原因是什么？系统会立即从《XX系统错误码手册》中返回精准的错误原因。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AIOps运维诊断（运维Agent）&lt;/strong&gt;：系统接收到告警通知后（例如接口失败率过高），会按照预设的步骤自动开始排查。它可能会调用日志API查询最近一小时的error日志，调取监控面板查看失败率的趋势，然后聚合数据并返回关键信息，比如：近三十分钟内context cancel错误占比百分之九十，疑似为下游系统异常。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-技术选型&#34;&gt;🏗️ 技术选型
+&lt;/h2&gt;&lt;p&gt;基于项目的需求和目标，我们进行了以下技术选型：&lt;/p&gt;
+&lt;h3 id=&#34;-前后端开发框架&#34;&gt;🎯 前后端开发框架
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;前端&lt;/strong&gt;：Vue3 + ElementPlus&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;后端&lt;/strong&gt;：Kitex + Hertz + Eino&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;数据库&lt;/strong&gt;：MySQL&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;缓存&lt;/strong&gt;：Redis&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;消息队列&lt;/strong&gt;：Kafka&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;向量数据库&lt;/strong&gt;：Milvus&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-eino框架是什么为什么不选择langchain&#34;&gt;💡 Eino框架是什么，为什么不选择LangChain？
+&lt;/h4&gt;&lt;p&gt;Eino框架是字节跳动开源的一个大模型应用开发框架，核心思想是用图Graph来定义Agent的工作流。在我的理解里，图中的每个节点代表一个原子能力，比如大模型节点、召回使用的Retriever节点等。边则代表了这些节点之间的执行顺序和数据流向。在项目中，我用Eino来构建不同的Agent。比如ChatAgent，把召回、Prompt构建、ReAct定义成节点，然后用边把它们连起来。这样，整个Agent的执行过程就变得非常清晰和可配置。选择Eino主要是看中它这种直观的图编排能力和对工作流状态的维护，让我们能相对容易地构建和调试复杂的Agent。&lt;/p&gt;
+&lt;p&gt;为什么不选择LangChain？其实要从它们适合的场景来分析&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;选择Eino的场景&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;高性能生产环境：需要处理高并发请求&lt;/li&gt;
+&lt;li&gt;强类型要求：需要编译时类型安全&lt;/li&gt;
+&lt;li&gt;Go技术栈：团队主要使用Go语言&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;选择LangChain的场景&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;快速原型开发：需要快速验证想法&lt;/li&gt;
+&lt;li&gt;社区资源：需要大量的示例和教程&lt;/li&gt;
+&lt;li&gt;Python生态：团队熟悉Python和相关库&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在实际项目中，技术选型应该基于团队的技术栈、项目需求、性能要求和长期维护考虑。
+对于追求性能和稳定性的生产环境，Eino提供了优秀的Go原生解决方案。
+而对于快速迭代和研究型项目，LangChain的灵活性和生态优势更加明显。
+Eino虽在生态覆盖度上略逊于LangChain，但其强类型带来的稳定性、Graph编排的开发效
+率、字节实践的可靠性，更适合企业级生产落地。&lt;/p&gt;
+&lt;h4 id=&#34;-向量数据库为什么选择milvus&#34;&gt;📖 向量数据库为什么选择Milvus？
+&lt;/h4&gt;&lt;p&gt;目前市面上有四种类型的向量数据库：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;集成了向量搜索插件的现有关系型或列型数据库，比如PGVector&lt;/li&gt;
+&lt;li&gt;支持密集向量索引的传统倒排索引的ElasticSearch&lt;/li&gt;
+&lt;li&gt;基于向量搜索库构建的轻量级向量数据库，Chroma&lt;/li&gt;
+&lt;li&gt;专用向量数据库：这类数据库专门为向量搜索而设计的向量数据库：
+&lt;ul&gt;
+&lt;li&gt;Milvus&lt;/li&gt;
+&lt;li&gt;Faiss&lt;/li&gt;
+&lt;li&gt;HNSW&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Milvus是一个基于向量数据库的系统，它支持高维度向量的存储和检索。在智能OnCall Agent中，向量数据库主要用于存储告警信息的向量表示，以便后续的相似度查询和根因推理。&lt;/p&gt;
+&lt;p&gt;选择Milvus通常不是因为&amp;quot;它能存向量&amp;quot;这么简单，而是因为你需要一个把向量检索当成核心能力来设计的系统：既能做高性能 ANN，又能做过滤、混合检索、全文检索和更大规模的扩展。Milvus 官方把自己定位为开源、云原生的向量数据库，面向从本地原型到大规模分布式部署的场景。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;主要优势&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Milvus不只支持 dense vector，还支持 sparse vector、BM25 全文检索、multi-vector hybrid search，并且可以把这些能力放在同一个 collection 里组合使用。对很多知识库检索来说，这意味着你可以把&amp;quot;语义召回&amp;quot;和&amp;quot;关键词命中&amp;quot;放到同一套检索链路里，而不是自己拼很多外部组件。&lt;/li&gt;
+&lt;li&gt;Milvus 对工程化检索支持比较完整。Milvus 支持在 ANN 搜索前先做 metadata filtering，把检索范围限制在满足条件的数据子集里，这对带租户、时间、类别、权限等条件的业务很重要。它还支持 rerankers、多种搜索类型，以及把搜索和结构化字段一起组织在 collection 中。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-llm集成&#34;&gt;🤖 LLM集成
+&lt;/h3&gt;&lt;p&gt;项目将集成主流的大语言模型API，用于：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;告警分析&lt;/strong&gt;：自动理解告警内容，判断问题类型和紧急程度&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;根因推理&lt;/strong&gt;：基于告警信息和历史数据，推测可能的根因&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;处理建议&lt;/strong&gt;：生成初步的处理建议，供值班人员参考&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;本项目将采用本地Ollama部署的qwen3-coder-next模型，避免依赖外部API，确保数据安全和隐私保护。嵌入模型选择text-embedding-v4，因为它在语义相似度计算方面表现优异，能够提供准确的向量表示。维度为1024。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-核心功能设计&#34;&gt;🧪 核心功能设计
+&lt;/h2&gt;&lt;h3 id=&#34;-告警处理流程&#34;&gt;🔔 告警处理流程
+&lt;/h3&gt;&lt;p&gt;智能OnCall Agent的核心工作流程如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;告警接收&lt;/strong&gt;：从多个渠道（Prometheus、Alertmanager、自定义WebHook）接收告警&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;告警聚合&lt;/strong&gt;：对相似告警进行聚合，减少噪音&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;LLM分析&lt;/strong&gt;：将告警信息发送给LLM，获取分析结果&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;处理执行&lt;/strong&gt;：根据分析结果，执行预设的自动化操作&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;结果反馈&lt;/strong&gt;：将处理结果通知给值班人员&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;业务流程如下&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;1774512408696.png&#34; alt=&#34;业务流程图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;-系统架构&#34;&gt;🧩 系统架构
+&lt;/h3&gt;&lt;p&gt;系统架构总的来说，包含四个接口、三个核心模块以及多个辅助组件:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;知识库管理模块&lt;/strong&gt;：当你需要让AI回答特定领域问题时，如果直接将长文本丢给大模型，会受限于模型的上下文窗口大小，导致成本高、速度慢、准确率低。知识库管理模块通过采用先检索相关内容，再生成答案的策略，完美地解决了这些问题。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;对话Agent&lt;/strong&gt;：这是一个智能交互系统，它能够像真人一样理解你的问题、调用知识库和相关的MCP工具，并给出精准的回答。它尤其适合用来处理高频重复的咨询类场景。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;运维Agent&lt;/strong&gt;：它可以像资深工程师一样，自动接收告警、按预设步骤排查问题、分析根因并给出处理建议，甚至能够自动执行标准化操作，将工程师从重复劳动中彻底解放出来。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;1774513035505.png&#34; alt=&#34;系统架构图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-项目的预期&#34;&gt;📋 项目的预期
+&lt;/h2&gt;&lt;h3 id=&#34;-基础预期与达成情况&#34;&gt;✅ 基础预期与达成情况
+&lt;/h3&gt;&lt;p&gt;基础预期分为3个核心维度，目前都已达成：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;业务价值预期&lt;/strong&gt;：能解决最初设定的核心痛点，把XX场景的多步骤重复任务自动化，覆盖80%的高频场景，把1小时的任务压缩到5分钟完成，内部测试用户满意度90%&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;功能可用性预期&lt;/strong&gt;：能稳定完成多步规划、多工具调度、异常处理，核心任务成功率85%以上，不会频繁崩盘、无限循环、出现幻觉&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;工程稳定性预期&lt;/strong&gt;：完成了模块化架构设计，支持工具快速接入、权限管控、高并发请求，能支撑小范围内部用户使用。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-最终预期与当前短板&#34;&gt;🚩 最终预期与当前短板
+&lt;/h3&gt;&lt;p&gt;这个Agent的最终预期，是打造一个高智能、高鲁棒性、高泛化性、能适配复杂业务场景的垂直领域Agent，真正成为用户的&amp;quot;数字助理&amp;quot;，而不只是简单的任务执行工具。目前的短板，也是我后续优化的核心方向：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;复杂长链路任务的规划能力不足&lt;/strong&gt;：超过10步的复杂任务，规划偏离、逻辑断裂的问题明显，任务成功率会降到60%左右，后续会优化规划模块，加入多智能体协同、长程规划优化&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;个性化与持续学习能力不足&lt;/strong&gt;：目前只能基于预设规则和历史经验执行，无法基于用户反馈、使用习惯自主学习优化，后续会优化记忆系统和反思模块，加入在线学习能力&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;多模态能力融合不够深入&lt;/strong&gt;：目前只能处理文本信息，对图片、文档、音频的处理能力较弱，后续会接入多模态大模型，优化多模态知识检索和理解能力&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+</description>
+        </item>
+        <item>
         <title>识物探趣（五）内容生成模块</title>
         <link>https://Tyritic.github.io/p/%E8%AF%86%E7%89%A9%E6%8E%A2%E8%B6%A3%E4%BA%94%E5%86%85%E5%AE%B9%E7%94%9F%E6%88%90%E6%A8%A1%E5%9D%97/</link>
         <pubDate>Sat, 15 Mar 2025 20:49:08 +0800</pubDate>

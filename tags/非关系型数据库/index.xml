@@ -7,13 +7,13 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>Tyritic</copyright>
-        <lastBuildDate>Wed, 25 Mar 2026 10:19:57 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E9%9D%9E%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Thu, 26 Mar 2026 08:52:27 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E9%9D%9E%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/index.xml" rel="self" type="application/rss+xml" /><item>
         <title>Redis的缓存设计</title>
         <link>https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1/</link>
         <pubDate>Sat, 01 Mar 2025 19:56:40 +0800</pubDate>
         
         <guid>https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1/</guid>
-        <description>&lt;h2 id=&#34;redis的缓存&#34;&gt;Redis的缓存
+        <description>&lt;h2 id=&#34;-redis的缓存&#34;&gt;💾 Redis的缓存
 &lt;/h2&gt;&lt;p&gt;Redis最常见的用途就是作为缓存系统。通过将热门数据存储在内存中，可以极大地提高访问速度，减轻数据库负载，这对于需要快速响应时间的应用程序非常重要。&lt;/p&gt;
 &lt;p&gt;用户的数据一般都是存储于数据库，数据库的数据是落在磁盘上的，磁盘的读写速度很慢了。当用户的请求，都访问数据库的话，请求数量一上来，数据库很容易就崩溃的了，所以为了避免用户直接访问数据库，会用 Redis 作为缓存层。&lt;/p&gt;
 &lt;p&gt;因为 Redis 是内存数据库，我们可以将数据库的数据缓存在 Redis 里，相当于数据缓存在内存，内存的读写速度比硬盘快好几个数量级，这样大大提高了系统性能。&lt;/p&gt;
@@ -31,7 +31,7 @@
 		data-flex-basis=&#34;131px&#34;
 	
 &gt;&lt;/p&gt;
-&lt;h2 id=&#34;缓存雪崩&#34;&gt;缓存雪崩
+&lt;h2 id=&#34;-缓存雪崩&#34;&gt;❄️ 缓存雪崩
 &lt;/h2&gt;&lt;h3 id=&#34;定义&#34;&gt;定义
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;缓存雪崩&lt;/strong&gt;：指多个缓存数据在同一时间过期或者Redis宕机，导致大量请求同时访问数据库，从而造成数据库瞬间负载激增。&lt;/p&gt;
 &lt;p&gt;通常为了保证缓存中的数据与数据库中的数据一致性，会给 Redis 里的数据设置过期时间，当缓存数据过期后，用户访问的数据如果不在缓存里，业务系统需要重新生成缓存，因此就会访问数据库，并将数据更新到 Redis 里，这样后续请求都可以直接命中缓存。&lt;/p&gt;
@@ -50,13 +50,13 @@
 	
 &gt;&lt;/p&gt;
 &lt;p&gt;那么，当 &lt;strong&gt;大量缓存数据在同一时间过期（失效）或者 Redis 故障宕机&lt;/strong&gt; 时，如果此时有大量的用户请求，都无法在 Redis 中处理，于是全部请求都直接访问数据库，从而导致数据库的压力骤增，严重的会造成数据库宕机，从而形成一系列连锁反应，造成整个系统崩溃。&lt;/p&gt;
-&lt;h3 id=&#34;数据大量过期的应对方法&#34;&gt;数据大量过期的应对方法
+&lt;h3 id=&#34;-数据大量过期的应对方法&#34;&gt;🛡️ 数据大量过期的应对方法
 &lt;/h3&gt;&lt;h4 id=&#34;均匀设置过期时间&#34;&gt;均匀设置过期时间
 &lt;/h4&gt;&lt;p&gt;如果要给缓存数据设置过期时间，应该避免将大量的数据设置成同一个过期时间。我们可以在对缓存数据设置过期时间时， &lt;strong&gt;给这些数据的过期时间加上一个随机数&lt;/strong&gt; ，这样就保证数据不会在同一时间过期。&lt;/p&gt;
 &lt;h4 id=&#34;互斥锁&#34;&gt;互斥锁
 &lt;/h4&gt;&lt;p&gt;当业务线程在处理用户请求时， &lt;strong&gt;如果发现访问的数据不在 Redis 里，就加个互斥锁，保证同一时间内只有一个请求来构建缓存&lt;/strong&gt; （从数据库读取数据，再将数据更新到 Redis 里），当缓存构建完成后，再释放锁。未能获取互斥锁的请求，要么等待锁释放后重新读取缓存，要么就返回空值或者默认值。&lt;/p&gt;
 &lt;p&gt;实现互斥锁的时候，最好设置&lt;strong&gt;超时时间&lt;/strong&gt;，不然第一个请求拿到了锁，然后这个请求发生了某种意外而一直阻塞，一直不释放锁，这时其他请求也一直拿不到锁，整个系统就会出现无响应的现象。&lt;/p&gt;
-&lt;h3 id=&#34;redis故障宕机的应对方法&#34;&gt;Redis故障宕机的应对方法
+&lt;h3 id=&#34;-redis故障宕机的应对方法&#34;&gt;⚠️ Redis故障宕机的应对方法
 &lt;/h3&gt;&lt;h4 id=&#34;服务熔断和请求限流机制&#34;&gt;服务熔断和请求限流机制
 &lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;服务熔断机制&lt;/strong&gt; ：因为 Redis 故障宕机而导致缓存雪崩问题时， &lt;strong&gt;暂停业务应用对缓存服务的访问，直接返回错误&lt;/strong&gt; ，不用再继续访问数据库，从而降低对数据库的访问压力，保证数据库系统的正常运行，然后等到 Redis 恢复正常后，再允许业务应用访问缓存服务。&lt;/li&gt;
@@ -248,11 +248,11 @@
 &lt;h4 id=&#34;构建redis集群&#34;&gt;构建Redis集群
 &lt;/h4&gt;&lt;p&gt;服务熔断或请求限流机制是缓存雪崩发生后的应对方案，可以通过 &lt;strong&gt;主从节点的方式构建 Redis 缓存高可靠集群&lt;/strong&gt;。如果 Redis 缓存的主节点故障宕机，从节点可以切换成为主节点，继续提供缓存服务，避免了由于 Redis 故障宕机而导致的缓存雪崩问题。&lt;/p&gt;
 &lt;p&gt;参考博客&lt;/p&gt;
-&lt;h2 id=&#34;缓存击穿&#34;&gt;缓存击穿
+&lt;h2 id=&#34;-缓存击穿&#34;&gt;💥 缓存击穿
 &lt;/h2&gt;&lt;h3 id=&#34;定义-1&#34;&gt;定义
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;缓存击穿&lt;/strong&gt;：指某个热点数据在缓存中失效，导致大量请求直接访问数据库。此时，由于瞬间的高并发，可能导致数据库崩溃。&lt;/p&gt;
-&lt;h3 id=&#34;应对方案&#34;&gt;应对方案
-&lt;/h3&gt;&lt;h4 id=&#34;互斥锁方案&#34;&gt;互斥锁方案
+&lt;h3 id=&#34;-应对方案&#34;&gt;🛡️ 应对方案
+&lt;/h3&gt;&lt;h4 id=&#34;-互斥锁方案&#34;&gt;🔐 互斥锁方案
 &lt;/h4&gt;&lt;p&gt;使用互斥锁保证同一时间只有一个业务线程更新缓存，未能获取互斥锁的请求，要么等待锁释放后重新读取缓存，要么就返回空值或者默认值。&lt;/p&gt;
 &lt;p&gt;假设现在线程1过来访问，他查询缓存没有命中，但是此时他获得到了锁的资源，那么线程1就会一个人去执行逻辑，假设现在线程2过来，线程2在执行过程中，并没有获得到锁，那么线程2就可以进行到休眠，直到线程1把锁释放后，线程2获得到锁，然后再来执行逻辑，此时就能够从缓存中拿到数据了。&lt;/p&gt;
 &lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1/1653328288627.png&#34;
@@ -275,13 +275,13 @@
 &lt;li&gt;若redis中如果没有这个key，则插入成功，返回1，在 &lt;strong&gt;&lt;code&gt;stringRedisTemplate&lt;/code&gt;&lt;/strong&gt; 中返回 &lt;strong&gt;&lt;code&gt;true&lt;/code&gt;&lt;/strong&gt;&lt;/li&gt;
 &lt;li&gt;如果有这个key则插入失败，则返回0，在 &lt;strong&gt;&lt;code&gt;stringRedisTemplate&lt;/code&gt;&lt;/strong&gt; 返回 &lt;strong&gt;&lt;code&gt;false&lt;/code&gt;&lt;/strong&gt;&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;缓存穿透&#34;&gt;缓存穿透
+&lt;h2 id=&#34;-缓存穿透&#34;&gt;🚫 缓存穿透
 &lt;/h2&gt;&lt;h3 id=&#34;定义-2&#34;&gt;定义
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;缓存穿透&lt;/strong&gt;：指查询一个不存在（ &lt;strong&gt;既不在缓存中，也不在数据库中&lt;/strong&gt; ）的数据，缓存中没有相应的记录，每次请求都会去数据库查询，造成数据库负担加重。&lt;/p&gt;
-&lt;h3 id=&#34;应对方案-1&#34;&gt;应对方案
-&lt;/h3&gt;&lt;h4 id=&#34;限制非法请求&#34;&gt;限制非法请求
+&lt;h3 id=&#34;应对方案&#34;&gt;应对方案
+&lt;/h3&gt;&lt;h4 id=&#34;-限制非法请求&#34;&gt;⚔️ 限制非法请求
 &lt;/h4&gt;&lt;p&gt;当有大量请求访问不存在的数据的时候，也会发生缓存穿透，因此在 API 入口处我们要判断求请求参数是否合理，请求参数是否含有非法值、请求字段是否存在，如果判断出是恶意请求就直接返回错误，避免进一步访问缓存和数据库。&lt;/p&gt;
-&lt;h4 id=&#34;缓存空值&#34;&gt;缓存空值
+&lt;h4 id=&#34;-缓存空值&#34;&gt;💠 缓存空值
 &lt;/h4&gt;&lt;p&gt;当发现缓存穿透的现象时，可以针对查询的数据，在缓存中设置一个空值或者默认值，这样后续请求就可以从缓存中读取到空值或者默认值，返回给应用，而不会继续查询数据库。客户端请求某个 ID 的数据，首先检查缓存是否命中。如果缓存未命中，查询数据库。如果数据库查询结果为空，将该空结果（如 null 或 {}）缓存起来，并设置一个合理的过期时间。当后续请求再访问相同 ID 时，缓存直接返回空结果，避免每次都打到数据库。&lt;/p&gt;
 &lt;h4 id=&#34;布隆过滤器&#34;&gt;布隆过滤器
 &lt;/h4&gt;&lt;p&gt;在写入数据库数据时，使用布隆过滤器做个标记，然后在用户请求到来时，业务线程确认缓存失效后，可以通过查询布隆过滤器快速判断数据是否存在，如果不存在，就不用通过查询数据库来判断数据是否存在。即使发生了缓存穿透，大量请求只会查询 Redis 和布隆过滤器，而不会查询数据库，保证了数据库能正常运行&lt;/p&gt;
@@ -347,7 +347,7 @@
 		data-flex-basis=&#34;426px&#34;
 	
 &gt;&lt;/p&gt;
-&lt;h2 id=&#34;缓存和数据库的一致性问题&#34;&gt;缓存和数据库的一致性问题
+&lt;h2 id=&#34;-缓存和数据库的一致性问题&#34;&gt;🔄 缓存和数据库的一致性问题
 &lt;/h2&gt;&lt;h3 id=&#34;旁路缓存策略&#34;&gt;旁路缓存策略
 &lt;/h3&gt;&lt;p&gt;对于读操作：如果缓存不命中，则会从数据库读取数据，然后将数据库的数据回种到缓存中&lt;/p&gt;
 &lt;p&gt;对于写操作：先更新数据库，再删除缓存，后续等查询把数据库的数据回种到缓存中&lt;/p&gt;
@@ -418,7 +418,7 @@
     &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;为什么选择删除缓存而不是更新缓存&lt;/p&gt;
 &lt;p&gt;相对而言，删除缓存的速度比更新缓存的速度要快得多。假如是更新缓存，那么可能请求 A 更新完 MySQL 后在更新 Redis 中，请求 B 已经读取到 Redis 中的旧值返回了，又一次导致了缓存和数据库不一致。&lt;/p&gt;&lt;/div&gt;
 
-&lt;h3 id=&#34;延时双删策略&#34;&gt;延时双删策略
+&lt;h3 id=&#34;-延时双删策略&#34;&gt;⏰ 延时双删策略
 &lt;/h3&gt;&lt;ul&gt;
 &lt;li&gt;更新数据库之前，删除一次缓存&lt;/li&gt;
 &lt;li&gt;更新完数据库后，再进行一次延迟删除&lt;/li&gt;
@@ -451,21 +451,21 @@
         <pubDate>Sat, 01 Mar 2025 17:51:38 +0800</pubDate>
         
         <guid>https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5%E5%92%8C%E8%BF%87%E6%9C%9F%E5%88%A0%E9%99%A4%E7%AD%96%E7%95%A5/</guid>
-        <description>&lt;h2 id=&#34;过期删除策略&#34;&gt;过期删除策略
+        <description>&lt;h2 id=&#34;-过期删除策略&#34;&gt;⏰ 过期删除策略
 &lt;/h2&gt;&lt;p&gt;Redis 数据过期主要有两种删除策略，分别为 &lt;strong&gt;定期删除、惰性删除&lt;/strong&gt; 两种：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;定期删除&lt;/strong&gt;：Redis 每隔一定时间（默认是 100 毫秒）会随机检查一定数量的键，如果发现过期键，则将其删除。这种方式能够在后台持续清理过期数据，防止内存膨胀。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;惰性删除&lt;/strong&gt;：在每次访问键时，Redis 检查该键是否已过期，如果已过期，则将其删除。这种策略保证了在使用过程中只删除不再需要的数据，但在不访问过期键时不会立即清除。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;定时删除&lt;/strong&gt; ：在设置 key 的过期时间时，同时创建一个定时事件，当时间到达时，由事件处理器自动执行 key 的删除操作。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;key过期的判定&#34;&gt;Key过期的判定
+&lt;h3 id=&#34;-key过期的判定&#34;&gt;🔑 Key过期的判定
 &lt;/h3&gt;&lt;p&gt;每当对一个 key 设置了过期时间时，Redis 会把该 key 带上过期时间存储到一个 &lt;strong&gt;过期字典&lt;/strong&gt; 中，也就是说 &lt;strong&gt;过期字典&lt;/strong&gt; 保存了数据库中所有 key 的过期时间。&lt;/p&gt;
 &lt;p&gt;字典实际上是哈希表。当我们查询一个 key 时，Redis 首先检查该 key 是否存在于过期字典中：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;如果不在，则正常读取键值；&lt;/li&gt;
 &lt;li&gt;如果存在，则会获取该 key 的过期时间，然后与当前系统时间进行比对，如果比系统时间大，那就没有过期，否则判定该 key 已过期。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;定期删除策略&#34;&gt;定期删除策略
+&lt;h3 id=&#34;-定期删除策略&#34;&gt;🔄 定期删除策略
 &lt;/h3&gt;&lt;p&gt;定期删除策略的做法：&lt;strong&gt;每隔一段时间随机从数据库中取出一定数量的 key 进行检查，并删除其中的过期key。&lt;/strong&gt;&lt;/p&gt;
 &lt;h4 id=&#34;优缺点&#34;&gt;优缺点
 &lt;/h4&gt;&lt;p&gt;&lt;strong&gt;优点&lt;/strong&gt;：&lt;/p&gt;
@@ -477,13 +477,13 @@
 &lt;li&gt;内存清理方面没有定时删除效果好，同时没有惰性删除使用的系统资源少。&lt;/li&gt;
 &lt;li&gt;难以确定删除操作执行的时长和频率。如果执行的太频繁，定期删除策略对CPU不友好；如果执行的太少，那又和惰性删除一样了，过期 key 占用的内存不会及时得到释放。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;执行过程&#34;&gt;执行过程
+&lt;h4 id=&#34;-执行过程&#34;&gt;⚙️ 执行过程
 &lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;从过期字典中随机抽取 20 个 key；&lt;/li&gt;
 &lt;li&gt;检查这 20 个 key 是否过期，并删除已过期的 key；&lt;/li&gt;
 &lt;li&gt;如果本轮检查的已过期 key 的数量，超过 5 个（20/4），也就是 &lt;strong&gt;已过期 key 的数量&lt;/strong&gt;占比 &lt;strong&gt;随机抽取 key 的数量&lt;/strong&gt; 大于 25%，则继续重复步骤 1；如果已过期的 key 比例小于 25%，则停止继续删除过期 key，然后等待下一轮再检查。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;惰性删除策略&#34;&gt;惰性删除策略
+&lt;h3 id=&#34;-惰性删除策略&#34;&gt;⏳ 惰性删除策略
 &lt;/h3&gt;&lt;p&gt;惰性删除策略的做法是：&lt;strong&gt;不主动删除过期键，每次从数据库访问 key 时，都检测 key 是否过期，如果过期则删除该 key。&lt;/strong&gt;&lt;/p&gt;
 &lt;h4 id=&#34;优缺点-1&#34;&gt;优缺点
 &lt;/h4&gt;&lt;p&gt;&lt;strong&gt;优点&lt;/strong&gt;：&lt;/p&gt;
@@ -494,7 +494,7 @@
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;内存不友好&lt;/strong&gt;：如果一个 key 已经过期，而这个 key 又仍然保留在数据库中，那么只要这个过期 key 一直没有被访问，它所占用的内存就不会释放，造成了一定的内存空间浪费。所以，惰性删除策略对内存不友好。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;执行过程-1&#34;&gt;执行过程
+&lt;h4 id=&#34;-执行过程-1&#34;&gt;⚙️ 执行过程
 &lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;Redis 在访问或者修改 key 之前，都会调用 expireIfNeeded 函数对其进行检查，检查 key 是否过期：
 &lt;ul&gt;
@@ -503,7 +503,7 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;内存淘汰策略&#34;&gt;内存淘汰策略
+&lt;h2 id=&#34;-内存淘汰策略&#34;&gt;🗑️ 内存淘汰策略
 &lt;/h2&gt;&lt;p&gt;内存淘汰策略是在内存满了的时候，redis 会触发内存淘汰策略，来淘汰一些不必要的内存资源，以腾出空间，来保存新的内容&lt;/p&gt;
 &lt;p&gt;Redis 的内存淘汰策略一共有 8 种。 分为以下几类&lt;/p&gt;
 &lt;ul&gt;
@@ -540,7 +540,7 @@
         <pubDate>Sat, 01 Mar 2025 16:36:44 +0800</pubDate>
         
         <guid>https://Tyritic.github.io/p/redis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96%E7%AD%96%E7%95%A5/</guid>
-        <description>&lt;h2 id=&#34;主要的持久化机制&#34;&gt;主要的持久化机制
+        <description>&lt;h2 id=&#34;-主要的持久化机制&#34;&gt;🧠 主要的持久化机制
 &lt;/h2&gt;&lt;p&gt;Redis 提供两种主要的持久化机制：&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;RDB（Redis Database）快照&lt;/strong&gt;：&lt;/p&gt;
 &lt;ul&gt;
@@ -552,9 +552,9 @@
 &lt;li&gt;AOF 通过将每个写操作追加到日志文件中实现持久化，支持将所有写操作记录下来以便恢复。&lt;/li&gt;
 &lt;li&gt;数据恢复更为精确，但文件体积较大，重写时可能会消耗更多资源。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;aof持久化机制&#34;&gt;AOF持久化机制
+&lt;h2 id=&#34;-aof持久化机制&#34;&gt;📝 AOF持久化机制
 &lt;/h2&gt;&lt;p&gt;AOF 持久化机制是指 &lt;strong&gt;将 Redis 写命令以追加的形式写入到磁盘中的 AOF 文件&lt;/strong&gt; ，AOF 文件记录了 Redis 在内存中的操作过程，只要在 Redis 重启后重新执行 AOF 文件中的写命令即可将数据恢复到内存中。&lt;/p&gt;
-&lt;h3 id=&#34;执行过程&#34;&gt;执行过程
+&lt;h3 id=&#34;执行流程&#34;&gt;执行流程
 &lt;/h3&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96%E7%AD%96%E7%95%A5/6f0ab40396b7fc2c15e6f4487d3a0ad7.png&#34;
 	width=&#34;902&#34;
 	height=&#34;332&#34;
@@ -605,7 +605,7 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;写回策略&#34;&gt;写回策略
+&lt;h3 id=&#34;-写回策略&#34;&gt;⚖️ 写回策略
 &lt;/h3&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Always&lt;/strong&gt; ：每次写操作命令执行完后，同步将 AOF 日志数据写回硬盘；&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Everysec&lt;/strong&gt; ：每次写操作命令执行完后，先将命令写入到 AOF 文件的内核缓冲区，然后每隔一秒将缓冲区里的内容写回到硬盘；&lt;/li&gt;
@@ -617,7 +617,7 @@
 &lt;li&gt;No 策略：是交由操作系统来决定何时将 AOF 日志内容写回硬盘，相比于 Always 策略性能较好，但是操作系统写回硬盘的时机是不可预知的，如果 AOF 日志内容没有写回硬盘，一旦服务器宕机，就会丢失不定数量的数据。&lt;/li&gt;
 &lt;li&gt;Everysec 策略：是折中的一种方式，避免了 Always 策略的性能开销，也比 No 策略更能避免数据丢失，当然如果上一秒的写操作命令日志没有写回到硬盘，发生了宕机，这一秒内的数据自然也会丢失。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;重写机制&#34;&gt;重写机制
+&lt;h3 id=&#34;-重写机制&#34;&gt;🔄 重写机制
 &lt;/h3&gt;&lt;p&gt;Redis 为了避免 AOF 文件越写越大，提供了 &lt;strong&gt;AOF 重写机制&lt;/strong&gt;，当 AOF 文件的大小超过所设定的阈值后，Redis 就会启用 AOF 重写机制，来压缩 AOF 文件。&lt;/p&gt;
 &lt;p&gt;AOF 重写机制是在重写时，读取当前数据库中的所有键值对，然后将每一个键值对用一条命令记录到新的 AOF 文件，等到全部记录完后，就将新的 AOF 文件替换掉现有的 AOF 文件。&lt;/p&gt;
 &lt;p&gt;后台重写机制&lt;/p&gt;
@@ -633,7 +633,7 @@
 &lt;li&gt;将 AOF 重写缓冲区中的所有内容追加到新的 AOF 的文件中，使得新旧两个 AOF 文件所保存的数据库状态一致；&lt;/li&gt;
 &lt;li&gt;新的 AOF 的文件进行改名，覆盖现有的 AOF 文件。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;rdb持久化机制&#34;&gt;RDB持久化机制
+&lt;h2 id=&#34;-rdb持久化机制&#34;&gt;🗃️ RDB持久化机制
 &lt;/h2&gt;&lt;p&gt;RDB 持久化通过创建快照来获取内存某个时间点上的副本，利用快照可以进行方便地进行主从复制。&lt;/p&gt;
 &lt;p&gt;redis.conf 文件可以配置在 x 秒内如果至少有 y 个 key 发生变化就会触发命令进行持久化操作。&lt;/p&gt;
 &lt;ul&gt;
@@ -651,7 +651,7 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;生成rdb快照的过程&#34;&gt;生成RDB快照的过程
+&lt;h3 id=&#34;-生成rdb快照的过程&#34;&gt;📸 生成RDB快照的过程
 &lt;/h3&gt;&lt;ul&gt;
 &lt;li&gt;执行了 &lt;strong&gt;&lt;code&gt;save&lt;/code&gt;&lt;/strong&gt; 命令，就会在主线程生成 RDB 文件，由于和执行操作命令在同一个线程，所以如果写入 RDB 文件的时间太长，&lt;strong&gt;会阻塞主线程&lt;/strong&gt;；&lt;/li&gt;
 &lt;li&gt;执行了 &lt;strong&gt;&lt;code&gt;bgsave&lt;/code&gt;&lt;/strong&gt; 命令，会创建一个子进程来生成 RDB 文件，这样可以&lt;strong&gt;避免主线程的阻塞&lt;/strong&gt;&lt;/li&gt;
@@ -663,7 +663,7 @@
 &lt;li&gt;开始 &lt;strong&gt;&lt;code&gt;fork&lt;/code&gt;&lt;/strong&gt; ，子进程执行 rdb 操作，同时主进程响应其他操作。&lt;/li&gt;
 &lt;li&gt;RDB 完成后，替换原来的旧 RDB 文件，子进程退出。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;生成rdb快照的请求处理&#34;&gt;生成RDB快照的请求处理
+&lt;h3 id=&#34;-生成rdb快照的请求处理&#34;&gt;⚙️ 生成RDB快照的请求处理
 &lt;/h3&gt;&lt;p&gt;在 Redis 生成 RDB 文件时是异步的（使用 &lt;strong&gt;&lt;code&gt;bgsave&lt;/code&gt;&lt;/strong&gt; 命令），&lt;strong&gt;采用了 fork 子进程的方式来进行快照操作&lt;/strong&gt;。生成 RDB 文件的过程由子进程执行，主进程继续处理客户端请求，所以可以保证 Redis 在生成快照的过程中依然对外提供服务，不会影响正常请求。&lt;/p&gt;
 &lt;p&gt;在生成过程中依然能正常进行数据修改&lt;/p&gt;
 &lt;p&gt;主要原理就是 &lt;strong&gt;写时复制&lt;/strong&gt;&lt;/p&gt;
@@ -671,7 +671,7 @@
 &lt;li&gt;当主进程 &lt;strong&gt;&lt;code&gt;fork&lt;/code&gt;&lt;/strong&gt; 出一个子进程后，并不会把主进程的所有内存数据重新复制一份给子进程，而是让主进程和子进程共享相同的内存页面。底层的实现仅仅复制了&lt;strong&gt;页表&lt;/strong&gt;，但映射的物理内存还是同一个。&lt;/li&gt;
 &lt;li&gt;当主进程接收到写的请求时，主进程会将对应数据所在的页复制一份，对复制的副本进行修改。此时子进程指向的还是老的页，因此数据没有变化。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;rdb和aof的选择&#34;&gt;RDB和AOF的选择
+&lt;h2 id=&#34;-rdb和aof的选择&#34;&gt;⚖️ RDB和AOF的选择
 &lt;/h2&gt;&lt;ul&gt;
 &lt;li&gt;如果需要尽可能减少数据丢失，AOF 是更好的选择。尤其是在频繁写入的环境下，设置 AOF 每秒同步可以最大限度减少数据丢失。&lt;/li&gt;
 &lt;li&gt;如果性能是首要考虑，RDB 可能更适合。RDB 的快照生成通常对性能影响较小，并且数据恢复速度快。&lt;/li&gt;
@@ -712,7 +712,7 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;bigkey问题&#34;&gt;BigKey问题
+&lt;h2 id=&#34;-bigkey问题&#34;&gt;⚠️ BigKey问题
 &lt;/h2&gt;&lt;p&gt;Redis 中的 &lt;strong&gt;Big Key&lt;/strong&gt; 是指一个内存空间占用比较大的键（Key）&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;工作线程阻塞&lt;/strong&gt; ：由于 Redis 单线程执行命令，操作大 Key 时耗时较长，从而导致 Redis 出现其它命令阻塞的问题。&lt;/li&gt;
@@ -726,7 +726,7 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;对持久化的影响&#34;&gt;对持久化的影响
+&lt;h3 id=&#34;-对持久化的影响&#34;&gt;📊 对持久化的影响
 &lt;/h3&gt;&lt;h4 id=&#34;对aof的影响&#34;&gt;对AOF的影响
 &lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;
@@ -752,12 +752,12 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;对rdb的影响&#34;&gt;对RDB的影响
+&lt;h4 id=&#34;-对rdb的影响&#34;&gt;🗄️ 对RDB的影响
 &lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;创建子进程的途中，由于要复制父进程的页表等数据结构，阻塞的时间跟页表的大小有关，页表越大，阻塞的时间也越长；&lt;/li&gt;
 &lt;li&gt;创建完子进程后，如果父进程修改了共享数据中的大 Key，就会发生写时复制，这期间会拷贝物理内存，由于大 Key 占用的物理内存会很大，那么在复制物理内存这一过程，就会比较耗时，所以有可能会阻塞父进程。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;解决方案&#34;&gt;解决方案
+&lt;h3 id=&#34;-解决方案&#34;&gt;✅ 解决方案
 &lt;/h3&gt;&lt;ul&gt;
 &lt;li&gt;
 &lt;p&gt;对要存储的数据进行压缩，压缩之后再进行存储&lt;/p&gt;
@@ -777,13 +777,13 @@
         <pubDate>Thu, 27 Feb 2025 16:57:13 +0800</pubDate>
         
         <guid>https://Tyritic.github.io/p/redis%E7%9A%84java%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%92%8C%E4%B8%8Espringboot%E7%9A%84%E9%9B%86%E6%88%90/</guid>
-        <description>&lt;h2 id=&#34;redis的java客户端&#34;&gt;Redis的Java客户端
+        <description>&lt;h2 id=&#34;-redis的java客户端&#34;&gt;☕ Redis的Java客户端
 &lt;/h2&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;&lt;code&gt;Jedis&lt;/code&gt;&lt;/strong&gt; 适用于简单的同步操作和单线程环境。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;&lt;code&gt;Lettuce&lt;/code&gt;&lt;/strong&gt; 适用于高并发、高性能和多线程环境，尤其是需要异步和响应式编程的场景。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;&lt;code&gt;Redisson&lt;/code&gt;&lt;/strong&gt; 适用于复杂的分布式系统，提供丰富的分布式对象和服务，简化开发。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;jedis&#34;&gt;Jedis
+&lt;h3 id=&#34;-jedis&#34;&gt;🔧 Jedis
 &lt;/h3&gt;&lt;p&gt;Jedis 是一款比较经典的 Java 客户端了，提供了比较全面的 Redis 命令。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;简单易用：提供了直观的 API，使得开发者能够方便地与 Redis 进行交互。&lt;/li&gt;
@@ -797,7 +797,7 @@
 &lt;li&gt;不支持自动重连：在网络异常或 Redis 服务器重启时，需要手动处理重连。&lt;/li&gt;
 &lt;li&gt;阻塞操作：同步的 API，因此高并发下可能会发生阻塞&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;lettuce&#34;&gt;Lettuce
+&lt;h3 id=&#34;-lettuce&#34;&gt;⚡ Lettuce
 &lt;/h3&gt;&lt;p&gt;Lettuce 其相对于 Jedis，其最突出的点就是线程安全，且其扩展性较高，它支持异步和响应式 API，底层基于 Netty 实现。&lt;/p&gt;
 &lt;p&gt;Lettuce 具有以下优点：&lt;/p&gt;
 &lt;ul&gt;
@@ -805,7 +805,7 @@
 &lt;li&gt;&lt;strong&gt;自动重连&lt;/strong&gt; ：当网络连接出现问题时，能够自动重新连接。&lt;/li&gt;
 &lt;li&gt;支持多种编程模型：同步、异步、响应式，适应不同的应用场景&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;redisson&#34;&gt;Redisson
+&lt;h3 id=&#34;-redisson&#34;&gt;🎯 Redisson
 &lt;/h3&gt;&lt;p&gt;Redisson 是一个高级的 Redis 客户端，提供分布式和并行编程的支持，提供了丰富的分布式对象和服务，底层也是基于 Netty 实现通信。&lt;/p&gt;
 &lt;p&gt;优点：&lt;/p&gt;
 &lt;ul&gt;
@@ -819,7 +819,7 @@
 &lt;p&gt;&lt;strong&gt;线程安全&lt;/strong&gt; ：无需手动处理多线程问题。&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;springboot集成redis&#34;&gt;SpringBoot集成Redis
+&lt;h2 id=&#34;-springboot集成redis&#34;&gt;🏗️ SpringBoot集成Redis
 &lt;/h2&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;SpringData&lt;/code&gt;&lt;/strong&gt; 是Spring中数据操作的模块，包含对各种数据库的集成，其中对Redis的集成模块 &lt;strong&gt;&lt;code&gt;SpringDataRedis&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;提供了对不同Redis客户端的整合（Lettuce和Jedis）&lt;/li&gt;
@@ -830,7 +830,7 @@
 &lt;li&gt;支持基于JDK、JSON、字符串、Spring对象的数据序列化及反序列化&lt;/li&gt;
 &lt;li&gt;支持基于Redis的JDKCollection实现&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;使用过程&#34;&gt;使用过程
+&lt;h3 id=&#34;-使用过程&#34;&gt;📋 使用过程
 &lt;/h3&gt;&lt;ul&gt;
 &lt;li&gt;
 &lt;p&gt;引入对应依赖&lt;/p&gt;
@@ -984,21 +984,21 @@
         <pubDate>Mon, 24 Feb 2025 17:30:12 +0800</pubDate>
         
         <guid>https://Tyritic.github.io/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87%E5%88%86%E6%9E%90/</guid>
-        <description>&lt;h2 id=&#34;redis性能强大的原因&#34;&gt;Redis性能强大的原因
+        <description>&lt;h2 id=&#34;-redis性能强大的原因&#34;&gt;🚀 Redis性能强大的原因
 &lt;/h2&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;基于内存的数据存储&lt;/strong&gt; ：Redis 将数据存储在内存中，提供快速的读写速度，使得数据的读写操作避开了磁盘 I/O。而内存的访问速度远超硬盘。相比于传统的磁盘数据库，内存访问速度快得多。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;单线程模型&lt;/strong&gt; ：Redis 使用单线程事件驱动模型，避免了多线程上下文切换和竞争条件，提高了并发处理效率。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;高效的数据结构&lt;/strong&gt; ：Redis 提供多种高效的数据结构（如字符串、哈希、列表、集合等），这些结构经过优化，能够快速完成各种操作&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;IO多路复用&lt;/strong&gt; ：基于 Linux 的 select/epoll 机制。该机制允许内核中同时存在多个监听套接字和已连接套接字，内核会一直监听这些套接字上的连接请求或者数据请求，一旦有请求到达，就会交给 Redis 处理，就实现了所谓的 Redis 单个线程处理多个 IO 读写的请求。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;单线程模型&#34;&gt;单线程模型
+&lt;h2 id=&#34;-单线程模型&#34;&gt;⚙️ 单线程模型
 &lt;/h2&gt;&lt;h3 id=&#34;使用原因&#34;&gt;使用原因
 &lt;/h3&gt;&lt;ul&gt;
 &lt;li&gt;Redis 的大部分操作&lt;strong&gt;都在内存中完成&lt;/strong&gt;，并且采用了高效的数据结构，因此 Redis 瓶颈是机器的内存或者网络带宽，而并非 CPU，既然 CPU 不是瓶颈，那么自然就采用单线程的解决方案了。&lt;/li&gt;
 &lt;li&gt;Redis 采用单线程模型可以&lt;strong&gt;避免了多线程之间的竞争&lt;/strong&gt;，省去了多线程切换带来的时间和性能上的开销，而且也不会导致死锁问题。&lt;/li&gt;
 &lt;li&gt;Redis 采用了 &lt;strong&gt;I/O 多路复用机制&lt;/strong&gt;处理大量的客户端 Socket 请求，IO 多路复用机制是指一个线程处理多个 IO 流，就是我们经常听到的 select/epoll 机制。简单来说，在 Redis 只运行单线程的情况下，该机制允许内核中，同时存在多个监听 Socket 和已连接 Socket。内核会一直监听这些 Socket 上的连接请求或数据请求。一旦有请求到达，就会交给 Redis 线程处理，这就实现了一个 Redis 线程处理多个 IO 流的效果。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;io多路复用机制&#34;&gt;IO多路复用机制
+&lt;h3 id=&#34;-io多路复用机制&#34;&gt;🔌 IO多路复用机制
 &lt;/h3&gt;&lt;p&gt;IO 多路复用机制是指一个线程处理多个 IO 流，就是 select/epoll 机制。简单来说，在 Redis 只运行单线程的情况下，该机制允许内核中，同时存在多个监听 Socket 和已连接 Socket。内核会一直监听这些 Socket 上的连接请求或数据请求。一旦有请求到达，就会交给 Redis 线程处理，这就实现了一个 Redis 线程处理多个 IO 流的效果。&lt;/p&gt;
 &lt;p&gt;这里“多路”指的是多个网络连接客户端，“复用”指的是复用同一个线程(单进程)。&lt;img src=&#34;https://Tyritic.github.io/p/redis%E7%9A%84%E8%AF%BB%E5%86%99%E6%95%88%E7%8E%87%E5%88%86%E6%9E%90/1720433058791-94f03cb5-e89c-45ed-ba34-88a0dac99d98.png&#34;
 	width=&#34;1137&#34;
@@ -1162,7 +1162,7 @@
         <pubDate>Mon, 24 Feb 2025 15:10:42 +0800</pubDate>
         
         <guid>https://Tyritic.github.io/p/redis%E5%9F%BA%E7%A1%80/</guid>
-        <description>&lt;h2 id=&#34;nosql型数据库&#34;&gt;NoSQL型数据库
+        <description>&lt;h2 id=&#34;-nosql型数据库&#34;&gt;🧠 NoSQL型数据库
 &lt;/h2&gt;&lt;p&gt;NoSQL（Not Only SQL）是指一类不使用传统关系型数据库结构的数据库。NoSQL数据库通常用于大规模数据存储、处理和快速访问的场景。与关系型数据库不同，NoSQL数据库不要求数据必须存储为表格形式，也不需要固定的模式（schema）。它们通常具有更高的扩展性、灵活性和适应性。&lt;/p&gt;
 &lt;h3 id=&#34;四大分类&#34;&gt;四大分类
 &lt;/h3&gt;&lt;ul&gt;
@@ -1242,7 +1242,8 @@
       &lt;/tr&gt;
   &lt;/tbody&gt;
 &lt;/table&gt;
-&lt;h2 id=&#34;redis缓存中间件&#34;&gt;Redis缓存中间件
+&lt;hr&gt;
+&lt;h2 id=&#34;-redis缓存中间件&#34;&gt;🏗️ Redis缓存中间件
 &lt;/h2&gt;&lt;p&gt;Redis（Remote Dictionary Server）是一个开源的内存数据库，遵守 BSD 协议，它提供了一个高性能的键值（key-value）存储系统，常用于缓存、消息队列、会话存储等应用场景。&lt;/p&gt;
 &lt;h3 id=&#34;基本特点&#34;&gt;基本特点
 &lt;/h3&gt;&lt;ul&gt;
@@ -1287,7 +1288,8 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;redis的服务端命令&#34;&gt;Redis的服务端命令
+&lt;hr&gt;
+&lt;h2 id=&#34;-redis的服务端命令&#34;&gt;⚙️ Redis的服务端命令
 &lt;/h2&gt;&lt;p&gt;进入redis的安装根目录的命令行可以启动redis服务&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;启动临时redis服务（不会在window Service列表出现Redis服务名称和状态，此窗口关闭，服务会自动关闭。）：&lt;strong&gt;&lt;code&gt;redis-server.exe redis.windows.conf&lt;/code&gt;&lt;/strong&gt;&lt;/li&gt;
@@ -1298,7 +1300,7 @@
 &lt;/ul&gt;
 &lt;p&gt;可以在主机中配置多个端口的redis服务，参见&lt;a class=&#34;link&#34; href=&#34;https://blog.csdn.net/yqwang75457/article/details/83412614&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
     &gt;博客&lt;/a&gt;&lt;/p&gt;
-&lt;h2 id=&#34;redis的客户端命令&#34;&gt;Redis的客户端命令
+&lt;h2 id=&#34;-redis的客户端命令&#34;&gt;⌨️ Redis的客户端命令
 &lt;/h2&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;redis&lt;/code&gt;&lt;/strong&gt; 在安装后就自带命令行客户端 &lt;strong&gt;&lt;code&gt;redis-cli&lt;/code&gt;&lt;/strong&gt; ，客户端的通用命令格式为&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
@@ -1315,7 +1317,7 @@
 &lt;li&gt;&lt;strong&gt;&lt;code&gt;-a password&lt;/code&gt;&lt;/strong&gt; ：指定redis的访问密码&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;commands是redis的操作命令&lt;/p&gt;
-&lt;h2 id=&#34;redis的基本数据结构&#34;&gt;Redis的基本数据结构
+&lt;h2 id=&#34;-redis的基本数据结构&#34;&gt;🗂️ Redis的基本数据结构
 &lt;/h2&gt;&lt;p&gt;Redis 提供了丰富的数据类型。&lt;/p&gt;
 &lt;p&gt;基本的有五种数据类型&lt;/p&gt;
 &lt;ul&gt;
@@ -1360,7 +1362,7 @@
 &lt;li&gt;&lt;strong&gt;GEO&lt;/strong&gt; ：GEO 是 Redis 提供的一种用于存储地理位置信息的数据结构，可以存储经纬度信息并支持空间查询，例如计算距离和获取范围内的坐标。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Stream&lt;/strong&gt; ：Stream 是 Redis 提供的一种日志数据结构，适合于存储时间序列数据或消息流。支持高效的消息生产和消费模式，具有持久性和序列化特性。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;redis的通用命令&#34;&gt;Redis的通用命令
+&lt;h2 id=&#34;-redis的通用命令&#34;&gt;🔧 Redis的通用命令
 &lt;/h2&gt;&lt;h3 id=&#34;keys命令&#34;&gt;Keys命令
 &lt;/h3&gt;&lt;p&gt;Redis 键命令用于管理 redis 的键。&lt;/p&gt;
 &lt;h4 id=&#34;基本格式&#34;&gt;基本格式
@@ -1444,7 +1446,7 @@
 &lt;/svg&gt;
 
     &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;Key的层级结构&lt;/p&gt;
-&lt;p&gt;在 &lt;strong&gt;Redis&lt;/strong&gt; 中，&lt;strong&gt;Key 的层级格式&lt;/strong&gt; 其实是&lt;strong&gt;一种命名约定&lt;/strong&gt;，并没有真正的“层级”结构（不像关系型数据库中的表或目录结构）。&lt;/p&gt;
+&lt;p&gt;在 &lt;strong&gt;Redis&lt;/strong&gt; 中，&lt;strong&gt;Key 的层级格式&lt;/strong&gt; 其实是&lt;strong&gt;一种命名约定&lt;/strong&gt;，并没有真正的&amp;quot;层级&amp;quot;结构（不像关系型数据库中的表或目录结构）。&lt;/p&gt;
 &lt;p&gt;通常使用 &lt;code&gt;:&lt;/code&gt; 分隔层级&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
@@ -1456,6 +1458,7 @@
 &lt;/div&gt;
 &lt;/div&gt;&lt;/div&gt;
 
+&lt;hr&gt;
 &lt;h3 id=&#34;数据库命令&#34;&gt;数据库命令
 &lt;/h3&gt;&lt;p&gt;Redis默认有16个数据库，默认使用编号为0的数据库&lt;/p&gt;
 &lt;ul&gt;
