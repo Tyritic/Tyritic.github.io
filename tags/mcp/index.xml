@@ -7,13 +7,13 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>Tyritic</copyright>
-        <lastBuildDate>Thu, 26 Mar 2026 08:52:27 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/mcp/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Fri, 27 Mar 2026 03:34:19 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/mcp/index.xml" rel="self" type="application/rss+xml" /><item>
         <title>Agent的工具调用</title>
         <link>https://Tyritic.github.io/p/agent%E7%9A%84%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8/</link>
         <pubDate>Wed, 25 Mar 2026 16:00:00 +0800</pubDate>
         
         <guid>https://Tyritic.github.io/p/agent%E7%9A%84%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8/</guid>
-        <description>&lt;h2 id=&#34;-llm-为什么工具调用&#34;&gt;🔧 LLM 为什么工具调用？
+        <description>&lt;h2 id=&#34;-llm-为什么需要工具调用&#34;&gt;🔧 LLM 为什么需要工具调用？
 &lt;/h2&gt;&lt;p&gt;在讨论&amp;quot;怎么调工具&amp;quot;之前，先要搞清楚&amp;quot;为什么要调工具&amp;quot;。LLM 本质上是一个基于海量文本训练出来的语言模型，它的能力边界由训练数据决定。这意味着它天生有几个硬伤：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;知识有截止日期&lt;/strong&gt;：训练数据之后发生的事情它不知道&lt;/li&gt;
@@ -27,10 +27,12 @@
   &lt;img src=&#34;1-llm-tool-architecture.png&#34; alt=&#34;LLM与工具交互架构&#34; width=&#34;85%&#34;&gt;
 &lt;/div&gt;
 &lt;hr&gt;
-&lt;h2 id=&#34;-function-calling&#34;&gt;📡 Function Calling
+&lt;h2 id=&#34;-function-calling数据格式层&#34;&gt;📡 Function Calling(数据格式层)
 &lt;/h2&gt;&lt;p&gt;Function Calling 是过去一段时间最主流、效果最好的工具调用方案，由 OpenAI 在 2023 年 6 月率先推出，随后各大模型厂商（Anthropic、Google、国内的通义千问、智谱等）都跟进支持了。&lt;/p&gt;
 &lt;p&gt;Function Calling 的核心思路是：&lt;strong&gt;在模型训练阶段就让模型学会&amp;quot;什么时候该调工具、怎么生成调用参数&amp;quot;&lt;/strong&gt;，而不是仅仅靠 prompt 在推理阶段去引导。具体来说，模型厂商在训练数据中加入了大量的工具调用样本——这些样本告诉模型&amp;quot;当用户问到这类问题时，你应该输出一个特定格式的工具调用请求&amp;quot;。经过这种训练后，模型原生就具备了工具调用的能力。&lt;/p&gt;
-&lt;p&gt;在使用时，开发者需要在 API 请求中通过 &lt;code&gt;tools&lt;/code&gt; 参数传入可用工具的定义，每个工具定义包括工具名称、功能描述、以及参数的 JSON Schema。比如：&lt;/p&gt;
+&lt;p&gt;不论外部工具多么复杂，LLM 在推理时只认特定的数据结构。当前业界处理工具描述的数据格式标准高度统一于 OpenAI Function Calling Schema，Anthropic（Claude）、Google（Gemini）等主要模型提供商均已对齐这套规范或提供高度兼容的实现。&lt;/p&gt;
+&lt;p&gt;在使用时，开发者需要在 API 请求中通过 &lt;code&gt;tools&lt;/code&gt; 参数传入可用工具的定义，每个工具定义包括工具名称、功能描述、以及参数的 JSON Schema。通过 JSON Schema 严格定义工具的描述和参数规范。LLM 在推理时只消费这部分 JSON Schema 来理解工具的功能边界，从而决定&amp;quot;是否调用&amp;quot;以及&amp;quot;如何填充参数&amp;quot;。&lt;/p&gt;
+&lt;p&gt;比如：&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
@@ -151,6 +153,39 @@
 &lt;p&gt;在实际项目中，我们经常需要反复迭代工具描述的措辞，这跟调 prompt 是一样的道理——本质上它就是 prompt 的一部分。&lt;/p&gt;
 &lt;p&gt;另外一个工程上的重要考量是&lt;strong&gt;工具数量的控制&lt;/strong&gt;。当可用工具数量很多时（比如超过 20 个），全部塞进上下文会消耗大量 token，而且模型在太多工具中做选择时准确率会下降。常见的解决方案是做&lt;strong&gt;工具检索&lt;/strong&gt;——先用 embedding 相似度或者分类模型从全量工具库中筛选出与当前任务最相关的几个工具，只把这些工具的描述传给模型。这本质上就是对工具列表做了一次 RAG。&lt;/p&gt;
 &lt;hr&gt;
+&lt;h2 id=&#34;工具调用链路在工程上的设计&#34;&gt;工具调用链路在工程上的设计
+&lt;/h2&gt;&lt;p&gt;工具调度策略，核心是**“前置规则过滤+大模型语义路由+后置执行校验”的三级调度架构**，既保证工具选择的准确率，又降低大模型的幻觉，同时提升调度效率，适配高频请求场景。&lt;/p&gt;
+&lt;h3 id=&#34;工具调度策略&#34;&gt;工具调度策略
+&lt;/h3&gt;&lt;h4 id=&#34;前置规则过滤层&#34;&gt;前置规则过滤层
+&lt;/h4&gt;&lt;p&gt;这一层的核心，是先把无效的、不可用的工具过滤掉，缩小大模型的选择范围，从源头减少工具选择错误的幻觉。核心规则包括：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;场景过滤：基于用户query的意图识别结果，只保留对应场景的工具，比如用户的query是电商订单查询，直接过滤掉非电商相关的工具&lt;/li&gt;
+&lt;li&gt;权限过滤：基于用户的身份、权限，过滤掉用户无权限调用的工具；状态过滤：过滤掉当前不可用、服务降级、接口超时的工具，只保留可用状态的工具&lt;/li&gt;
+&lt;li&gt;优先级过滤：给工具设置优先级，官方工具、高可用工具、低延迟工具优先级更高，优先进入候选池。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;核心语义路由层&#34;&gt;核心语义路由层
+&lt;/h4&gt;&lt;p&gt;基于大模型的Function Call能力，实现工具的精准选择和动态调度&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;结构化的工具描述：给每个工具定义标准化的描述，包括核心功能、入参要求、出参格式、使用场景、限制条件，让大模型能精准理解每个工具的能力边界；&lt;/li&gt;
+&lt;li&gt;Few-Shot示例引导：在prompt中加入高质量的工具调用示例，覆盖单工具调用、多工具串行/并行调用、异常场景处理，引导大模型输出符合要求的工具调用指令，大幅提升工具选择的准确率&lt;/li&gt;
+&lt;li&gt;串行/并行自适应调度：基于子任务的依赖关系，自动选择调度方式：无依赖的工具，并行调用，降低整体延迟；有强依赖的工具，串行调用，保证执行逻辑正确&lt;/li&gt;
+&lt;li&gt;工具调用链路的动态调整：支持多轮工具调用，前一个工具的返回结果，可以作为后一个工具的入参，同时支持根据工具返回的结果，动态新增工具调用步骤。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;后置执行校验层&#34;&gt;后置执行校验层
+&lt;/h4&gt;&lt;p&gt;这一层的核心，是在工具调用执行前和执行后，做两层校验，避免无效的工具调用，提升链路效率&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;调用前校验：校验大模型生成的工具调用指令，是否存在工具不存在、入参缺失、入参格式错误的问题，如果有问题，直接触发修正，不执行无效调用&lt;/li&gt;
+&lt;li&gt;调用后校验：校验工具返回的结果，是否有效、格式是否正确、是否符合子任务的要求，如果结果无效，触发二次调用或者fallback策略。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;异常fallback策略&#34;&gt;异常fallback策略
+&lt;/h3&gt;&lt;p&gt;针对工具调用全链路的每一个异常场景，都需要设计了对应的fallback策略，保证整个Agent链路不会因为单步工具调用异常而崩盘&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;工具选择错误的fallback:大模型选择的工具和用户query不匹配、选择了不存在的工具，先触发反思修正：把错误原因、可用工具列表重新喂给大模型，让它重新选择工具，重试次数上限设置为2次；超过重试次数，直接终止工具调用，告知用户当前无法通过工具完成需求，转兜底回答，避免无限循环。&lt;/li&gt;
+&lt;li&gt;工具调用执行异常的fallback:针对接口超时、服务不可用、返回报错的场景：先做指数退避重试，重试次数上限3次；重试失败，自动切换同功能的备用工具；没有备用工具的话，告知用户当前该功能暂时不可用，同时记录异常日志，触发告警，不会让模型编造工具返回结果，从源头避免幻觉。&lt;/li&gt;
+&lt;li&gt;入参缺失/错误的fallback:针对入参缺失、入参格式错误的场景：不会直接执行调用，也不会直接报错，而是触发追问模块，让大模型基于缺失的入参，生成自然语言，向用户询问补充关键信息，用户补充后，自动填充入参，重新执行工具调用。&lt;/li&gt;
+&lt;li&gt;工具返回结果无效的fallback:针对工具返回空结果、无相关信息、结果不符合要求的场景：先触发二次调用，让大模型调整入参、查询条件，重新调用工具；二次调用还是无效的话，告知用户没有查询到相关信息，同时给出合理的建议，绝对不允许模型基于空结果编造内容。&lt;/li&gt;
+&lt;li&gt;多步链路异常的fallback:针对多工具串行调用的场景，某一步工具调用异常，不会直接终止整个链路：先判断该步骤是否是核心步骤，非核心步骤直接跳过，继续执行后续链路；核心步骤触发对应的fallback策略，fallback失败后，才终止链路，返回已执行的有效结果，同时告知用户异常环节，不会让整个链路完全崩盘。&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h2 id=&#34;-mcp-协议&#34;&gt;🔗 MCP 协议
 &lt;/h2&gt;&lt;p&gt;最后值得一提的是目前工具调用领域重要的标准化趋势——&lt;strong&gt;MCP（Model Context Protocol，模型上下文协议）&lt;/strong&gt;。MCP 由 Anthropic 在 2024 年底提出，它试图解决的问题是：目前每个模型厂商的 Function Calling 接口格式不一样，每个工具的接入方式也各不相同，导致开发者在切换模型或接入新工具时需要大量的适配工作。&lt;/p&gt;
 &lt;p&gt;MCP 定义了一套标准化的协议，让 LLM 和外部工具之间的交互有了统一的&amp;quot;语言&amp;quot;。你可以把它理解为工具调用领域的&amp;quot;USB 接口&amp;quot;——有了这个标准，任何符合 MCP 协议的工具都可以即插即用地接入任何支持 MCP 的模型或 Agent 框架，大幅降低了集成成本。&lt;/p&gt;
@@ -179,11 +214,11 @@
 </description>
         </item>
         <item>
-        <title>模型上下文协议（MCP）</title>
-        <link>https://Tyritic.github.io/p/%E6%A8%A1%E5%9E%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%8F%E8%AE%AEmcp/</link>
+        <title>MCP的概念</title>
+        <link>https://Tyritic.github.io/p/mcp%E7%9A%84%E6%A6%82%E5%BF%B5/</link>
         <pubDate>Thu, 27 Mar 2025 10:00:39 +0800</pubDate>
         
-        <guid>https://Tyritic.github.io/p/%E6%A8%A1%E5%9E%8B%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%8F%E8%AE%AEmcp/</guid>
+        <guid>https://Tyritic.github.io/p/mcp%E7%9A%84%E6%A6%82%E5%BF%B5/</guid>
         <description>&lt;h2 id=&#34;-llm-的典型局限&#34;&gt;🤔 LLM 的典型局限
 &lt;/h2&gt;&lt;p&gt;人工智能的迅速发展，尤其是大型语言模型(LLMs)，为生成类人类文本、解决复杂问题和跨行业提升生产力打开了前所未有的潜力。然而，一个持续存在的挑战是:这些模型往往与驱动现代工作流的实时动态数据隔离。在真正落地业务场景时，LLM 虽然已经具备很强的理解和生成能力，但仍然有几个明显短板：&lt;/p&gt;
 &lt;ul&gt;
@@ -209,6 +244,9 @@
 &lt;li&gt;&lt;strong&gt;平台依赖性强&lt;/strong&gt;：不同 LLM 平台对 Function Call 的实现差异较大。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;迁移成本高&lt;/strong&gt;：从一个模型平台切换到另一个平台时，通常需要重写适配逻辑。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;生态不统一&lt;/strong&gt;：工具描述、参数约定和交互方式都可能不一致，难以形成统一标准。&lt;/li&gt;
+&lt;li&gt;无状态：每次调用都是完全独立的，比如连数据库，每次调用都要重新传地址、账号、密码，重新建立连接，无法复用会话&lt;/li&gt;
+&lt;li&gt;单向通信：只能 LLM 主动调用工具，工具无法主动给 LLM 推送消息，比如实时监听日志异常、Kafka 消息，完全做不到&lt;/li&gt;
+&lt;li&gt;能力单一：只能实现 “单次调用 - 返回” 的简单场景，无法支撑复杂的、持久化的、多轮交互的业务。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr&gt;
 &lt;h2 id=&#34;-mcp-是什么&#34;&gt;🔌 MCP 是什么
@@ -249,8 +287,21 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
+&lt;p&gt;也就是说MCP提供了以下能力：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;有状态的会话管理：支持长连接持久化，一次认证、长期复用，比如用 MCP 连接 MySQL，建立连接后，后续所有数据库操作都可以复用这个连接，不用每次都重新传参建连，就像后端的数据库连接池；&lt;/li&gt;
+&lt;li&gt;双向实时通信：不仅 LLM 可以主动调用工具，外部工具也可以主动向 LLM 推送数据，比如日志系统出现 ERROR 级日志、Prometheus 出现异常指标，都可以实时推送给 LLM，触发 LLM 的自动分析和处理；&lt;/li&gt;
+&lt;li&gt;标准化资源访问：定义了统一的资源模型，文件、数据库、消息队列、代码仓库、运维平台，都可以用标准化的方式对接 LLM，不用每个工具都单独写一套适配代码，就像后端的 ORM 框架，统一了不同数据库的访问方式；&lt;/li&gt;
+&lt;li&gt;上下文实时同步：可以自动同步外部系统的上下文变化给 LLM，比如 Git 仓库的代码变更、业务系统的配置更新，不用你每次都手动把内容粘贴给 LLM，LLM 能实时感知最新状态。&lt;/li&gt;
+&lt;/ul&gt;
 &lt;p&gt;从这个角度看，MCP 不只是“让模型会调函数”，而是把 &lt;strong&gt;工具、资源、提示词模板&lt;/strong&gt; 都纳入了统一的协议体系中。&lt;/p&gt;
 &lt;hr&gt;
+&lt;h2 id=&#34;-mcp-和-function-call-的区别&#34;&gt;🆚 MCP 和 Function Call 的区别
+&lt;/h2&gt;&lt;p&gt;二者的核心区别就一句话：Function Call 是 LLM 的一项&lt;strong&gt;单轮工具调用能力&lt;/strong&gt;，而 MCP 是一套&lt;strong&gt;标准化 LLM 与外部世界交互的完整通信协议&lt;/strong&gt;——Function Call 只是 MCP 的能力子集，二者根本不是一个维度的东西。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;LLM 的基础工具调用能力Function Call 的本质，是 LLM 提供的单轮、无状态、单向的工具调用机制，解决的核心问题是 “让 LLM 不要瞎编答案，而是通过调用外部工具获取准确数据”。Function Call 就像 HTTP 接口的单次调用，你发一次请求、传一次参数、拿一次结果，无状态、单向通信，每次调用都要重新认证、重新传参，只能你主动调用接口，接口不能主动给你推消息。&lt;/li&gt;
+&lt;li&gt;MCP 就是给二者建了一条稳定的、全双工的、持久化的通信管道。它不仅包含了 Function Call 的工具调用能力，还提供了 Function Call 完全不具备的核心能力。MCP 就像 TCP 长连接 + 完整的 RPC 协议，它不仅能实现单次调用，还能保持长连接、持久化会话状态、支持双向实时通信，有完整的资源管理、上下文同步、异常处理机制，能支撑复杂的、持久化的业务场景。&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h2 id=&#34;-核心架构与运行方式&#34;&gt;🏗️ 核心架构与运行方式
 &lt;/h2&gt;&lt;h3 id=&#34;-核心架构&#34;&gt;🏛️ 核心架构
 &lt;/h3&gt;&lt;p&gt;MCP 采用 &lt;strong&gt;客户端 - 服务器架构&lt;/strong&gt;，通信层通常使用 &lt;a class=&#34;link&#34; href=&#34;https://www.jsonrpc.org/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;

@@ -7,238 +7,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>Tyritic</copyright>
-        <lastBuildDate>Thu, 26 Mar 2026 08:52:27 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/rag/index.xml" rel="self" type="application/rss+xml" /><item>
-        <title>RAG的基本概念和流程</title>
-        <link>https://Tyritic.github.io/p/rag%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E5%92%8C%E6%B5%81%E7%A8%8B/</link>
-        <pubDate>Sun, 04 May 2025 19:29:50 +0800</pubDate>
-        
-        <guid>https://Tyritic.github.io/p/rag%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E5%92%8C%E6%B5%81%E7%A8%8B/</guid>
-        <description>&lt;h2 id=&#34;-业务背景&#34;&gt;🤖 业务背景
-&lt;/h2&gt;&lt;p&gt;随着自然语言处理技术的发展，纯生成式模型虽然已经能够生成较为流畅的文本，但在实际业务中仍然存在两个典型问题：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;知识局限性&lt;/strong&gt;：大模型的知识主要来源于训练数据，通常建立在互联网上的公开语料之上。对于实时性、私有化或离线场景中的知识，模型本身往往无法直接掌握。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;幻觉问题&lt;/strong&gt;：大模型的生成本质上仍然是概率计算。当模型缺少某个领域知识，或者面对自己并不擅长的问题时，就可能一本正经地输出错误结论。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;再往工程里看，这两个问题通常会进一步拆成三类约束：&lt;strong&gt;知识有截止日期、无法理解私域数据、缺少依据时容易产生幻觉&lt;/strong&gt;。这也是为什么很多企业在做问答机器人、知识助手、客服 Copilot 时，最终都会从&amp;quot;只靠模型记忆&amp;quot;转向&amp;quot;模型 + 外部知识库&amp;quot;的组合方案。&lt;/p&gt;
-&lt;div
-  class=&#34;notice info&#34;
-  
-&gt;
-  &lt;p class=&#34;notice-title&#34;&gt;
-    &lt;span class=&#34;icon-notice baseline&#34;&gt;
-      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;92 59.5 300 300&#34;&gt;
-  &lt;path d=&#34;M292 303.25V272c0-3.516-2.734-6.25-6.25-6.25H267v-100c0-3.516-2.734-6.25-6.25-6.25h-62.5c-3.516 0-6.25 2.734-6.25 6.25V197c0 3.516 2.734 6.25 6.25 6.25H217v62.5h-18.75c-3.516 0-6.25 2.734-6.25 6.25v31.25c0 3.516 2.734 6.25 6.25 6.25h87.5c3.516 0 6.25-2.734 6.25-6.25Zm-25-175V97c0-3.516-2.734-6.25-6.25-6.25h-37.5c-3.516 0-6.25 2.734-6.25 6.25v31.25c0 3.516 2.734 6.25 6.25 6.25h37.5c3.516 0 6.25-2.734 6.25-6.25Zm125 81.25c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
-&lt;/svg&gt;
-
-    &lt;/span&gt;引言&lt;/p&gt;
-  &lt;p&gt;可以先用一句话理解本文：&lt;strong&gt;RAG 的本质，是让大模型在回答前先检索资料，再基于资料作答，从&amp;quot;靠记忆回答&amp;quot;切换到&amp;quot;带依据回答&amp;quot;。&lt;/strong&gt;&lt;/p&gt;
-  &lt;/div&gt;
-
-&lt;hr&gt;
-&lt;h2 id=&#34;-什么是-rag&#34;&gt;📖 什么是 RAG
-&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;RAG（Retrieval-Augmented Generation，检索增强生成）&lt;/strong&gt; 是一种将 &lt;strong&gt;信息检索（Retrieval）&lt;/strong&gt; 与 &lt;strong&gt;文本生成（Generation）&lt;/strong&gt; 结合起来的 AI 方法，主要目标是提升 &lt;strong&gt;大语言模型（LLM）&lt;/strong&gt; 的知识覆盖范围与回答准确性。&lt;/p&gt;
-&lt;p&gt;可以把它理解成这样：&lt;strong&gt;模型在回答问题之前，先去外部知识库中检索相关内容，再结合检索结果生成最终回答，而不是完全依赖自身参数里的旧知识。&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;RAG 接受输入并根据来源（例如，维基百科）检索一组相关/支持的文档。这些文档作为上下文与原始输入提示连接，并馈送到文本生成器，生成最终输出。这使得 RAG 能够适应事实随时间变化的情况。这对于绕过 &lt;strong&gt;LLM&lt;/strong&gt; 的参数化知识静态性，通过基于检索的生成访问最新信息以生成可靠输出非常有用。&lt;/p&gt;
-&lt;p&gt;RAG 的核心价值主要体现在两个方面：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;检索&lt;/strong&gt;：根据用户输入，从外部知识库中检索与问题相关的文本片段，通常依赖 &lt;strong&gt;文本向量化&lt;/strong&gt; 和 &lt;strong&gt;向量数据库&lt;/strong&gt; 完成语义匹配。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;增强生成&lt;/strong&gt;：将检索到的知识作为上下文输入给大模型，让模型基于更准确、更贴近问题的信息生成答案，从而减少误导性输出。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;如果换一个角度理解，RAG 更像是让模型在推理时&amp;quot;开卷考试&amp;quot;：模型本身不需要把所有知识都背下来，而是在回答前先把相关资料找出来，再基于资料作答。&lt;/p&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;RAG简介.png&#34; alt=&#34;RAG简介&#34; width=&#34;82%&#34; /&gt;
-&lt;/div&gt;
-&lt;p&gt;简而言之，RAG 检索到的证据可以作为提高 &lt;strong&gt;LLM&lt;/strong&gt; 响应准确度、可控性和相关性的手段。这就是为什么 RAG 可以帮助减少在高度演变环境中解决问题时出现的幻觉或表现问题&lt;/p&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;RAG典型工作流.png&#34; alt=&#34;RAG典型工作流&#34; width=&#34;82%&#34; /&gt;
-&lt;/div&gt;
-&lt;h3 id=&#34;-为什么需要-rag&#34;&gt;🎯 为什么需要 RAG
-&lt;/h3&gt;&lt;p&gt;要理解 RAG，首先得理解它要解决的痛点。&lt;strong&gt;大语言模型&lt;/strong&gt; 的知识来源于预训练阶段吃过的语料，这套&amp;quot;参数化知识&amp;quot;有三个致命的缺陷。&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;知识有截止日期&lt;/strong&gt;。GPT-4 的训练数据截止到某个时间点，之后发生的事情它一无所知。你问它&amp;quot;2024 年诺贝尔物理学奖给了谁&amp;quot;，它只能坦白说不知道。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;缺乏私域知识&lt;/strong&gt;。&lt;strong&gt;LLM&lt;/strong&gt; 训练用的是公开互联网数据，你公司内部的技术文档、客户档案、会议纪要、产品规格书——这些私有数据 LLM 从未见过，所以它也无法回答这类私有问题。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;幻觉问题&lt;/strong&gt;。当 &lt;strong&gt;LLM&lt;/strong&gt; 对某个问题没有足够的知识储备时，它有时不会老实说&amp;quot;我不知道&amp;quot;，而是会&amp;quot;一本正经地胡说八道&amp;quot;——用流畅自信的语言生成看起来合理但事实上错误的内容。这是因为 &lt;strong&gt;LLM&lt;/strong&gt; 的本质是一个概率语言模型，它优化的目标是&amp;quot;下一个 token 的概率&amp;quot;，而不是&amp;quot;事实的准确性&amp;quot;。这种幻觉在需要高准确性的场景（法律、医疗、金融）中是不可接受的。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;面对这三个缺陷，直觉上你可能会想：那把最新的数据、私域文档全部喂给模型重新训练不就好了？这就是 &lt;strong&gt;微调&lt;/strong&gt; 的思路。但微调有很高的门槛——需要 GPU 算力、需要整理训练数据、需要处理灾难性遗忘、训练完还要重新部署。而且每次数据更新都要重新微调，成本和周期都不现实。RAG 的诞生，本质上就是在说：能不能不动模型本身，而是在推理阶段给它&amp;quot;开卷考试&amp;quot;的机会？ 不要求模型记住所有知识，而是在需要的时候从外部知识库中检索相关信息，把检索结果作为上下文塞给模型，让它&amp;quot;带着资料回答问题&amp;quot;。&lt;/p&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;RAG的破局思路.png&#34; alt=&#34;RAG 的破局思路&#34; width=&#34;82%&#34; /&gt;
-&lt;/div&gt;
-&lt;h3 id=&#34;-rag-与微调的区别&#34;&gt;🧠 RAG 与微调的区别
-&lt;/h3&gt;&lt;p&gt;要理解RAG 和微调的对比，我们可以用一个形象的比喻。&lt;strong&gt;微调&lt;/strong&gt; 就像是给一个人&amp;quot;补课&amp;quot;——你改变的是他脑子里的知识结构和思维方式。微调后的模型，它的参数被永久性地更新了，它&amp;quot;记住&amp;quot;了新的知识或&amp;quot;学会&amp;quot;了新的行为模式。&lt;strong&gt;RAG&lt;/strong&gt; 则像是给一个人&amp;quot;发参考资料&amp;quot;——你没有改变他的能力，而是在他答题的时候递给他一叠相关材料，让他照着材料来回答。&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;RAG&lt;/strong&gt; 更擅长解决&amp;quot;知识获取&amp;quot;问题，例如最新信息、企业私有文档、产品参数、库存状态、内部制度等。即模型需要用到的事实性信息——最新的数据、私域文档、具体的产品参数等。这些信息的特点是&amp;quot;需要查的，而不是需要学的&amp;quot;。你不需要让模型把你公司所有产品的参数都背下来，你只需要在用户问到某个产品时，帮它从数据库里检索出相关参数就好了。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;微调&lt;/strong&gt; 改变模型的行为模式和专业能力，更擅长解决&amp;quot;行为模式&amp;quot;问题，例如输出风格、领域术语习惯、复杂格式约束、某类推理偏好等。比如你想让一个通用模型学会用医学术语对话、学会用特定的语气风格回答、学会遵循某种复杂的输出格式、或者让它在某个专业领域（如法律条文解读）的推理能力更强——这些是微调的强项。因为这些本质上是在改变模型的&amp;quot;思维方式&amp;quot;，需要调整模型参数才能实现。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;所以在生产环境里，两者通常不是二选一，而是互补关系：&lt;strong&gt;微调负责改变模型能力边界，RAG 负责补充实时且可更新的事实知识。&lt;/strong&gt;&lt;/p&gt;
-&lt;table&gt;
-  &lt;thead&gt;
-      &lt;tr&gt;
-          &lt;th&gt;方案&lt;/th&gt;
-          &lt;th&gt;更擅长解决什么问题&lt;/th&gt;
-          &lt;th&gt;典型场景&lt;/th&gt;
-      &lt;/tr&gt;
-  &lt;/thead&gt;
-  &lt;tbody&gt;
-      &lt;tr&gt;
-          &lt;td&gt;RAG&lt;/td&gt;
-          &lt;td&gt;外部知识获取、实时信息补充、私域知识接入&lt;/td&gt;
-          &lt;td&gt;企业知识库问答、客服机器人、内部文档检索&lt;/td&gt;
-      &lt;/tr&gt;
-      &lt;tr&gt;
-          &lt;td&gt;微调&lt;/td&gt;
-          &lt;td&gt;输出风格、格式约束、领域表达习惯、行为模式塑造&lt;/td&gt;
-          &lt;td&gt;法律文书风格、客服回复模板、结构化输出&lt;/td&gt;
-      &lt;/tr&gt;
-  &lt;/tbody&gt;
-&lt;/table&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;rag-vs-finetune.png&#34; alt=&#34;RAG 与微调的区别&#34; width=&#34;82%&#34; /&gt;
-&lt;/div&gt;
-&lt;h3 id=&#34;-rag-的核心优势&#34;&gt;💡 RAG 的核心优势
-&lt;/h3&gt;&lt;p&gt;RAG 相比微调在&amp;quot;知识获取&amp;quot;层面有五大显著优势：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;知识实时更新，无需重新训练&lt;/strong&gt;：微调一次可能需要数天甚至数周，而 RAG 的知识更新只需要往 &lt;strong&gt;向量数据库&lt;/strong&gt; 里写入新数据，几分钟甚至几秒钟就完成了。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;大幅降低幻觉，生成内容可溯源&lt;/strong&gt;：RAG 通过在 &lt;strong&gt;Prompt&lt;/strong&gt; 中提供明确的参考信息，把 &lt;strong&gt;LLM&lt;/strong&gt; 的生成从&amp;quot;凭记忆编&amp;quot;变成了&amp;quot;照资料写&amp;quot;。更重要的是，RAG 天然支持引用溯源，用户可以验证信息的准确性。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;成本低、门槛低、落地快&lt;/strong&gt;：RAG 只需要一个 &lt;strong&gt;Embedding API&lt;/strong&gt;、一个 &lt;strong&gt;向量数据库&lt;/strong&gt;、一个 &lt;strong&gt;LLM API&lt;/strong&gt;，加上几百行代码，就能搭起一个可用的原型。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;数据安全和权限控制&lt;/strong&gt;：RAG 天然支持在检索阶段根据用户身份过滤可访问的文档范围，确保模型只能&amp;quot;看到&amp;quot;该用户有权看到的资料。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;避免灾难性遗忘&lt;/strong&gt;：因为 RAG 根本不动模型参数，模型的通用能力完好无损，不会在新知识上训练后出现能力退化。&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;RAG vs 微调.png&#34; alt=&#34;RAG 与微调的区别&#34; width=&#34;82%&#34; /&gt;
-&lt;/div&gt;
-&lt;hr&gt;
-&lt;h2 id=&#34;-核心流程&#34;&gt;🔄 核心流程
-&lt;/h2&gt;&lt;p&gt;RAG 的完整流程通常可以拆成 5 个核心阶段：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;数据准备&lt;/strong&gt;：清洗原始文档，并进行分块处理，例如把 PDF、Word 或网页文本切成可检索的片段。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;文本向量化&lt;/strong&gt;：使用 &lt;strong&gt;嵌入模型&lt;/strong&gt;（如 BERT、BGE）将文本转换为向量表示。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;索引存储&lt;/strong&gt;：将生成的向量写入 &lt;strong&gt;向量数据库&lt;/strong&gt;，例如 Milvus、Faiss、Elasticsearch。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;检索增强&lt;/strong&gt;：用户提问后，先把问题向量化，再检索相关文档片段。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;生成答案&lt;/strong&gt;：把检索结果与用户问题一起送给大模型，生成最终回答。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;如果从系统设计视角再抽象一层，RAG 往往会被拆成 &lt;strong&gt;离线&lt;/strong&gt; 的 &lt;strong&gt;索引阶段&lt;/strong&gt; 和 &lt;strong&gt;在线&lt;/strong&gt; 的 &lt;strong&gt;检索阶段&lt;/strong&gt;、&lt;strong&gt;增强阶段&lt;/strong&gt;、&lt;strong&gt;生成阶段&lt;/strong&gt;：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;索引阶段&lt;/strong&gt;：离线阶段把原始文档解析、切块、向量化后写入向量数据库，提前构建好可检索的知识底座。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;检索阶段&lt;/strong&gt;：在线阶段用户提问后，再用同一个嵌入模型把问题向量化，从大规模知识库里先召回一批候选内容。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;增强阶段&lt;/strong&gt;：增强涉及将检索段落中的上下文有效整合到当前生成任务中的过程，把检索结果变成模型真正能用的上下文。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;生成阶段&lt;/strong&gt;：让 &lt;strong&gt;LLM&lt;/strong&gt; 基于问题 + 增强后的上下文输出答案，形成模型的最终输出。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;div
-  class=&#34;notice tip&#34;
-  
-&gt;
-  &lt;p class=&#34;notice-title&#34;&gt;
-    &lt;span class=&#34;icon-notice baseline&#34;&gt;
-      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
-  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
-&lt;/svg&gt;
-
-    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;如果从工程实现看，RAG 可以简化理解为两句话：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;离线阶段负责把知识&amp;quot;准备好&amp;quot;&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;在线阶段负责把知识&amp;quot;找出来并组织好&amp;quot;&lt;/strong&gt;&lt;/li&gt;
-&lt;/ul&gt;&lt;/div&gt;
-
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;image-20250504194757791.png&#34; alt=&#34;RAG 的基本流程&#34; width=&#34;85%&#34; /&gt;
-&lt;/div&gt;
-&lt;p&gt;进一步抽象后，RAG 也可以理解成三个阶段：&lt;strong&gt;索引阶段、查询阶段、增强生成阶段&lt;/strong&gt;。&lt;/p&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;image-20250504195224385.png&#34; alt=&#34;RAG 的阶段&#34; width=&#34;80%&#34; /&gt;
-&lt;/div&gt;
-&lt;h2 id=&#34;-离线阶段&#34;&gt;🗂️ 离线阶段
-&lt;/h2&gt;&lt;p&gt;在离线阶段，在RAG系统中只有索引阶段。提前构建好可检索的知识底座。&lt;/p&gt;
-&lt;h3 id=&#34;-索引阶段&#34;&gt;🗂️ 索引阶段
-&lt;/h3&gt;&lt;p&gt;离线索引阶段是&amp;quot;备考&amp;quot;的过程，目的是把原始文档变成可以被高效检索的形式。
-在索引阶段，系统会先对原始文档进行解析，然后拆分为多个较小的文本块。接着，这些文本块会经过嵌入模型处理，转换成向量并存入向量数据库，为后续语义检索提供基础。&lt;/p&gt;
-&lt;h4 id=&#34;-文档加载与切分chunking&#34;&gt;📂 文档加载与切分（Chunking）
-&lt;/h4&gt;&lt;p&gt;原始文档可能是 PDF、Word、网页、数据库记录等各种格式，首先要把它们统一解析成纯文本。然后，由于文档通常很长，而后续的 &lt;strong&gt;Embedding 模型&lt;/strong&gt; 和 &lt;strong&gt;LLM&lt;/strong&gt; 的上下文窗口都有长度限制，需要把长文档切分成较小的文本块（&lt;strong&gt;Chunk&lt;/strong&gt;）。切分策略是 RAG 工程中第一个需要仔细调优的点——切太大，检索精度下降（一个大 chunk 里可能只有一小段是相关的，其他全是噪声）；切太小，语义完整性被破坏（一句话被从中间截断，失去了上下文）。常见的策略包括按固定长度切分并设置重叠（&lt;strong&gt;Overlap&lt;/strong&gt;）、按自然段落或章节切分、以及基于语义相似度的动态切分。&lt;/p&gt;
-&lt;h4 id=&#34;-文本向量化embedding&#34;&gt;🧮 文本向量化（Embedding）
-&lt;/h4&gt;&lt;p&gt;一个 &lt;strong&gt;Embedding 模型&lt;/strong&gt;（如 OpenAI 的 text-embedding-3、BGE、E5 等）把每个文本块转换成一个高维向量。这个向量是文本块语义信息的数学表示——语义相近的文本块在向量空间中的距离也相近。这一步的关键是 Embedding 模型的质量，它直接决定了后续检索的准确率。&lt;/p&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;1728219277.jpg&#34; alt=&#34;文本向量化示意图&#34; width=&#34;70%&#34; /&gt;
-&lt;/div&gt;
-&lt;h4 id=&#34;-存入向量数据库vector-database&#34;&gt;🗄️ 存入向量数据库（Vector Database）
-&lt;/h4&gt;&lt;p&gt;把所有文本块的向量及其对应的原文存入 &lt;strong&gt;向量数据库&lt;/strong&gt;（如 Milvus、Pinecone、Weaviate、Chroma 等）。向量数据库的核心能力是 &lt;strong&gt;ANN（Approximate Nearest Neighbor，近似最近邻搜索）&lt;/strong&gt; ——给定一个查询向量，能在毫秒级别从百万甚至亿级的向量中找到最相似的 &lt;strong&gt;Top-K&lt;/strong&gt; 个。&lt;/p&gt;
-&lt;p&gt;这里有两个工程细节非常关键：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;切块策略本身就是索引质量的一部分&lt;/strong&gt;。切得太粗会把多个知识点揉成一个向量，切得太碎又会让语义断裂。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;索引和查询必须使用同一个 Embedding 模型&lt;/strong&gt;。否则向量空间不一致，即使文本本身相关，也可能检索不到。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;rag-offline-online-flow.png&#34; alt=&#34;RAG 的离线索引和在线查询流程&#34; width=&#34;84%&#34; /&gt;
-&lt;/div&gt;
-&lt;div
-  class=&#34;notice tip&#34;
-  
-&gt;
-  &lt;p class=&#34;notice-title&#34;&gt;
-    &lt;span class=&#34;icon-notice baseline&#34;&gt;
-      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
-  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
-&lt;/svg&gt;
-
-    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;嵌入模型、文本向量化与向量数据库可以这样理解：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;嵌入模型&lt;/strong&gt;：把词、短语或句子转换成数值向量的工具，这些向量会尽可能保留文本的语义信息。例如在识物探趣项目中，使用的嵌入模型是 &lt;strong&gt;bge-small-zh-v1.5&lt;/strong&gt;，向量维度为 &lt;strong&gt;512&lt;/strong&gt;。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;文本向量化&lt;/strong&gt;：把文本映射到高维空间中。语义相近的内容在空间中距离更近，语义差异较大的内容距离更远。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;向量数据库&lt;/strong&gt;：专门用于存储和管理高维向量的数据库，适合对文本、图片、音频等非结构化数据进行相似性搜索。&lt;/li&gt;
-&lt;/ul&gt;&lt;/div&gt;
-
-&lt;h2 id=&#34;-在线阶段&#34;&gt;🌐 在线阶段
-&lt;/h2&gt;&lt;p&gt;在在线阶段，在RAG系统中有检索阶段、增强阶段、生成阶段。其中检索阶段负责从向量数据库中检索相关知识，增强阶段负责把检索到的知识组织整理成模型输入，生成阶段负责把增强后的知识输入让模型输出符合用户需求的回答。&lt;/p&gt;
-&lt;h3 id=&#34;-检索阶段&#34;&gt;🔍 检索阶段
-&lt;/h3&gt;&lt;p&gt;在线查询阶段是&amp;quot;开卷考试&amp;quot;中翻书查看资料的过程，负责根据用户的问题从外部知识库中找出相关的信息片段。这个阶段通常会结合关键词检索、向量检索或混合检索等方式，从大量文档中召回一批候选内容，其核心目标是尽可能快速且准确地找到与当前问题最相关的知识，为后续回答提供可靠依据。&lt;/p&gt;
-&lt;h4 id=&#34;-查询向量化embedding&#34;&gt;🔄 查询向量化（Embedding）
-&lt;/h4&gt;&lt;p&gt;用同一个 &lt;strong&gt;Embedding 模型&lt;/strong&gt; 把用户的问题转换成向量。注意这里必须用和索引阶段相同的模型，否则向量空间不一致，检索就会失效。&lt;/p&gt;
-&lt;h4 id=&#34;-相似度检索&#34;&gt;🎯 相似度检索
-&lt;/h4&gt;&lt;p&gt;用问题向量在向量数据库中进行 &lt;strong&gt;ANN&lt;/strong&gt; 搜索，找到 &lt;strong&gt;Top-K&lt;/strong&gt; 个最相似的文本块。这些文本块就是系统认为和用户问题最相关的&amp;quot;参考资料&amp;quot;。实际工程中，这一步往往还会叠加一些增强策略，比如 &lt;strong&gt;混合检索&lt;/strong&gt;（同时用向量检索和关键词检索，取并集）、&lt;strong&gt;重排序&lt;/strong&gt;（用一个 Cross-encoder 模型对 Top-K 结果做精排）、&lt;strong&gt;查询改写&lt;/strong&gt;（用 LLM 对用户原始问题做扩展或改写以提高召回率）等。&lt;/p&gt;
-&lt;p&gt;检索阶段会先把用户问题通过 &lt;strong&gt;嵌入模型&lt;/strong&gt; 转换为向量，再与 &lt;strong&gt;向量数据库&lt;/strong&gt; 中的知识向量进行相似度比对。系统会从中找出最匹配的前 &lt;code&gt;K&lt;/code&gt; 条结果，作为后续生成阶段的参考上下文。&lt;/p&gt;
-&lt;h3 id=&#34;-增强阶段&#34;&gt;⚙️ 增强阶段
-&lt;/h3&gt;&lt;p&gt;增强阶段系统将检索段落中的上下文有效整合到当前生成任务中的过程。增强的目的是将召回到的候选内容整理成大模型可以直接利用的上下文，最终构造成适合输入给模型的 &lt;strong&gt;Prompt&lt;/strong&gt;，使模型能够在更充分、更准确的上下文中完成回答。&lt;/p&gt;
-&lt;p&gt;RAG 的增强可以在预训练、微调和推理等不同阶段应用&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;augmentation Stages: RETRO 是一个利用检索增强进行大规模从头预训练的系统示例；它使用了基于外部知识的附加编码器。RAG 还可以与微调结合使用，以帮助开发和提高 RAG 系统的有效性。在推理阶段，应用了许多技术来有效地结合检索内容，以满足特定任务需求，并进一步细化 RAG 过程&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;增强数据源：RAG 模型的效果受增强数据源的选择影响很大。数据可以分为无结构、结构化和 LLM 生成的数据&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;增强过程：对于许多问题（例如多步推理），一次检索是不够的，因此已经提出了几种方法&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;迭代检索使模型能够进行多次检索循环，以增强信息的深度和相关性。利用这种方法的知名方法包括 RETRO 和 GAR-meets-RA&lt;/li&gt;
-&lt;li&gt;递归检索递归地将上一步检索的输出作为下一步检索的输入；这使得对于复杂和多步查询（例如学术研究和法律案例分析）能够更深入地挖掘相关信息。利用这种方法的知名方法包括 IRCoT 和澄清树&lt;/li&gt;
-&lt;li&gt;适应性检索根据特定需求调整检索过程，确定检索的最佳时机和内容。利用这种方法的知名方法包括 FLARE 和 Self-RAG&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&#34;-生成阶段&#34;&gt;✨ 生成阶段
-&lt;/h3&gt;&lt;p&gt;生成阶段是 RAG 流程的最后一步，在这个阶段 &lt;strong&gt;大语言模型&lt;/strong&gt; 将基于用户问题和增强后的上下文内容生成最终答案。在这一阶段，模型不再单纯依赖自身参数中的知识，而是结合外部检索到的信息进行组织、推理和表达，从而输出更准确、更具时效性且更贴合问题需求的回答。这个过程涉及多样化的输入数据，有时需要努力调整语言模型以适应来自查询和文档的输入数据。这可以通过后检索处理和微调来解决：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;Post-retrieval with Frozen LLM&lt;/strong&gt;：Post-retrieval 处理不会影响 LLM，而是通过信息压缩和结果重排序等操作来提升检索结果的质量。信息压缩有助于减少噪声、解决 LLM 的上下文长度限制问题，并增强生成效果。重排序旨在重新排列文档，以使最相关的内容排在前面。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;使用 LLM 进行 RAG 微调&lt;/strong&gt;：为了改进 RAG 系统，生成器可以进一步优化或微调，以确保生成的文本自然且有效地利用了检索到的文档。&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;80d5236e087e619edced930b19fb653a.png&#34; alt=&#34;增强生成阶段&#34; width=&#34;78%&#34; /&gt;
-&lt;/div&gt;
-</description>
-        </item>
-        <item>
+        <lastBuildDate>Fri, 27 Mar 2026 03:34:19 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/rag/index.xml" rel="self" type="application/rss+xml" /><item>
         <title>RAG的几大范式</title>
         <link>https://Tyritic.github.io/p/rag%E7%9A%84%E5%87%A0%E5%A4%A7%E8%8C%83%E5%BC%8F/</link>
         <pubDate>Sun, 04 May 2025 19:29:50 +0800</pubDate>
@@ -499,8 +268,8 @@
 &lt;h3 id=&#34;-基础指标&#34;&gt;📏 基础指标
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;Precision（精确率）&lt;/strong&gt; 和 &lt;strong&gt;Recall（召回率）&lt;/strong&gt; 是最基础也最重要的两个指标。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Precision&lt;/strong&gt; 衡量的是&amp;quot;检索回来的文档中，有多少是真正相关的&amp;quot;——如果你检索了 10 个 Chunk，其中只有 3 个和问题相关，那 Precision 就是 30%，说明有大量噪声文档被带了进来。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Recall&lt;/strong&gt; 衡量的是&amp;quot;所有相关的文档中，有多少被成功检索回来了&amp;quot;——如果知识库中有 5 个 Chunk 和问题相关，你只检索到了 2 个，那 Recall 就是 40%，说明关键信息被遗漏了。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Precision&lt;/strong&gt; 衡量的是&amp;quot;检索回来的文档中，有多少是真正相关的&amp;quot;——&lt;strong&gt;Top-K召回的相关片段数/Top-K召回的总片段数&lt;/strong&gt; 如果你检索了 10 个 Chunk，其中只有 3 个和问题相关，那 Precision 就是 30%，说明有大量噪声文档被带了进来。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Recall&lt;/strong&gt; 衡量的是&amp;quot;所有相关的文档中，有多少被成功检索回来了&amp;quot;——&lt;strong&gt;Top-K召回的相关片段数/Top-K召回的总片段数&lt;/strong&gt;，如果知识库中有 5 个 Chunk 和问题相关，你只检索到了 2 个，那 Recall 就是 40%，说明关键信息被遗漏了。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;在 RAG 场景中，这两个指标存在一个天然的张力。你想提高 Recall，最简单的办法就是多检索一些 Chunk（提高 &lt;strong&gt;Top-K&lt;/strong&gt;），但这会导致 Precision 下降，大量无关的 Chunk 涌入上下文不仅浪费 token，还可能干扰 &lt;strong&gt;LLM&lt;/strong&gt; 的理解。反之，如果 Top-K 设得太小，Precision 上去了，但可能漏掉了关键信息。实际工程中通常要在两者之间找到一个甜蜜点，这就是为什么 &lt;strong&gt;F1 Score&lt;/strong&gt;（Precision 和 Recall 的调和平均）在检索评估中也很常用。&lt;/p&gt;
 &lt;h3 id=&#34;-排序指标&#34;&gt;📈 排序指标
@@ -742,24 +511,14 @@
   &lt;/div&gt;
 
 &lt;hr&gt;
-&lt;h2 id=&#34;-rag-优化策略&#34;&gt;🚀 RAG 优化策略
-&lt;/h2&gt;&lt;h3 id=&#34;-查询阶段的优化&#34;&gt;💡 查询阶段的优化
-&lt;/h3&gt;&lt;p&gt;很多时候检索质量差，根源并不在检索引擎，而在用户查询本身。用户的提问可能太模糊、太口语化，或者把多个子问题混在一起。如果能在检索之前先把查询&amp;quot;加工&amp;quot;一下，效果往往会明显提升。&lt;/p&gt;
-&lt;p&gt;查询侧最常见的做法包括：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Query Rewriting&lt;/strong&gt;：把口语化、模糊化的问题改写成更适合检索的表达。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;HyDE&lt;/strong&gt;：先让模型生成一段&amp;quot;假想答案&amp;quot;，再用这段答案的向量去检索，缩小查询和文档之间的表达鸿沟。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Multi-Query&lt;/strong&gt;：从多个角度生成查询变体，合并结果以提高召回率。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Sub-Question Decomposition&lt;/strong&gt;：把复杂问题拆成多个子问题分别检索，再汇总回答。&lt;/li&gt;
-&lt;/ul&gt;
+&lt;h2 id=&#34;-索引阶段的优化&#34;&gt;🧩 索引阶段的优化
+&lt;/h2&gt;&lt;p&gt;索引侧优化解决的核心问题是：&lt;strong&gt;知识该如何被切分、编码、组织，才能在查询发生时被更准确地找出来。&lt;/strong&gt;&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;rag-query-optimization.png&#34; alt=&#34;查询侧优化策略&#34; width=&#34;82%&#34; /&gt;
+  &lt;img src=&#34;工业级RAG索引管道.jpg&#34; alt=&#34;索引侧优化策略&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
-&lt;h3 id=&#34;-索引阶段的优化&#34;&gt;🧩 索引阶段的优化
-&lt;/h3&gt;&lt;p&gt;索引侧优化解决的核心问题是：&lt;strong&gt;知识该如何被切分、编码、组织，才能在查询发生时被更准确地找出来。&lt;/strong&gt;&lt;/p&gt;
-&lt;h4 id=&#34;-选择合适的分块策略&#34;&gt;✂️ 选择合适的分块策略
-&lt;/h4&gt;&lt;h5 id=&#34;-文本切块在-rag-中的角色&#34;&gt;📌 文本切块在 RAG 中的角色
-&lt;/h5&gt;&lt;p&gt;RAG 的基本流程是：用户提问 → 检索相关文档片段 → 将片段拼入 &lt;strong&gt;Prompt&lt;/strong&gt; → &lt;strong&gt;LLM&lt;/strong&gt; 基于这些片段生成回答。而&amp;quot;切块&amp;quot;发生在更早的离线阶段——把原始文档切分成小片段，每个片段生成一个 &lt;strong&gt;Embedding&lt;/strong&gt; 向量存入向量数据库。用户查询时，查询向量和这些片段向量做相似度匹配，找出最相关的 &lt;strong&gt;Top-K&lt;/strong&gt; 片段。&lt;/p&gt;
+&lt;h3 id=&#34;-选择合适的分块策略&#34;&gt;✂️ 选择合适的分块策略
+&lt;/h3&gt;&lt;h4 id=&#34;-文本切块在-rag-中的角色&#34;&gt;📌 文本切块在 RAG 中的角色
+&lt;/h4&gt;&lt;p&gt;RAG 的基本流程是：用户提问 → 检索相关文档片段 → 将片段拼入 &lt;strong&gt;Prompt&lt;/strong&gt; → &lt;strong&gt;LLM&lt;/strong&gt; 基于这些片段生成回答。而&amp;quot;切块&amp;quot;发生在更早的离线阶段——把原始文档切分成小片段，每个片段生成一个 &lt;strong&gt;Embedding&lt;/strong&gt; 向量存入向量数据库。用户查询时，查询向量和这些片段向量做相似度匹配，找出最相关的 &lt;strong&gt;Top-K&lt;/strong&gt; 片段。&lt;/p&gt;
 &lt;p&gt;这意味着切块质量直接决定了两件事：检索能不能找到对的片段，以及找到的片段能不能让 &lt;strong&gt;LLM&lt;/strong&gt; 生成好的回答。切得不好，要么检索阶段就漏掉了关键信息，要么检索到了但片段内容残缺不全导致 &lt;strong&gt;LLM&lt;/strong&gt; 无法正确理解。可以说，切块是 RAG 系统中&amp;quot;最不起眼但影响最深远&amp;quot;的环节——很多人花大量精力调 &lt;strong&gt;Prompt&lt;/strong&gt;、换 &lt;strong&gt;Embedding 模型&lt;/strong&gt;、调 &lt;strong&gt;Top-K&lt;/strong&gt;，最后发现问题根源其实出在切块策略上。&lt;/p&gt;
 &lt;p&gt;分块的本质，是把原始长文本拆成若干个较小但语义相对完整的片段。每个片段通常控制在几百字到上千字之间，比如一个段落、若干段落，或者一个小节。&lt;/p&gt;
 &lt;p&gt;之所以要分块，主要有几个原因：&lt;/p&gt;
@@ -772,8 +531,8 @@
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;切块的影响.png&#34; alt=&#34;切块的影响&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
-&lt;h5 id=&#34;-chunk-size-的权衡&#34;&gt;⚖️ Chunk Size 的权衡
-&lt;/h5&gt;&lt;p&gt;从实战调优角度看，分块通常要同时考虑两个参数：&lt;strong&gt;&lt;code&gt;chunk size&lt;/code&gt;&lt;/strong&gt; 和 &lt;strong&gt;&lt;code&gt;overlap&lt;/code&gt;&lt;/strong&gt;。&lt;/p&gt;
+&lt;h4 id=&#34;-chunk-size-的权衡&#34;&gt;⚖️ Chunk Size 的权衡
+&lt;/h4&gt;&lt;p&gt;从实战调优角度看，分块通常要同时考虑两个参数：&lt;strong&gt;&lt;code&gt;chunk size&lt;/code&gt;&lt;/strong&gt; 和 &lt;strong&gt;&lt;code&gt;overlap&lt;/code&gt;&lt;/strong&gt;。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;块太小&lt;/strong&gt;：每个 &lt;strong&gt;chunk&lt;/strong&gt; 的内容非常聚焦，大概率只包含一个知识点。这带来的好处是 &lt;strong&gt;Embedding&lt;/strong&gt; 向量更精准地代表那个知识点，检索时更容易被&amp;quot;命中&amp;quot;——也就是检索精度（&lt;strong&gt;Precision&lt;/strong&gt;）高。但问题也很明显：一个太小的 &lt;strong&gt;chunk&lt;/strong&gt; 很可能缺少必要的上下文。比如原文是&amp;quot;该方法在实验中将准确率提升了 15%，但仅在数据量超过 10 万条时才有效&amp;quot;，如果从&amp;quot;但&amp;quot;字处切开，前半段 &lt;strong&gt;chunk&lt;/strong&gt; 只说了&amp;quot;提升 15%&amp;ldquo;而丢失了限制条件，&lt;strong&gt;LLM&lt;/strong&gt; 读到这个片段就可能给出一个过于乐观的回答。此外，小 &lt;strong&gt;chunk&lt;/strong&gt; 意味着数量多，检索到的 &lt;strong&gt;Top-K&lt;/strong&gt; 片段可能来自文档的不同角落，&lt;strong&gt;LLM&lt;/strong&gt; 需要整合多个碎片化的信息，增加了理解难度和幻觉风险。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;块太大&lt;/strong&gt;：每个 &lt;strong&gt;chunk&lt;/strong&gt; 包含更丰富的上下文，语义完整性好，&lt;strong&gt;LLM&lt;/strong&gt; 拿到后更容易理解和推理。但大 &lt;strong&gt;chunk&lt;/strong&gt; 的 &lt;strong&gt;Embedding&lt;/strong&gt; 向量不可避免地变成了多个知识点的&amp;quot;混合体&amp;rdquo;，一个向量要同时代表好几层含义，检索时就容易&amp;quot;模糊匹配&amp;quot;——用户问的是 A，但因为某个 &lt;strong&gt;chunk&lt;/strong&gt; 里 A 和 B 混在一起，B 的部分也被捎带检索出来了，稀释了相关性。更实际的问题是，大 &lt;strong&gt;chunk&lt;/strong&gt; 意味着每个片段占用更多的 &lt;strong&gt;Prompt&lt;/strong&gt; 空间（即 &lt;strong&gt;Context Window&lt;/strong&gt;），能放进去的片段数量就更少，可能导致召回率（&lt;strong&gt;Recall&lt;/strong&gt;）不够。&lt;/li&gt;
@@ -784,10 +543,10 @@
 &lt;p&gt;所以 chunk size 的选择不是一个固定的&amp;quot;最优值&amp;quot;，而是根据具体场景在这两极之间找平衡点。工程实践中的经验是：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;FAQ、事实问答&lt;/strong&gt; 适合偏小的块，例如 &lt;code&gt;256 ~ 512 token&lt;/code&gt;。因为答案往往在某一段话里，精准检索更重要&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;技术文档、法律条款、分析型内容&lt;/strong&gt; 更适合偏大的块，例如 &lt;code&gt;512 ~ 1024 token&lt;/code&gt;。因为上下文完整性更关键。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;技术文档、法律条款、分析型内容&lt;/strong&gt; 更适合偏大的块，例如 &lt;code&gt;512 ~ Chunk Size token&lt;/code&gt;。因为上下文完整性更关键。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h5 id=&#34;-overlap-的作用&#34;&gt;🔗 Overlap 的作用
-&lt;/h5&gt;&lt;p&gt;&lt;code&gt;overlap&lt;/code&gt; 的作用，则是缓解块边界处的信息断裂。想象一下，一段连贯的论述横跨了两个 &lt;strong&gt;chunk&lt;/strong&gt; 的边界：前一个 &lt;strong&gt;chunk&lt;/strong&gt; 的结尾讲了原因，后一个 &lt;strong&gt;chunk&lt;/strong&gt; 的开头讲了结论。如果没有重叠，这两个 &lt;strong&gt;chunk&lt;/strong&gt; 各自都是&amp;quot;半截话&amp;quot;——前一个有原因没结论，后一个有结论没原因。&lt;strong&gt;Embedding&lt;/strong&gt; 分别编码后，两个向量都无法完整代表这段论述的含义，检索时就可能漏掉这条关键信息。此时两个向量都不够完整，召回质量会明显下降。&lt;/p&gt;
+&lt;h4 id=&#34;-overlap-的作用&#34;&gt;🔗 Overlap 的作用
+&lt;/h4&gt;&lt;p&gt;&lt;code&gt;overlap&lt;/code&gt; 的作用，则是缓解块边界处的信息断裂。想象一下，一段连贯的论述横跨了两个 &lt;strong&gt;chunk&lt;/strong&gt; 的边界：前一个 &lt;strong&gt;chunk&lt;/strong&gt; 的结尾讲了原因，后一个 &lt;strong&gt;chunk&lt;/strong&gt; 的开头讲了结论。如果没有重叠，这两个 &lt;strong&gt;chunk&lt;/strong&gt; 各自都是&amp;quot;半截话&amp;quot;——前一个有原因没结论，后一个有结论没原因。&lt;strong&gt;Embedding&lt;/strong&gt; 分别编码后，两个向量都无法完整代表这段论述的含义，检索时就可能漏掉这条关键信息。此时两个向量都不够完整，召回质量会明显下降。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;chunk-overlap.png&#34; alt=&#34;Overlap 对切块边界的补偿&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
@@ -796,21 +555,52 @@
 &lt;li&gt;&lt;strong&gt;存储膨胀&lt;/strong&gt;：同一段内容被重复编码多次。向量数据库的体积和索引成本显著增加&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;检索重复&lt;/strong&gt;：多个 &lt;strong&gt;chunk&lt;/strong&gt; 包含大量相同内容，检索时可能返回一堆&amp;quot;长得差不多&amp;quot;的片段，浪费了宝贵的 &lt;strong&gt;Top-K&lt;/strong&gt; 配额，等于你明明可以看到 5 条不同信息，结果其中 3 条都在重复同一段话。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h5 id=&#34;-常见的切块策略&#34;&gt;📋 常见的切块策略
-&lt;/h5&gt;&lt;p&gt;常用切块策略除了固定大小切块（&lt;strong&gt;Fixed-size Chunking&lt;/strong&gt;），还有更精细的做法：&lt;/p&gt;
+&lt;h4 id=&#34;-常见的切块策略&#34;&gt;📋 常见的切块策略
+&lt;/h4&gt;&lt;h5 id=&#34;固定大小切块fixed-size-chunking&#34;&gt;固定大小切块（&lt;strong&gt;Fixed-size Chunking&lt;/strong&gt;）
+&lt;/h5&gt;&lt;p&gt;最简单的方式——按 Chunk Size(假设为512 token) 一刀切，加 100 token 的 overlap。问题立刻暴露了：保险条款&amp;quot;第 3 条 保险责任：本保险承保……但以下情况除外：（1）战争……（2）核辐射……&amp;ldquo;被从&amp;quot;但以下情况除外&amp;quot;的地方截断，承保范围和免责条款分到了两个 Chunk 里。用户问免责相关的问题时，系统只召回了前半段（承保范围），给出了完全错误的答案。&lt;/p&gt;
+&lt;p&gt;在智能OnCall Agent项目中测试下来，固定长度切分的检索召回率只有 67%。&lt;/p&gt;
+&lt;h5 id=&#34;语义切块semantic-chunking&#34;&gt;语义切块（Semantic Chunking）
+&lt;/h5&gt;&lt;p&gt;改用句号、问号等标点作为切分点，确保不在句子中间截断。
+不按固定 token 数切，而是按语义边界切。先把文本按句子分割，然后计算相邻句子之间的 &lt;strong&gt;Embedding&lt;/strong&gt; 相似度，当相似度出现明显下降时（说明话题发生了转换），就在那里切一刀。这样每个 &lt;strong&gt;chunk&lt;/strong&gt; 自然地对应一个完整的语义单元，不需要 &lt;strong&gt;overlap&lt;/strong&gt; 来&amp;quot;缝合&amp;quot;了。&lt;/p&gt;
+&lt;p&gt;每个 Chunk 累积句子直到接近 512 token 上限。比 固定大小切块 好了一些，但还是有问题：列表项&amp;rdquo;（1）战争（2）核辐射（3）核爆炸&amp;quot;会被拆到不同 Chunk——每个列表项都是一个&amp;quot;句子&amp;quot;，但脱离了前面的&amp;quot;以下情况除外&amp;quot;就失去了语义。而且章节标题&amp;quot;第 3 条 保险责任&amp;quot;可能跟下面的正文被分开。&lt;/p&gt;
+&lt;p&gt;在智能OnCall Agent项目中测试下来，召回率提升到 74%。&lt;/p&gt;
+&lt;h5 id=&#34;基于文档结构的递归语义切分&#34;&gt;基于文档结构的递归语义切分
+&lt;/h5&gt;&lt;p&gt;利用文档自身的结构信息。Markdown 文档有标题层级，HTML 有标签结构，PDF 有段落和章节。按这些天然边界来切块，既简单又有效。这种方法特别适合结构化程度高的文档，例如技术文档、产品手册、法律合同等。&lt;/p&gt;
+&lt;p&gt;先识别文档结构（章节标题、子标题、段落、表格、图片），然后按语义单元切分——一个章节就是一个 Chunk（如果不超长的话），表格整块保留，列表项跟前导句合并。超长的章节再递归按子标题或段落切分。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;语义切块（Semantic Chunking）&lt;/strong&gt;：不按固定 token 数切，而是按语义边界切。先把文本按句子分割，然后计算相邻句子之间的 &lt;strong&gt;Embedding&lt;/strong&gt; 相似度，当相似度出现明显下降时（说明话题发生了转换），就在那里切一刀。这样每个 &lt;strong&gt;chunk&lt;/strong&gt; 自然地对应一个完整的语义单元，不需要 &lt;strong&gt;overlap&lt;/strong&gt; 来&amp;quot;缝合&amp;quot;了。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;基于文档结构的切块&lt;/strong&gt;：利用文档自身的结构信息。Markdown 文档有标题层级，HTML 有标签结构，PDF 有段落和章节。按这些天然边界来切块，既简单又有效。比如按 Markdown 的二级标题（&lt;code&gt;##&lt;/code&gt;）切，每个 &lt;strong&gt;chunk&lt;/strong&gt; 就是一个完整的章节，语义自然完整。这种方法特别适合结构化程度高的文档，例如技术文档、产品手册、法律合同等。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;递归切块（Recursive Chunking）&lt;/strong&gt;：设定一组分隔符优先级（比如先按段落 &lt;code&gt;\n\n&lt;/code&gt; 切，太大了再按句子 &lt;code&gt;\n&lt;/code&gt; 切，还太大了再按固定长度切），逐级递归直到每个 &lt;strong&gt;chunk&lt;/strong&gt; 都在目标大小范围内。它兼顾了结构化和大小控制，是实践中最常用的默认策略。&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;识别文档层级结构:先理解文档结构，再决定在哪切
+&lt;ul&gt;
+&lt;li&gt;按结构化文档标题划分，例如Markdown 的二级标题（&lt;code&gt;##&lt;/code&gt;）切，每个 &lt;strong&gt;chunk&lt;/strong&gt; 就是一个完整的章节，语义自然完整。&lt;/li&gt;
+&lt;li&gt;正则匹配常见编号模式&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h5 id=&#34;-实战调优的步骤&#34;&gt;🧪 实战调优的步骤
-&lt;/h5&gt;&lt;ol&gt;
+&lt;/li&gt;
+&lt;li&gt;按语义单元切分:识别出层级结构后，切分逻辑变成了递归
+&lt;ul&gt;
+&lt;li&gt;如果一个章节的 token 数 ≤ Chunk Size ，整个章节作为一个 Chunk，不切。&lt;/li&gt;
+&lt;li&gt;如果超过 Chunk Size，看有没有子标题。有的话按子标题切分，每个子章节再递归判断。&lt;/li&gt;
+&lt;li&gt;如果没有子标题，按段落累积——段落逐个加入，直到接近 Chunk Size token 就封一个 Chunk。&lt;/li&gt;
+&lt;li&gt;如果单个段落就超过 Chunk Size（极端情况），最后才按句子边界切分。&lt;/li&gt;
+&lt;li&gt;表格和代码块作为不可拆分单元——无论多长，不在中间截断。如果单个表格超过 Chunk Size token，单独作为一个 Chunk。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;语义完整性检查:切完之后不是直接用，还要做一轮检查——相邻的两个 Chunk 之间是不是被错误地断开了。
+&lt;ul&gt;
+&lt;li&gt;chunk 以冒号结尾 → 后面大概率是列表&lt;/li&gt;
+&lt;li&gt;chunk 是列表项编号开头&lt;/li&gt;
+&lt;li&gt;chunk 以转折词开头&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;动态 Overlap:基于句子边界的 overlap，找到前一个 Chunk 末尾最近的句号位置，从那之后开始 overlap。这样每个 Chunk 的 overlap 部分都是完整的句子。&lt;/li&gt;
+&lt;li&gt;特殊元素处理
+&lt;ul&gt;
+&lt;li&gt;表格：不能直接整块保留，小表格直接整块作为一个 Chunk。对于远超 Chunk 上限的大表格，如果表格有分组（比如&amp;quot;基本责任&amp;quot;&amp;ldquo;可选责任&amp;quot;两组），按分组切分，每组带上完整表头。如果没有分组，按固定行数切分，但每个 Chunk 都复制表头。&lt;/li&gt;
+&lt;li&gt;图片：不能直接丢掉，利用多模态模型，流程图和示意图生成文本描述，描述作为 Chunk 入库，数据图表提取结构化数据&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;Chunk 的元数据设计:Chunk 不只是一段文本。每个 Chunk 都应该带上丰富的元数据，这些元数据在检索和展示时都有用&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-实战调优的步骤&#34;&gt;🧪 实战调优的步骤
+&lt;/h4&gt;&lt;ol&gt;
 &lt;li&gt;
 &lt;p&gt;&lt;strong&gt;先看数据&lt;/strong&gt;：在动手切之前，先抽样看看原始文档长什么样——平均段落长度、内容结构化程度、信息密度。技术文档和闲聊记录显然需要完全不同的策略。&lt;/p&gt;
 &lt;/li&gt;
@@ -818,33 +608,33 @@
 &lt;p&gt;&lt;strong&gt;建立评估闭环&lt;/strong&gt;：准备一组有标准答案的测试问题，跑一轮 RAG 看效果，调整参数后再跑一轮对比。核心指标有两个：检索召回率（相关片段有没有被检索到）和生成准确率（最终回答对不对）。很多时候你会发现检索层面已经召回了正确片段，但因为 &lt;strong&gt;chunk&lt;/strong&gt; 太碎导致 &lt;strong&gt;LLM&lt;/strong&gt; 无法正确理解，这就是切块的锅。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;考虑多级索引&lt;/strong&gt;：不只存一种粒度的 &lt;strong&gt;chunk&lt;/strong&gt;，而是同时维护多个层级：比如用小 &lt;strong&gt;chunk&lt;/strong&gt;（256 token）做精准检索，命中后把对应的大 &lt;strong&gt;chunk&lt;/strong&gt;（1024 token）或原始段落送给 &lt;strong&gt;LLM&lt;/strong&gt;。&lt;strong&gt;LlamaIndex&lt;/strong&gt; 中的 &lt;code&gt;SentenceWindowNodeParser&lt;/code&gt; 和 &lt;code&gt;HierarchicalNodeParser&lt;/code&gt; 就是这个思路的实现。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;考虑多级索引&lt;/strong&gt;：不只存一种粒度的 &lt;strong&gt;chunk&lt;/strong&gt;，而是同时维护多个层级：比如用小 &lt;strong&gt;chunk&lt;/strong&gt;（256 token）做精准检索，命中后把对应的大 &lt;strong&gt;chunk&lt;/strong&gt;（Chunk Size token）或原始段落送给 &lt;strong&gt;LLM&lt;/strong&gt;。&lt;strong&gt;LlamaIndex&lt;/strong&gt; 中的 &lt;code&gt;SentenceWindowNodeParser&lt;/code&gt; 和 &lt;code&gt;HierarchicalNodeParser&lt;/code&gt; 就是这个思路的实现。&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
 &lt;p&gt;&lt;strong&gt;匹配 Embedding 模型能力&lt;/strong&gt;：不同 &lt;strong&gt;Embedding 模型&lt;/strong&gt; 的最佳输入长度不同——有些模型在短文本上表现更好，有些模型专门针对长文本优化（如 &lt;strong&gt;jina-embeddings-v2&lt;/strong&gt; 支持 8192 token）。如果你用的是一个短文本模型却切了很大的 &lt;strong&gt;chunk&lt;/strong&gt;，&lt;strong&gt;Embedding&lt;/strong&gt; 质量会明显下降。&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ol&gt;
 &lt;p&gt;如果文档结构比较稳定，更进一步的做法是结合 &lt;strong&gt;语义切块、按标题分块、递归分块&lt;/strong&gt;，甚至引入 &lt;strong&gt;多级索引&lt;/strong&gt;。例如用小块做精确召回，命中后再回溯父块或原始段落给模型，这样检索和生成两端都能拿到更合适的粒度。&lt;/p&gt;
-&lt;h4 id=&#34;-设计合理的索引架构&#34;&gt;🗃️ 设计合理的索引架构
-&lt;/h4&gt;&lt;div align=&#34;center&#34;&gt;
+&lt;h3 id=&#34;-设计合理的索引架构&#34;&gt;🗃️ 设计合理的索引架构
+&lt;/h3&gt;&lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;rag-index-architectures.png&#34; alt=&#34;RAG 中常见的索引架构&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
-&lt;h5 id=&#34;-parent-child-索引&#34;&gt;🕸️ Parent-Child 索引
-&lt;/h5&gt;&lt;p&gt;&lt;strong&gt;Parent-Child 索引&lt;/strong&gt;是一种非常实用的索引架构。核心思想是：用小 &lt;code&gt;chunk&lt;/code&gt; 做检索，但返回大 &lt;code&gt;chunk&lt;/code&gt; 给 &lt;strong&gt;LLM&lt;/strong&gt;。具体来说，先把文档切成较大的 &lt;code&gt;chunk&lt;/code&gt;（比如 &lt;code&gt;2000 token&lt;/code&gt;），再把每个大 &lt;code&gt;chunk&lt;/code&gt; 进一步切成小的子 &lt;code&gt;chunk&lt;/code&gt;（比如 &lt;code&gt;200 token&lt;/code&gt;）。检索时用小 &lt;code&gt;chunk&lt;/code&gt; 的向量做匹配，小 &lt;code&gt;chunk&lt;/code&gt; 语义集中，匹配更精准；命中后，返回它所属的父级大 &lt;code&gt;chunk&lt;/code&gt; 给 &lt;strong&gt;LLM&lt;/strong&gt;，大 &lt;code&gt;chunk&lt;/code&gt; 上下文完整，&lt;strong&gt;LLM&lt;/strong&gt; 能更好地理解和利用。这种设计同时兼顾了检索精度和上下文完整性，在实际项目中效果很好。&lt;/p&gt;
-&lt;h5 id=&#34;-文档摘要索引&#34;&gt;📄 文档摘要索引
-&lt;/h5&gt;&lt;p&gt;对于每篇文档，先用 &lt;strong&gt;LLM&lt;/strong&gt; 生成一段摘要，把摘要也做向量化存入索引。检索时，除了匹配原文 &lt;code&gt;chunk&lt;/code&gt;，还会匹配摘要。摘要天然是对全文内容的高度凝练，很多时候用户的查询和摘要的匹配度反而比和原文碎片的匹配度更高。命中摘要后，再定位到对应的原文段落，返回详细内容。这种&amp;quot;先粗后细&amp;quot;的两级检索在处理长文档时特别有效。&lt;/p&gt;
-&lt;h5 id=&#34;-多层级索引&#34;&gt;🏗️ 多层级索引
-&lt;/h5&gt;&lt;p&gt;&lt;strong&gt;多层级索引&lt;/strong&gt; 不只是文档-chunk 两层，而是构建多层级的索引结构——比如**&amp;ldquo;领域 → 主题 → 文档 → 段落&amp;rdquo;**。查询时先在高层级（如领域、主题）做粗筛，快速定位相关范围，再在低层级（如段落）做精确匹配。这种分层策略在文档量很大（数十万篇以上）时优势明显，因为它避免了在全量向量中做暴力搜索，大幅减少检索范围的同时提高了匹配准确率。&lt;/p&gt;
-&lt;h4 id=&#34;-选取合适的嵌入模型&#34;&gt;🧠 选取合适的嵌入模型
-&lt;/h4&gt;&lt;p&gt;如果说分块决定了&amp;quot;知识被切成什么样&amp;quot;，那么 &lt;strong&gt;Embedding 模型&lt;/strong&gt; 决定的就是&amp;quot;这些知识被表示成什么样&amp;quot;。两者共同决定了检索上限。&lt;/p&gt;
-&lt;h5 id=&#34;-embedding-模型的角色&#34;&gt;🧩 Embedding 模型的角色
-&lt;/h5&gt;&lt;p&gt;在 &lt;strong&gt;RAG&lt;/strong&gt;、语义搜索、推荐系统、文档聚类等场景中，&lt;strong&gt;Embedding 模型&lt;/strong&gt;是连接&amp;quot;自然语言&amp;quot;和&amp;quot;数学空间&amp;quot;的桥梁。它把一段文字转化为一个高维向量，使得语义相近的文本在向量空间中彼此靠近，语义不同的文本彼此远离。桥梁质量越高，后续检索、重排、生成的上限就越高。&lt;/p&gt;
+&lt;h4 id=&#34;-parent-child-索引&#34;&gt;🕸️ Parent-Child 索引
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;Parent-Child 索引&lt;/strong&gt;是一种非常实用的索引架构。核心思想是：用小 &lt;code&gt;chunk&lt;/code&gt; 做检索，但返回大 &lt;code&gt;chunk&lt;/code&gt; 给 &lt;strong&gt;LLM&lt;/strong&gt;。具体来说，先把文档切成较大的 &lt;code&gt;chunk&lt;/code&gt;（比如 &lt;code&gt;2000 token&lt;/code&gt;），再把每个大 &lt;code&gt;chunk&lt;/code&gt; 进一步切成小的子 &lt;code&gt;chunk&lt;/code&gt;（比如 &lt;code&gt;200 token&lt;/code&gt;）。检索时用小 &lt;code&gt;chunk&lt;/code&gt; 的向量做匹配，小 &lt;code&gt;chunk&lt;/code&gt; 语义集中，匹配更精准；命中后，返回它所属的父级大 &lt;code&gt;chunk&lt;/code&gt; 给 &lt;strong&gt;LLM&lt;/strong&gt;，大 &lt;code&gt;chunk&lt;/code&gt; 上下文完整，&lt;strong&gt;LLM&lt;/strong&gt; 能更好地理解和利用。这种设计同时兼顾了检索精度和上下文完整性，在实际项目中效果很好。&lt;/p&gt;
+&lt;h4 id=&#34;-文档摘要索引&#34;&gt;📄 文档摘要索引
+&lt;/h4&gt;&lt;p&gt;对于每篇文档，先用 &lt;strong&gt;LLM&lt;/strong&gt; 生成一段摘要，把摘要也做向量化存入索引。检索时，除了匹配原文 &lt;code&gt;chunk&lt;/code&gt;，还会匹配摘要。摘要天然是对全文内容的高度凝练，很多时候用户的查询和摘要的匹配度反而比和原文碎片的匹配度更高。命中摘要后，再定位到对应的原文段落，返回详细内容。这种&amp;quot;先粗后细&amp;quot;的两级检索在处理长文档时特别有效。&lt;/p&gt;
+&lt;h4 id=&#34;-多层级索引&#34;&gt;🏗️ 多层级索引
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;多层级索引&lt;/strong&gt; 不只是文档-chunk 两层，而是构建多层级的索引结构——比如**&amp;ldquo;领域 → 主题 → 文档 → 段落&amp;rdquo;**。查询时先在高层级（如领域、主题）做粗筛，快速定位相关范围，再在低层级（如段落）做精确匹配。这种分层策略在文档量很大（数十万篇以上）时优势明显，因为它避免了在全量向量中做暴力搜索，大幅减少检索范围的同时提高了匹配准确率。&lt;/p&gt;
+&lt;h3 id=&#34;-选取合适的嵌入模型&#34;&gt;🧠 选取合适的嵌入模型
+&lt;/h3&gt;&lt;p&gt;如果说分块决定了&amp;quot;知识被切成什么样&amp;rdquo;，那么 &lt;strong&gt;Embedding 模型&lt;/strong&gt; 决定的就是&amp;quot;这些知识被表示成什么样&amp;quot;。两者共同决定了检索上限。&lt;/p&gt;
+&lt;h4 id=&#34;-embedding-模型的角色&#34;&gt;🔬 Embedding 模型的角色
+&lt;/h4&gt;&lt;p&gt;在 &lt;strong&gt;RAG&lt;/strong&gt;、语义搜索、推荐系统、文档聚类等场景中，&lt;strong&gt;Embedding 模型&lt;/strong&gt;是连接&amp;quot;自然语言&amp;quot;和&amp;quot;数学空间&amp;quot;的桥梁。它把一段文字转化为一个高维向量，使得语义相近的文本在向量空间中彼此靠近，语义不同的文本彼此远离。桥梁质量越高，后续检索、重排、生成的上限就越高。&lt;/p&gt;
 &lt;p&gt;这个&amp;quot;桥梁&amp;quot;的质量直接决定了下游任务的天花板。以 &lt;strong&gt;RAG&lt;/strong&gt; 为例，如果 &lt;strong&gt;Embedding 模型&lt;/strong&gt;不能准确捕捉查询和文档之间的语义关系，那么即使你的 &lt;strong&gt;LLM&lt;/strong&gt; 再强大、&lt;strong&gt;Prompt&lt;/strong&gt; 写得再好，也无法弥补检索阶段的信息缺失，这就是业界常说的 &lt;strong&gt;Garbage In, Garbage Out&lt;/strong&gt;。所以选好 &lt;strong&gt;Embedding 模型&lt;/strong&gt;是整个系统的地基，地基不稳，上层建筑再精美也没用。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;embedding-role.png&#34; alt=&#34;Embedding 在 RAG 中的角色&#34; width=&#34;80%&#34; /&gt;
 &lt;/div&gt;
-&lt;h5 id=&#34;-选型时的核心因素&#34;&gt;⚖️ 选型时的核心因素
-&lt;/h5&gt;&lt;p&gt;选择嵌入模型时，通常需要重点考虑以下因素：&lt;/p&gt;
+&lt;h4 id=&#34;-选型时的核心因素&#34;&gt;📊 选型时的核心因素
+&lt;/h4&gt;&lt;p&gt;选择嵌入模型时，通常需要重点考虑以下因素：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;语义准确性&lt;/strong&gt;：模型能否准确捕捉长句、上下文关系和同义表达，直接影响检索质量。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;模型效率&lt;/strong&gt;：推理速度、显存占用和部署成本是否满足业务要求。&lt;/li&gt;
@@ -868,8 +658,8 @@
 &lt;li&gt;&lt;strong&gt;重型模型&lt;/strong&gt;：如 &lt;strong&gt;BERT-large&lt;/strong&gt; 或更大的 Embedding 模型，表达能力强，更适合离线批处理。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;领域模型或微调方案&lt;/strong&gt;：适合对专业术语理解要求较高的场景，也可以通过 &lt;strong&gt;LoRA&lt;/strong&gt; 等方式做轻量适配。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h5 id=&#34;-评估-embedding-模型的核心指标&#34;&gt;📊 评估 Embedding 模型的核心指标
-&lt;/h5&gt;&lt;p&gt;选好了候选模型之后，还需要做评估。&lt;/p&gt;
+&lt;h4 id=&#34;-评估-embedding-模型的核心指标&#34;&gt;📊 评估 Embedding 模型的核心指标
+&lt;/h4&gt;&lt;p&gt;选好了候选模型之后，还需要做评估。&lt;/p&gt;
 &lt;p&gt;检索类指标是 RAG 场景下最重要的一组。常用的包括：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Recall@K（召回率）&lt;/strong&gt;：在 Top-K 个检索结果中，有多少个是真正相关的文档。比如 Recall@10 = 0.8 意味着前 10 条检索结果覆盖了 80% 的相关文档。这个指标直接衡量&amp;quot;该找到的有没有找到&amp;quot;，是检索系统最基础的生命线。&lt;/li&gt;
@@ -885,20 +675,32 @@
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;embedding-mteb.png&#34; alt=&#34;MTEB 与自有数据评估&#34; width=&#34;80%&#34; /&gt;
 &lt;/div&gt;
-&lt;h5 id=&#34;-工程实践考量&#34;&gt;🔧 工程实践考量
-&lt;/h5&gt;&lt;p&gt;在实际项目中，除了模型效果本身，还有一些工程因素对选型影响很大。&lt;/p&gt;
+&lt;h4 id=&#34;-工程实践考量&#34;&gt;🔧 工程实践考量
+&lt;/h4&gt;&lt;p&gt;在实际项目中，除了模型效果本身，还有一些工程因素对选型影响很大。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;推理性能和吞吐量&lt;/strong&gt;：&lt;strong&gt;推理性能和吞吐量&lt;/strong&gt;直接影响系统的可用性。如果你的场景是实时检索（用户提交查询后毫秒级返回结果），那 Embedding 模型的推理延迟就是硬约束。一般来说，参数量越小、向量维度越低的模型推理越快。在高并发场景下，还需要考虑模型是否支持高效的批量推理和 GPU 加速。ONNX Runtime 和 TensorRT 等推理优化工具可以显著提升吞吐。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;最大输入长度&lt;/strong&gt;：&lt;strong&gt;最大输入长度&lt;/strong&gt;是另一个经常被忽视的因素。不同模型支持的最大 token 数差异很大——有些模型只支持 512 tokens，有些支持 8192 甚至更长。这直接影响你的文档分块策略：如果模型只支持 512 tokens 但你的文档块平均 1000 tokens，超出部分就会被截断，等于你精心设计的分块策略白费了一半。反过来，如果模型支持很长的输入，你就有机会使用更大的块来保留更完整的上下文语义，这对于检索质量的提升有时是决定性的。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Matryoshka&lt;/strong&gt;：&lt;strong&gt;Matryoshka&lt;/strong&gt;是近期一个很值得关注的技术。传统模型生成固定维度的向量，而 Matryoshka Embedding 允许你在推理后截取前 N 维作为压缩向量使用，不同维度下的效果会渐进衰减但不会断崖式下降。OpenAI 的 text-embedding-3 系列和 Nomic 的 nomic-embed-text 就支持这个特性。它的工程价值在于你可以在同一个模型上灵活调节&amp;quot;效果-成本&amp;quot;的平衡——存储紧张时用低维向量，追求效果时用全维向量。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h5 id=&#34;-综合考量&#34;&gt;🔍 综合考量
-&lt;/h5&gt;&lt;p&gt;选择 Embedding 模型需要从多个维度综合考量，不能简单看排行榜选分数最高的。首先要匹配任务类型，RAG 场景下应该重点看模型在检索任务上的表现而不是看综合总分，MTEB 排行榜把任务拆得很细，可以针对性地看。其次是语言和领域匹配，中文场景下 BGE、M3E 这类专门做过中文优化的模型通常比纯英文模型效果好很多，垂直领域如果通用模型效果不够还需要做领域微调。第三要关注对称和非对称检索的区别，RAG 是典型的短查询检索长文档的非对称场景，BGE 和 E5 都支持通过 query/passage 前缀来优化这种场景，这个细节在实际中对效果影响很大。工程层面还要考虑向量维度带来的存储和计算成本、模型支持的最大输入长度是否和分块策略匹配、以及推理吞吐能否满足在线服务的延迟要求。&lt;/p&gt;
+&lt;h4 id=&#34;-综合考量&#34;&gt;🔍 综合考量
+&lt;/h4&gt;&lt;p&gt;选择 Embedding 模型需要从多个维度综合考量，不能简单看排行榜选分数最高的。首先要匹配任务类型，RAG 场景下应该重点看模型在检索任务上的表现而不是看综合总分，MTEB 排行榜把任务拆得很细，可以针对性地看。其次是语言和领域匹配，中文场景下 BGE、M3E 这类专门做过中文优化的模型通常比纯英文模型效果好很多，垂直领域如果通用模型效果不够还需要做领域微调。第三要关注对称和非对称检索的区别，RAG 是典型的短查询检索长文档的非对称场景，BGE 和 E5 都支持通过 query/passage 前缀来优化这种场景，这个细节在实际中对效果影响很大。工程层面还要考虑向量维度带来的存储和计算成本、模型支持的最大输入长度是否和分块策略匹配、以及推理吞吐能否满足在线服务的延迟要求。&lt;/p&gt;
 &lt;p&gt;评估指标方面，检索场景最核心的是 Recall@K、MRR、NDCG@K 和 MAP 这几个。Recall 衡量能不能找全，MRR 衡量第一个相关结果排得准不准，NDCG 综合衡量排序质量，MAP 则综合了精确度和排序。语义相似度任务主要看 Spearman 相关系数。但最关键的一点是，公开基准上的分数只能用来初筛候选，最终一定要在自己的真实数据上做评估，因为 MTEB 的数据分布和你的业务数据可能差异很大。在实际项目中，我的做法是先从 MTEB 筛出 3-5 个候选，然后在自有标注数据上跑 Recall 和 NDCG 做离线对比，最优的模型再通过 A/B 测试在线验证，确认效果后才正式采用。&lt;/p&gt;
-&lt;h3 id=&#34;-检索阶段的优化&#34;&gt;🔬 检索阶段的优化
-&lt;/h3&gt;&lt;p&gt;检索侧优化解决的核心问题是：&lt;strong&gt;如何在海量候选内容里，把最值得送进模型的那一小部分上下文尽可能稳定地找出来。&lt;/strong&gt;&lt;/p&gt;
-&lt;h4 id=&#34;-混合检索与多路召回&#34;&gt;🔀 混合检索与多路召回
-&lt;/h4&gt;&lt;p&gt;单纯的&lt;strong&gt;向量检索&lt;/strong&gt;再怎么优化，也有它的能力天花板，因为 &lt;strong&gt;Embedding 模型&lt;/strong&gt;本身就有局限。真正在生产环境中效果好的方案，几乎都不是只用向量检索，而是混合多种检索方式。&lt;/p&gt;
+&lt;h2 id=&#34;-检索阶段的优化&#34;&gt;🔬 检索阶段的优化
+&lt;/h2&gt;&lt;p&gt;检索侧优化解决的核心问题是：&lt;strong&gt;如何在海量候选内容里，把最值得送进模型的那一小部分上下文尽可能稳定地找出来。&lt;/strong&gt;&lt;/p&gt;
+&lt;h3 id=&#34;-查询加工策略&#34;&gt;🔍 查询加工策略
+&lt;/h3&gt;&lt;p&gt;很多时候检索质量差，根源并不在检索引擎，而在用户查询本身。用户的提问可能太模糊、太口语化，或者把多个子问题混在一起。如果能在检索之前先把查询&amp;quot;加工&amp;quot;一下，效果往往会明显提升。&lt;/p&gt;
+&lt;p&gt;查询侧最常见的做法包括：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Query Rewriting&lt;/strong&gt;：把口语化、模糊化的问题改写成更适合检索的表达。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;HyDE&lt;/strong&gt;：先让模型生成一段&amp;quot;假想答案&amp;quot;，再用这段答案的向量去检索，缩小查询和文档之间的表达鸿沟。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Multi-Query&lt;/strong&gt;：从多个角度生成查询变体，合并结果以提高召回率。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Sub-Question Decomposition&lt;/strong&gt;：把复杂问题拆成多个子问题分别检索，再汇总回答。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;rag-query-optimization.png&#34; alt=&#34;查询侧优化策略&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;-混合检索与多路召回&#34;&gt;🔀 混合检索与多路召回
+&lt;/h3&gt;&lt;p&gt;单纯的&lt;strong&gt;向量检索&lt;/strong&gt;再怎么优化，也有它的能力天花板，因为 &lt;strong&gt;Embedding 模型&lt;/strong&gt;本身就有局限。真正在生产环境中效果好的方案，几乎都不是只用向量检索，而是混合多种检索方式。&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;Hybrid Search（混合检索）&lt;/strong&gt; 是目前工业界最常见的方案。它会同时使用&lt;strong&gt;稀疏检索&lt;/strong&gt;（如 &lt;strong&gt;BM25&lt;/strong&gt;）和&lt;strong&gt;稠密检索&lt;/strong&gt;（向量检索），再通过融合策略合并结果。之所以有效，是因为两种检索方式的能力边界刚好互补：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;向量检索&lt;/strong&gt; 擅长理解语义，例如&amp;quot;汽车&amp;quot;和&amp;quot;轿车&amp;quot;字面不同，但向量距离可能很近。&lt;/li&gt;
@@ -915,18 +717,18 @@
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;混合检索.png&#34; alt=&#34;混合检索和多路召回&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
-&lt;h4 id=&#34;-元数据过滤&#34;&gt;🔽 元数据过滤
-&lt;/h4&gt;&lt;p&gt;元数据过滤是另一个经常被忽视、但非常实用的检索增强手段。它的做法是在向量检索之前或之后，利用文档的元数据（如时间、来源、类别、作者、权限范围）做预过滤。&lt;/p&gt;
+&lt;h3 id=&#34;-元数据过滤&#34;&gt;🔽 元数据过滤
+&lt;/h3&gt;&lt;p&gt;元数据过滤是另一个经常被忽视、但非常实用的检索增强手段。它的做法是在向量检索之前或之后，利用文档的元数据（如时间、来源、类别、作者、权限范围）做预过滤。&lt;/p&gt;
 &lt;p&gt;例如用户问&amp;quot;最新的产品定价策略&amp;quot;，可以先用元数据过滤出最近 3 个月的文档，再在这个子集内做向量检索。这样有两个直接好处：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;准确率更高&lt;/strong&gt;：先把明显不可能相关的数据排除掉。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;检索成本更低&lt;/strong&gt;：缩小候选集合后，召回与精排压力都会下降。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;元数据过滤对&amp;quot;&lt;strong&gt;精确条件 + 语义理解&lt;/strong&gt;&amp;ldquo;的混合型查询尤其有效，而现实业务中的问题，大多都属于这一类。&lt;/p&gt;
-&lt;h3 id=&#34;-后处理阶段的优化&#34;&gt;🔧 后处理阶段的优化
-&lt;/h3&gt;&lt;p&gt;检索完成后，在结果送进 &lt;strong&gt;LLM&lt;/strong&gt; 之前，还有一个重要的优化环节，就是&lt;strong&gt;后处理&lt;/strong&gt;。它的核心价值在于：用更精细的模型对检索结果做&amp;quot;二次筛选&amp;rdquo;，把真正相关的内容留下，把噪声过滤掉。&lt;/p&gt;
-&lt;h4 id=&#34;-rerank-重排序&#34;&gt;🔄 Rerank 重排序
-&lt;/h4&gt;&lt;p&gt;前面检索阶段的 &lt;strong&gt;Rank Fusion&lt;/strong&gt;，其目标通常是&lt;strong&gt;在海量文档中快速筛出一批大致相关的候选结果&lt;/strong&gt;，所以它更偏向效率，准确性不是最高。&lt;strong&gt;Rerank&lt;/strong&gt; 则会在这批候选结果上继续精排，挑出最匹配的问题上下文，再交给大模型使用。&lt;/p&gt;
+&lt;h2 id=&#34;-后处理阶段的优化&#34;&gt;🔧 后处理阶段的优化
+&lt;/h2&gt;&lt;p&gt;检索完成后，在结果送进 &lt;strong&gt;LLM&lt;/strong&gt; 之前，还有一个重要的优化环节，就是&lt;strong&gt;后处理&lt;/strong&gt;。它的核心价值在于：用更精细的模型对检索结果做&amp;quot;二次筛选&amp;rdquo;，把真正相关的内容留下，把噪声过滤掉。&lt;/p&gt;
+&lt;h3 id=&#34;-rerank-重排序&#34;&gt;🔄 Rerank 重排序
+&lt;/h3&gt;&lt;p&gt;前面检索阶段的 &lt;strong&gt;Rank Fusion&lt;/strong&gt;，其目标通常是&lt;strong&gt;在海量文档中快速筛出一批大致相关的候选结果&lt;/strong&gt;，所以它更偏向效率，准确性不是最高。&lt;strong&gt;Rerank&lt;/strong&gt; 则会在这批候选结果上继续精排，挑出最匹配的问题上下文，再交给大模型使用。&lt;/p&gt;
 &lt;p&gt;典型流程是：先用&lt;strong&gt;向量检索&lt;/strong&gt;做粗召回（比如返回 &lt;strong&gt;top-20&lt;/strong&gt;），再用专门的 &lt;strong&gt;&lt;code&gt;Cross-Encoder&lt;/code&gt;&lt;/strong&gt; 重排序模型对这 20 个结果逐一精排，重新排序后取 &lt;strong&gt;top-5&lt;/strong&gt; 送给 &lt;strong&gt;LLM&lt;/strong&gt;。&lt;/p&gt;
 &lt;p&gt;它的典型流程如下：&lt;/p&gt;
 &lt;ul&gt;
@@ -943,8 +745,8 @@
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;rag-rerank-two-stage.png&#34; alt=&#34;RAG 中的两阶段召回与精排&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
-&lt;h4 id=&#34;-contextual-compression-上下文压缩&#34;&gt;💾 Contextual Compression 上下文压缩
-&lt;/h4&gt;&lt;p&gt;**Contextual Compression（上下文压缩）**是另一种常见的后处理策略。检索回来的 &lt;code&gt;chunk&lt;/code&gt; 里，往往会有大量和查询无关的&amp;quot;水分&amp;rdquo;。例如一个 &lt;strong&gt;&lt;code&gt;500 token&lt;/code&gt;&lt;/strong&gt; 的 &lt;code&gt;chunk&lt;/code&gt; 中，真正与问题强相关的内容可能只有两三句话。&lt;/p&gt;
+&lt;h3 id=&#34;-contextual-compression-上下文压缩&#34;&gt;💾 Contextual Compression 上下文压缩
+&lt;/h3&gt;&lt;p&gt;**Contextual Compression（上下文压缩）**是另一种常见的后处理策略。检索回来的 &lt;code&gt;chunk&lt;/code&gt; 里，往往会有大量和查询无关的&amp;quot;水分&amp;rdquo;。例如一个 &lt;strong&gt;&lt;code&gt;500 token&lt;/code&gt;&lt;/strong&gt; 的 &lt;code&gt;chunk&lt;/code&gt; 中，真正与问题强相关的内容可能只有两三句话。&lt;/p&gt;
 &lt;p&gt;上下文压缩的思路，就是用 &lt;strong&gt;LLM&lt;/strong&gt; 或专门的提取模型，把每个 &lt;code&gt;chunk&lt;/code&gt; 中与查询相关的核心信息提取出来，压缩成更精炼的片段。这样做的价值很明确：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;减少输入 &lt;code&gt;token&lt;/code&gt; 数量&lt;/strong&gt;，从而降低生成成本。&lt;/li&gt;
@@ -953,8 +755,8 @@
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;LangChain&lt;/strong&gt; 的 &lt;code&gt;ContextualCompressionRetriever&lt;/code&gt; 就提供了开箱即用的实现。&lt;/p&gt;
 &lt;p&gt;当你已经把&lt;strong&gt;分块、索引、召回、重排&lt;/strong&gt;这些基础能力打磨到位后，再继续往上走，才值得考虑更复杂的增强路线。&lt;/p&gt;
-&lt;h4 id=&#34;-提示词优化&#34;&gt;📝 提示词优化
-&lt;/h4&gt;&lt;p&gt;高质量的**提示词（Prompt）**设计，可以显著提升 &lt;strong&gt;RAG&lt;/strong&gt; 的最终效果。常见做法包括：&lt;/p&gt;
+&lt;h3 id=&#34;-提示词优化&#34;&gt;📝 提示词优化
+&lt;/h3&gt;&lt;p&gt;高质量的**提示词（Prompt）**设计，可以显著提升 &lt;strong&gt;RAG&lt;/strong&gt; 的最终效果。常见做法包括：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;明确角色与任务&lt;/strong&gt;：清晰说明模型身份、能力边界与回答目标，例如要求模型只能基于提供资料作答。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;结构化组织输入&lt;/strong&gt;：将提示拆成&amp;quot;背景 + 问题 + 输出格式&amp;quot;之类的清晰结构。&lt;/li&gt;
@@ -990,6 +792,238 @@
 
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;rag-advanced-directions.png&#34; alt=&#34;RAG 的进阶方向&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+</description>
+        </item>
+        <item>
+        <title>RAG的基本概念和流程</title>
+        <link>https://Tyritic.github.io/p/rag%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E5%92%8C%E6%B5%81%E7%A8%8B/</link>
+        <pubDate>Sat, 03 May 2025 19:29:50 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/rag%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E5%92%8C%E6%B5%81%E7%A8%8B/</guid>
+        <description>&lt;h2 id=&#34;-业务背景&#34;&gt;🤖 业务背景
+&lt;/h2&gt;&lt;p&gt;随着自然语言处理技术的发展，纯生成式模型虽然已经能够生成较为流畅的文本，但在实际业务中仍然存在两个典型问题：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;知识局限性&lt;/strong&gt;：大模型的知识主要来源于训练数据，通常建立在互联网上的公开语料之上。对于实时性、私有化或离线场景中的知识，模型本身往往无法直接掌握。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;幻觉问题&lt;/strong&gt;：大模型的生成本质上仍然是概率计算。当模型缺少某个领域知识，或者面对自己并不擅长的问题时，就可能一本正经地输出错误结论。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;再往工程里看，这两个问题通常会进一步拆成三类约束：&lt;strong&gt;知识有截止日期、无法理解私域数据、缺少依据时容易产生幻觉&lt;/strong&gt;。这也是为什么很多企业在做问答机器人、知识助手、客服 Copilot 时，最终都会从&amp;quot;只靠模型记忆&amp;quot;转向&amp;quot;模型 + 外部知识库&amp;quot;的组合方案。&lt;/p&gt;
+&lt;div
+  class=&#34;notice info&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;92 59.5 300 300&#34;&gt;
+  &lt;path d=&#34;M292 303.25V272c0-3.516-2.734-6.25-6.25-6.25H267v-100c0-3.516-2.734-6.25-6.25-6.25h-62.5c-3.516 0-6.25 2.734-6.25 6.25V197c0 3.516 2.734 6.25 6.25 6.25H217v62.5h-18.75c-3.516 0-6.25 2.734-6.25 6.25v31.25c0 3.516 2.734 6.25 6.25 6.25h87.5c3.516 0 6.25-2.734 6.25-6.25Zm-25-175V97c0-3.516-2.734-6.25-6.25-6.25h-37.5c-3.516 0-6.25 2.734-6.25 6.25v31.25c0 3.516 2.734 6.25 6.25 6.25h37.5c3.516 0 6.25-2.734 6.25-6.25Zm125 81.25c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;引言&lt;/p&gt;
+  &lt;p&gt;可以先用一句话理解本文：&lt;strong&gt;RAG 的本质，是让大模型在回答前先检索资料，再基于资料作答，从&amp;quot;靠记忆回答&amp;quot;切换到&amp;quot;带依据回答&amp;quot;。&lt;/strong&gt;&lt;/p&gt;
+  &lt;/div&gt;
+
+&lt;hr&gt;
+&lt;h2 id=&#34;-什么是-rag&#34;&gt;📖 什么是 RAG
+&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;RAG（Retrieval-Augmented Generation，检索增强生成）&lt;/strong&gt; 是一种将 &lt;strong&gt;信息检索（Retrieval）&lt;/strong&gt; 与 &lt;strong&gt;文本生成（Generation）&lt;/strong&gt; 结合起来的 AI 方法，主要目标是提升 &lt;strong&gt;大语言模型（LLM）&lt;/strong&gt; 的知识覆盖范围与回答准确性。&lt;/p&gt;
+&lt;p&gt;可以把它理解成这样：&lt;strong&gt;模型在回答问题之前，先从知识库实时召回与用户query强相关的权威外部知识外部，再将检索结果精准注入大模型的生成上下文，让模型基于真实、权威的知识生成回答，而非仅依赖底座模型训练时学到的知识。从而“增强”其生成能力，而不是完全依赖自身参数里的旧知识。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;RAG 接受输入并根据来源（例如，维基百科）检索一组相关/支持的文档。这些文档作为上下文与原始输入提示连接，并馈送到文本生成器，生成最终输出。这使得 RAG 能够适应事实随时间变化的情况。这对于绕过 &lt;strong&gt;LLM&lt;/strong&gt; 的参数化知识静态性，通过基于检索的生成访问最新信息以生成可靠输出非常有用。&lt;/p&gt;
+&lt;p&gt;RAG 的核心价值主要体现在两个方面：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;检索&lt;/strong&gt;：根据用户输入，从外部知识库中检索与问题相关的文本片段，通常依赖 &lt;strong&gt;文本向量化&lt;/strong&gt; 和 &lt;strong&gt;向量数据库&lt;/strong&gt; 完成语义匹配。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;增强生成&lt;/strong&gt;：将检索到的知识作为上下文输入给大模型，让模型基于更准确、更贴近问题的信息生成答案，从而减少误导性输出。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如果换一个角度理解，RAG 更像是让模型在推理时&amp;quot;开卷考试&amp;quot;：模型本身不需要把所有知识都背下来，而是在回答前先把相关资料找出来，再基于资料作答。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;RAG简介.png&#34; alt=&#34;RAG简介&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;简而言之，RAG 检索到的证据可以作为提高 &lt;strong&gt;LLM&lt;/strong&gt; 响应准确度、可控性和相关性的手段。这就是为什么 RAG 可以帮助减少在高度演变环境中解决问题时出现的幻觉或表现问题&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;RAG典型工作流.png&#34; alt=&#34;RAG典型工作流&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;-为什么需要-rag&#34;&gt;🎯 为什么需要 RAG
+&lt;/h3&gt;&lt;p&gt;要理解 RAG，首先得理解它要解决的痛点。&lt;strong&gt;大语言模型&lt;/strong&gt; 的知识来源于预训练阶段吃过的语料，这套&amp;quot;参数化知识&amp;quot;有三个致命的缺陷。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;知识有截止日期&lt;/strong&gt;。GPT-4 的训练数据截止到某个时间点，之后发生的事情它一无所知。你问它&amp;quot;2024 年诺贝尔物理学奖给了谁&amp;quot;，它只能坦白说不知道。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;缺乏私域知识&lt;/strong&gt;。&lt;strong&gt;LLM&lt;/strong&gt; 训练用的是公开互联网数据，你公司内部的技术文档、客户档案、会议纪要、产品规格书——这些私有数据 LLM 从未见过，所以它也无法回答这类私有问题。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;幻觉问题&lt;/strong&gt;。当 &lt;strong&gt;LLM&lt;/strong&gt; 对某个问题没有足够的知识储备时，它有时不会老实说&amp;quot;我不知道&amp;quot;，而是会&amp;quot;一本正经地胡说八道&amp;quot;——用流畅自信的语言生成看起来合理但事实上错误的内容。这是因为 &lt;strong&gt;LLM&lt;/strong&gt; 的本质是一个概率语言模型，它优化的目标是&amp;quot;下一个 token 的概率&amp;quot;，而不是&amp;quot;事实的准确性&amp;quot;。这种幻觉在需要高准确性的场景（法律、医疗、金融）中是不可接受的。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;面对这三个缺陷，直觉上你可能会想：那把最新的数据、私域文档全部喂给模型重新训练不就好了？这就是 &lt;strong&gt;微调&lt;/strong&gt; 的思路。但微调有很高的门槛——需要 GPU 算力、需要整理训练数据、需要处理灾难性遗忘、训练完还要重新部署。而且每次数据更新都要重新微调，成本和周期都不现实。RAG 的诞生，本质上就是在说：能不能不动模型本身，而是在推理阶段给它&amp;quot;开卷考试&amp;quot;的机会？ 不要求模型记住所有知识，而是在需要的时候从外部知识库中检索相关信息，把检索结果作为上下文塞给模型，让它&amp;quot;带着资料回答问题&amp;quot;。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;RAG的破局思路.png&#34; alt=&#34;RAG 的破局思路&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;-rag-与微调的区别&#34;&gt;🧠 RAG 与微调的区别
+&lt;/h3&gt;&lt;p&gt;要理解RAG 和微调的对比，我们可以用一个形象的比喻。&lt;strong&gt;微调&lt;/strong&gt; 就像是给一个人&amp;quot;补课&amp;quot;——你改变的是他脑子里的知识结构和思维方式。微调后的模型，它的参数被永久性地更新了，它&amp;quot;记住&amp;quot;了新的知识或&amp;quot;学会&amp;quot;了新的行为模式。&lt;strong&gt;RAG&lt;/strong&gt; 则像是给一个人&amp;quot;发参考资料&amp;quot;——你没有改变他的能力，而是在他答题的时候递给他一叠相关材料，让他照着材料来回答。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;RAG&lt;/strong&gt; 更擅长解决&amp;quot;知识获取&amp;quot;问题，例如最新信息、企业私有文档、产品参数、库存状态、内部制度等。即模型需要用到的事实性信息——最新的数据、私域文档、具体的产品参数等。这些信息的特点是&amp;quot;需要查的，而不是需要学的&amp;quot;。你不需要让模型把你公司所有产品的参数都背下来，你只需要在用户问到某个产品时，帮它从数据库里检索出相关参数就好了。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;微调&lt;/strong&gt; 改变模型的行为模式和专业能力，更擅长解决&amp;quot;行为模式&amp;quot;问题，例如输出风格、领域术语习惯、复杂格式约束、某类推理偏好等。比如你想让一个通用模型学会用医学术语对话、学会用特定的语气风格回答、学会遵循某种复杂的输出格式、或者让它在某个专业领域（如法律条文解读）的推理能力更强——这些是微调的强项。因为这些本质上是在改变模型的&amp;quot;思维方式&amp;quot;，需要调整模型参数才能实现。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;所以在生产环境里，两者通常不是二选一，而是互补关系：&lt;strong&gt;微调负责改变模型能力边界，RAG 负责补充实时且可更新的事实知识。&lt;/strong&gt;&lt;/p&gt;
+&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th&gt;方案&lt;/th&gt;
+          &lt;th&gt;更擅长解决什么问题&lt;/th&gt;
+          &lt;th&gt;典型场景&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td&gt;RAG&lt;/td&gt;
+          &lt;td&gt;外部知识获取、实时信息补充、私域知识接入&lt;/td&gt;
+          &lt;td&gt;企业知识库问答、客服机器人、内部文档检索&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;微调&lt;/td&gt;
+          &lt;td&gt;输出风格、格式约束、领域表达习惯、行为模式塑造&lt;/td&gt;
+          &lt;td&gt;法律文书风格、客服回复模板、结构化输出&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;rag-vs-finetune.png&#34; alt=&#34;RAG 与微调的区别&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;-rag-的核心优势&#34;&gt;💡 RAG 的核心优势
+&lt;/h3&gt;&lt;p&gt;RAG 相比微调在&amp;quot;知识获取&amp;quot;层面有五大显著优势：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;知识实时更新，无需重新训练&lt;/strong&gt;：微调一次可能需要数天甚至数周，而 RAG 的知识更新只需要往 &lt;strong&gt;向量数据库&lt;/strong&gt; 里写入新数据，几分钟甚至几秒钟就完成了。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;大幅降低幻觉，生成内容可溯源&lt;/strong&gt;：RAG 通过在 &lt;strong&gt;Prompt&lt;/strong&gt; 中提供明确的参考信息，把 &lt;strong&gt;LLM&lt;/strong&gt; 的生成从&amp;quot;凭记忆编&amp;quot;变成了&amp;quot;照资料写&amp;quot;。更重要的是，RAG 天然支持引用溯源，用户可以验证信息的准确性。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;成本低、门槛低、落地快&lt;/strong&gt;：RAG 只需要一个 &lt;strong&gt;Embedding API&lt;/strong&gt;、一个 &lt;strong&gt;向量数据库&lt;/strong&gt;、一个 &lt;strong&gt;LLM API&lt;/strong&gt;，加上几百行代码，就能搭起一个可用的原型。针对垂直领域场景，不需要大量的微调数据，只需要构建对应的领域知识库，就能让模型适配垂直场景的问答需求，落地成本远低于全量微调。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;数据安全和权限控制&lt;/strong&gt;：RAG 天然支持在检索阶段根据用户身份过滤可访问的文档范围，确保模型只能&amp;quot;看到&amp;quot;该用户有权看到的资料。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;避免灾难性遗忘&lt;/strong&gt;：因为 RAG 根本不动模型参数，模型的通用能力完好无损，不会在新知识上训练后出现能力退化。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;RAG vs 微调.png&#34; alt=&#34;RAG 与微调的区别&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-核心流程&#34;&gt;🔄 核心流程
+&lt;/h2&gt;&lt;p&gt;RAG 的完整流程通常可以拆成 5 个核心阶段：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;数据准备&lt;/strong&gt;：清洗原始文档，并进行分块处理，例如把 PDF、Word 或网页文本切成可检索的片段。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;文本向量化&lt;/strong&gt;：使用 &lt;strong&gt;嵌入模型&lt;/strong&gt;（如 BERT、BGE）将文本转换为向量表示。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;索引存储&lt;/strong&gt;：将生成的向量写入 &lt;strong&gt;向量数据库&lt;/strong&gt;，例如 Milvus、Faiss、Elasticsearch。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;检索增强&lt;/strong&gt;：用户提问后，先把问题向量化，再检索相关文档片段。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;生成答案&lt;/strong&gt;：把检索结果与用户问题一起送给大模型，生成最终回答。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如果从系统设计视角再抽象一层，RAG 往往会被拆成 &lt;strong&gt;离线&lt;/strong&gt; 的 &lt;strong&gt;索引阶段&lt;/strong&gt; 和 &lt;strong&gt;在线&lt;/strong&gt; 的 &lt;strong&gt;检索阶段&lt;/strong&gt;、&lt;strong&gt;增强阶段&lt;/strong&gt;、&lt;strong&gt;生成阶段&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;索引阶段&lt;/strong&gt;：离线阶段把原始文档解析、切块、向量化后写入向量数据库，提前构建好可检索的知识底座。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;检索阶段&lt;/strong&gt;：在线阶段用户提问后，再用同一个嵌入模型把问题向量化，从大规模知识库里先召回一批候选内容。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;增强阶段&lt;/strong&gt;：增强涉及将检索段落中的上下文有效整合到当前生成任务中的过程，把检索结果变成模型真正能用的上下文。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;生成阶段&lt;/strong&gt;：让 &lt;strong&gt;LLM&lt;/strong&gt; 基于问题 + 增强后的上下文输出答案，形成模型的最终输出。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;如果从工程实现看，RAG 可以简化理解为两句话：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;离线阶段负责把知识&amp;quot;准备好&amp;quot;&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;在线阶段负责把知识&amp;quot;找出来并组织好&amp;quot;&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;image-20250504194757791.png&#34; alt=&#34;RAG 的基本流程&#34; width=&#34;85%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;进一步抽象后，RAG 也可以理解成三个阶段：&lt;strong&gt;索引阶段、查询阶段、增强生成阶段&lt;/strong&gt;。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;image-20250504195224385.png&#34; alt=&#34;RAG 的阶段&#34; width=&#34;80%&#34; /&gt;
+&lt;/div&gt;
+&lt;h2 id=&#34;-离线阶段&#34;&gt;🗂️ 离线阶段
+&lt;/h2&gt;&lt;p&gt;在离线阶段，在RAG系统中只有索引阶段。提前构建好可检索的知识底座。&lt;/p&gt;
+&lt;h3 id=&#34;-索引阶段&#34;&gt;🏗️ 索引阶段
+&lt;/h3&gt;&lt;p&gt;离线索引阶段是&amp;quot;备考&amp;quot;的过程，目的是把原始文档变成可以被高效检索的形式。
+在索引阶段，系统会先对原始文档进行解析，然后拆分为多个较小的文本块。接着，这些文本块会经过嵌入模型处理，转换成向量并存入向量数据库，为后续语义检索提供基础。&lt;/p&gt;
+&lt;h4 id=&#34;-文档加载与切分chunking&#34;&gt;📂 文档加载与切分（Chunking）
+&lt;/h4&gt;&lt;p&gt;文档加载前通常会对进行去噪处理，移除无用内容（如 HTML 标签、特殊字符）
+原始文档可能是 PDF、Word、网页、数据库记录等各种格式，首先要把它们统一解析成纯文本。然后，由于文档通常很长，而后续的 &lt;strong&gt;Embedding 模型&lt;/strong&gt; 和 &lt;strong&gt;LLM&lt;/strong&gt; 的上下文窗口都有长度限制，需要把长文档切分成较小的文本块（&lt;strong&gt;Chunk&lt;/strong&gt;）。切分策略是 RAG 工程中第一个需要仔细调优的点——切太大，检索精度下降（一个大 chunk 里可能只有一小段是相关的，其他全是噪声）；切太小，语义完整性被破坏（一句话被从中间截断，失去了上下文）。常见的策略包括按固定长度切分并设置重叠（&lt;strong&gt;Overlap&lt;/strong&gt;）、按自然段落或章节切分、以及基于语义相似度的动态切分。&lt;/p&gt;
+&lt;h4 id=&#34;-文本向量化embedding&#34;&gt;🧮 文本向量化（Embedding）
+&lt;/h4&gt;&lt;p&gt;一个 &lt;strong&gt;Embedding 模型&lt;/strong&gt;（如 OpenAI 的 text-embedding-3、BGE、E5 等）把每个文本块转换成一个高维向量。这个向量是文本块语义信息的数学表示——语义相近的文本块在向量空间中的距离也相近。这一步的关键是 Embedding 模型的质量，它直接决定了后续检索的准确率。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;1728219277.jpg&#34; alt=&#34;文本向量化示意图&#34; width=&#34;70%&#34; /&gt;
+&lt;/div&gt;
+&lt;h4 id=&#34;-存入向量数据库vector-database&#34;&gt;🗄️ 存入向量数据库（Vector Database）
+&lt;/h4&gt;&lt;p&gt;把所有文本块的向量及其对应的原文存入 &lt;strong&gt;向量数据库&lt;/strong&gt;（如 Milvus、Pinecone、Weaviate、Chroma 等）。向量数据库的核心能力是 &lt;strong&gt;ANN（Approximate Nearest Neighbor，近似最近邻搜索）&lt;/strong&gt; ——给定一个查询向量，能在毫秒级别从百万甚至亿级的向量中找到最相似的 &lt;strong&gt;Top-K&lt;/strong&gt; 个。&lt;/p&gt;
+&lt;p&gt;这里有两个工程细节非常关键：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;切块策略本身就是索引质量的一部分&lt;/strong&gt;。切得太粗会把多个知识点揉成一个向量，切得太碎又会让语义断裂。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;索引和查询必须使用同一个 Embedding 模型&lt;/strong&gt;。否则向量空间不一致，即使文本本身相关，也可能检索不到。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;rag-offline-online-flow.png&#34; alt=&#34;RAG 的离线索引和在线查询流程&#34; width=&#34;84%&#34; /&gt;
+&lt;/div&gt;
+&lt;div
+  class=&#34;notice tip&#34;
+  
+&gt;
+  &lt;p class=&#34;notice-title&#34;&gt;
+    &lt;span class=&#34;icon-notice baseline&#34;&gt;
+      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
+  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
+&lt;/svg&gt;
+
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;嵌入模型、文本向量化与向量数据库可以这样理解：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;嵌入模型&lt;/strong&gt;：把词、短语或句子转换成数值向量的工具，这些向量会尽可能保留文本的语义信息。例如在识物探趣项目中，使用的嵌入模型是 &lt;strong&gt;bge-small-zh-v1.5&lt;/strong&gt;，向量维度为 &lt;strong&gt;512&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;文本向量化&lt;/strong&gt;：把文本映射到高维空间中。语义相近的内容在空间中距离更近，语义差异较大的内容距离更远。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;向量数据库&lt;/strong&gt;：专门用于存储和管理高维向量的数据库，适合对文本、图片、音频等非结构化数据进行相似性搜索。&lt;/li&gt;
+&lt;/ul&gt;&lt;/div&gt;
+
+&lt;h2 id=&#34;-在线阶段&#34;&gt;🌐 在线阶段
+&lt;/h2&gt;&lt;p&gt;在在线阶段，在RAG系统中有检索阶段、增强阶段、生成阶段。其中检索阶段负责从向量数据库中检索相关知识，增强阶段负责把检索到的知识组织整理成模型输入，生成阶段负责把增强后的知识输入让模型输出符合用户需求的回答。&lt;/p&gt;
+&lt;h3 id=&#34;-检索阶段&#34;&gt;🔍 检索阶段
+&lt;/h3&gt;&lt;p&gt;在线查询阶段是&amp;quot;开卷考试&amp;quot;中翻书查看资料的过程，负责根据用户的问题从外部知识库中找出相关的信息片段。这个阶段通常会结合关键词检索、向量检索或混合检索等方式，从大量文档中召回一批候选内容，其核心目标是尽可能快速且准确地找到与当前问题最相关的知识，为后续回答提供可靠依据。&lt;/p&gt;
+&lt;h4 id=&#34;-查询向量化embedding&#34;&gt;📊 查询向量化（Embedding）
+&lt;/h4&gt;&lt;p&gt;用同一个 &lt;strong&gt;Embedding 模型&lt;/strong&gt; 把用户的问题转换成向量。注意这里必须用和索引阶段相同的模型，否则向量空间不一致，检索就会失效。&lt;/p&gt;
+&lt;h4 id=&#34;-相似度检索&#34;&gt;📍 相似度检索
+&lt;/h4&gt;&lt;p&gt;用问题向量在向量数据库中进行 &lt;strong&gt;ANN&lt;/strong&gt; 搜索，找到 &lt;strong&gt;Top-K&lt;/strong&gt; 个最相似的文本块。这些文本块就是系统认为和用户问题最相关的&amp;quot;参考资料&amp;quot;。实际工程中，这一步往往还会叠加一些增强策略，比如 &lt;strong&gt;混合检索&lt;/strong&gt;（同时用向量检索和关键词检索，取并集）、&lt;strong&gt;重排序&lt;/strong&gt;（用一个 Cross-encoder 模型对 Top-K 结果做精排）、&lt;strong&gt;查询改写&lt;/strong&gt;（用 LLM 对用户原始问题做扩展或改写以提高召回率）等。&lt;/p&gt;
+&lt;p&gt;检索阶段会先把用户问题通过 &lt;strong&gt;嵌入模型&lt;/strong&gt; 转换为向量，再与 &lt;strong&gt;向量数据库&lt;/strong&gt; 中的知识向量进行相似度比对。系统会从中找出最匹配的前 &lt;code&gt;K&lt;/code&gt; 条结果，作为后续生成阶段的参考上下文。&lt;/p&gt;
+&lt;h3 id=&#34;-增强阶段&#34;&gt;⚙️ 增强阶段
+&lt;/h3&gt;&lt;p&gt;增强阶段系统将检索段落中的上下文有效整合到当前生成任务中的过程。增强的目的是将召回到的候选内容整理成大模型可以直接利用的上下文，最终构造成适合输入给模型的 &lt;strong&gt;Prompt&lt;/strong&gt;，使模型能够在更充分、更准确的上下文中完成回答。&lt;/p&gt;
+&lt;p&gt;RAG 的增强可以在预训练、微调和推理等不同阶段应用&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;augmentation Stages: RETRO 是一个利用检索增强进行大规模从头预训练的系统示例；它使用了基于外部知识的附加编码器。RAG 还可以与微调结合使用，以帮助开发和提高 RAG 系统的有效性。在推理阶段，应用了许多技术来有效地结合检索内容，以满足特定任务需求，并进一步细化 RAG 过程&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;增强数据源：RAG 模型的效果受增强数据源的选择影响很大。数据可以分为无结构、结构化和 LLM 生成的数据&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;增强过程：对于许多问题（例如多步推理），一次检索是不够的，因此已经提出了几种方法&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;迭代检索使模型能够进行多次检索循环，以增强信息的深度和相关性。利用这种方法的知名方法包括 RETRO 和 GAR-meets-RA&lt;/li&gt;
+&lt;li&gt;递归检索递归地将上一步检索的输出作为下一步检索的输入；这使得对于复杂和多步查询（例如学术研究和法律案例分析）能够更深入地挖掘相关信息。利用这种方法的知名方法包括 IRCoT 和澄清树&lt;/li&gt;
+&lt;li&gt;适应性检索根据特定需求调整检索过程，确定检索的最佳时机和内容。利用这种方法的知名方法包括 FLARE 和 Self-RAG&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-生成阶段&#34;&gt;✨ 生成阶段
+&lt;/h3&gt;&lt;p&gt;生成阶段是 RAG 流程的最后一步，在这个阶段 &lt;strong&gt;大语言模型&lt;/strong&gt; 将基于用户问题和增强后的上下文内容生成最终答案。在这一阶段，模型不再单纯依赖自身参数中的知识，而是结合外部检索到的信息进行组织、推理和表达，从而输出更准确、更具时效性且更贴合问题需求的回答。这个过程涉及多样化的输入数据，有时需要努力调整语言模型以适应来自查询和文档的输入数据。这可以通过后检索处理和微调来解决：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Post-retrieval with Frozen LLM&lt;/strong&gt;：Post-retrieval 处理不会影响 LLM，而是通过信息压缩和结果重排序等操作来提升检索结果的质量。信息压缩有助于减少噪声、解决 LLM 的上下文长度限制问题，并增强生成效果。重排序旨在重新排列文档，以使最相关的内容排在前面。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;使用 LLM 进行 RAG 微调&lt;/strong&gt;：为了改进 RAG 系统，生成器可以进一步优化或微调，以确保生成的文本自然且有效地利用了检索到的文档。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;80d5236e087e619edced930b19fb653a.png&#34; alt=&#34;增强生成阶段&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
 </description>
         </item>
