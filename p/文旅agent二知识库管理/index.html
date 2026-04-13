@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="文旅Agent系列第二篇，详解知识库管理模块的设计与实现">
+<title>文旅Agent（二）知识库管理</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/%E6%96%87%E6%97%85agent%E4%BA%8C%E7%9F%A5%E8%AF%86%E5%BA%93%E7%AE%A1%E7%90%86/'>
+
+<link rel="stylesheet" href="/scss/style.min.95b3e8a9f429a3f591b1715d9326402e4d295cd4792b2a9f889894b865231684.css"><meta property='og:title' content="文旅Agent（二）知识库管理">
+<meta property='og:description' content="文旅Agent系列第二篇，详解知识库管理模块的设计与实现">
+<meta property='og:url' content='https://Tyritic.github.io/p/%E6%96%87%E6%97%85agent%E4%BA%8C%E7%9F%A5%E8%AF%86%E5%BA%93%E7%AE%A1%E7%90%86/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='' /><meta property='article:published_time' content='2026-03-26T16:54:00&#43;08:00'/><meta property='article:modified_time' content='2026-04-13T17:04:02&#43;00:00'/>
+<meta name="twitter:title" content="文旅Agent（二）知识库管理">
+<meta name="twitter:description" content="文旅Agent系列第二篇，详解知识库管理模块的设计与实现">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_691afbb6233f07b9.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#-知识库管理简介">🧠 知识库管理简介</a>
+      <ol>
+        <li><a href="#-什么是知识库">🔍 什么是知识库</a></li>
+        <li><a href="#-知识库的核心目标">💡 知识库的核心目标</a>
+          <ol>
+            <li><a href="#-支撑rag精准检索减少幻觉">🎯 支撑RAG精准检索，减少幻觉</a></li>
+            <li><a href="#-知识沉淀与跨场景复用">🧩 知识沉淀与跨场景复用</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#文件管理">文件管理</a>
+      <ol>
+        <li><a href="#文件上传">文件上传</a></li>
+        <li><a href="#文件存储层">文件存储层</a></li>
+      </ol>
+    </li>
+    <li><a href="#-离线流程">🔄 离线流程</a>
+      <ol>
+        <li><a href="#-文档加载">📚 文档加载</a></li>
+        <li><a href="#-文档分片策略">📏 文档分片策略</a></li>
+        <li><a href="#-向量索引构建">🗂️ 向量索引构建</a>
+          <ol>
+            <li><a href="#-向量数据库选择">🗄️ 向量数据库选择</a></li>
+            <li><a href="#-embedding模型选取">🤖 Embedding模型选取</a></li>
+            <li><a href="#-向量索引类型">📊 向量索引类型</a></li>
+            <li><a href="#-向量索引实现">⚙️ 向量索引实现</a></li>
+            <li><a href="#增量索引">增量索引</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#-在线流程">⚡ 在线流程</a>
+      <ol>
+        <li><a href="#-查询加工">🔦 查询加工</a></li>
+        <li><a href="#-粗排阶段">🎖️ 粗排阶段</a>
+          <ol>
+            <li><a href="#-元数据过滤">📋 元数据过滤</a></li>
+            <li><a href="#-混合检索与多路召回">🔀 混合检索与多路召回</a></li>
+            <li><a href="#-rerank-重排序">🏅 ReRank 重排序</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#-总体链路">🛤️ 总体链路</a></li>
+    <li><a href="#-rag安全权限设计">🔒 RAG安全权限设计</a>
+      <ol>
+        <li><a href="#-接入层身份认证">🔐 接入层身份认证</a></li>
+        <li><a href="#-检索层向量数据库过滤">🔎 检索层向量数据库过滤</a></li>
+        <li><a href="#-返回层二次验证">✅ 返回层二次验证</a></li>
+      </ol>
+    </li>
+    <li><a href="#-评估过程">📉 评估过程</a>
+      <ol>
+        <li><a href="#-测试集的构建">🧪 测试集的构建</a></li>
+        <li><a href="#-评估框架">🧪 评估框架</a></li>
+      </ol>
+    </li>
+    <li><a href="#-评估结果">📉 评估结果</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/%E4%B8%AA%E4%BA%BA%E9%A1%B9%E7%9B%AE/" style="background-color: #2a9d8f; color: #fff;">
+                个人项目
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/%E6%96%87%E6%97%85agent%E4%BA%8C%E7%9F%A5%E8%AF%86%E5%BA%93%E7%AE%A1%E7%90%86/">文旅Agent（二）知识库管理</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            文旅Agent系列第二篇，详解知识库管理模块的设计与实现
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-03-26</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 25 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：12280 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="-知识库管理简介">🧠 知识库管理简介
+</h2><p>在前面，我们介绍了文旅Agent的整体架构和目标功能。其中，<strong>知识库管理模块</strong>是整个系统的核心组成部分之一，它为大模型提供了可靠的知识来源，实现了文旅内容资产的持续沉淀和高效复用。</p>
+<h3 id="-什么是知识库">🔍 什么是知识库
+</h3><p>知识库（Knowledge Base）是一个结构化的信息存储系统，用于保存和管理组织的知识资产。在文旅Agent中，知识库主要存储以下类型的内容：</p>
+<ul>
+<li><strong>展品图录与讲解资料</strong>：展品背景、历史沿革、艺术特点、相关故事</li>
+<li><strong>景区与场馆资料</strong>：开放时间、场馆分布、服务说明、参观须知</li>
+<li><strong>活动与展览信息</strong>：临展安排、主题活动、票务规则、导览路线</li>
+<li><strong>文旅内容文档</strong>：策展文案、讲解词、FAQ、对外宣传材料</li>
+<li><strong>服务与推荐知识</strong>：常见咨询问题、路线建议、面向不同用户群体的推荐策略</li>
+</ul>
+<h3 id="-知识库的核心目标">💡 知识库的核心目标
+</h3><p>知识库Agent的核心目标，是作为文旅内容管理和AI应用的基础设施，通过自动化流程，将我们日常积累的文档（比如 <code>PDF</code>、<code>Markdown</code>、<code>DOCX</code>、展品图录、景区资料、导览讲解词等），转化为可被AI高效检索的向量资产。它实现了文档上传后的全流程自动化处理，避免了传统手动整理和向量化的繁琐操作。这个过程为后续的RAG（检索增强生成）机制提供了高质量的数据底座。</p>
+<p>同时直接使用大模型存在诸多局限性，而知识库可以有效解决这些问题：</p>
+<ul>
+<li><strong>上下文窗口限制</strong>：大模型的上下文窗口有限，无法一次性加载所有知识。知识库通过检索相关片段，让大模型在需要时获取准确信息</li>
+<li><strong>知识时效性</strong>：大模型的知识有截止日期，无法及时更新。知识库可以实时更新，确保信息的时效性</li>
+<li><strong>领域专业性</strong>：通用大模型对文旅场景中的展品知识、场馆规则和项目资料了解有限。知识库可以补充垂直领域的专有知识</li>
+<li><strong>回答准确性</strong>：通过检索增强生成（RAG），可以大幅降低大模型的幻觉问题，提高回答的准确性</li>
+</ul>
+<h4 id="-支撑rag精准检索减少幻觉">🎯 支撑RAG精准检索，减少幻觉
+</h4><p>知识库Agent最大的价值，是作为RAG技术的可靠数据底座。它确保了AI的回答能够言之有物，
+避免瞎猜。</p>
+<ul>
+<li>相似性检索：无论是对话Agent回答游客咨询，还是旅游服务Agent生成讲解与推荐，知识库都能通过向量数据库的相似性匹配算法，快速返回最相关、最准确的文档片段。例如：当对话Agent回答“这件青铜器有什么历史背景”时，它可以直接定位到展品图录里的对应章节；当用户追问“这个展厅适合带小朋友重点看什么”时，系统也能匹配到导览资料和活动说明中的相关内容。</li>
+<li>检索结果增强:返回的结果都会附带文档来源、章节位置等元信息，这不仅方便用户验证答
+案的准确性，也为RAG的大模型生成最终回答提供了可靠的依据。</li>
+</ul>
+<h4 id="-知识沉淀与跨场景复用">🧩 知识沉淀与跨场景复用
+</h4><p>知识库Agent将散落的展品资料、导览文案、活动说明、游客常见问题等转化为统一的向量资产，实现了知识的
+结构化和集中化。</p>
+<ul>
+<li>团队知识资产化:通过自动存储和更新知识，它让策展、讲解、导览和内容运营中积累下来的经验不再只停留在个人记忆里，而是能沉淀成可持续复用的数字资产。</li>
+<li>一次入库，多端受益:知识库Agent的向量库具有通用性，能够无缝对接多个上层应用，实现一次存储、多Agent调用。例如，一次上传的《特展导览手册》:
+<ul>
+<li>既能支撑对话Agent回答游客关于展品、路线和活动安排的问题。</li>
+<li>也能让旅游服务Agent在做个性化讲解和内容推荐时调用。</li>
+<li>甚至可以赋能展馆小程序、导览终端等入口，实现自动问答和讲解服务。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="文件管理">文件管理
+</h2><h3 id="文件上传">文件上传
+</h3><ul>
+<li>业务层面，我们限制单次上传不超过 20 个文件，单文件不超过 50MB。大部分用户上传的是 PDF 和 Word，50MB 基本覆盖了 99% 的文档。</li>
+<li>系统层面，真正的瓶颈在文档解析和向量化。一个 50MB 的 PDF 可能有几百页，解析成文本、切分成 chunk、逐个向量化，整个流程下来可能要几分钟。如果用户一次上传 20 个这种大文件，后台任务队列会堆积。</li>
+</ul>
+<p>针对任务堆积做了异步处理。用户上传后立刻返回成功，后台用 Kafka 慢慢消化。前端有个进度条，处理完了会通知用户。</p>
+<h3 id="文件存储层">文件存储层
+</h3><p>项目的架构是 MySQL 存文档元数据，Milvus 存向量和关键词，两者配合。</p>
+<ul>
+<li>MySQL 存文档元数据——文件名、文件路径、上传时间、文档分类、所属用户这些。不存向量。所以 MySQL 这边没有大字段，存储压力很小，单表就能扛住。</li>
+<li>Milvus存储向量数据，向量数据可能比较大</li>
+</ul>
+<h2 id="-离线流程">🔄 离线流程
+</h2><p>在离线阶段，系统会自动处理用户上传的文档，将其转换为向量资产，存储到知识库中。系统会根据文档的元数据，构建索引，方便后续的检索。</p>
+<h3 id="-文档加载">📚 文档加载
+</h3><p>Eino提供了统一的文档加载器Document Loader，可以在Document Loader中配置不同的解析器，根据文件类型选择合适的解析器。</p>
+<ul>
+<li><strong>TextParser</strong>：最基础的文本解析器，将输入内容直接作为文档内容，适配 Markdown 格式的文档。</li>
+<li><strong>DocxParser</strong>：将 Word 文档转换为多个 section，适配 Word 格式的文档。</li>
+<li><strong>PDFParser</strong>：将 PDF 文件转换为多个页面，适配 PDF 格式的文档。</li>
+<li><strong>HTMLParser</strong>：将 HTML 文件转换为纯文本，适配 HTML 格式的文档。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">NewDocumentLoader</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">fileloader</span><span class="p">.</span><span class="nx">FileLoader</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 同时它也作为兜底解析器，在遇到未注册扩展名时仍能尝试按纯文本解析。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">textParser</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">parser</span><span class="p">.</span><span class="nx">TextParser</span><span class="p">{}</span><span class="w"> </span><span class="c1">// 最基础的纯文本解析器，适配Markdown文件</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// HTML 解析器。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">bodySelector</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="s">&#34;body&#34;</span><span class="w"> </span><span class="c1">// 提取 &lt;body&gt; 内的正文</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">htmlParser</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">htmlparser</span><span class="p">.</span><span class="nf">NewParser</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">htmlparser</span><span class="p">.</span><span class="nx">Config</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">Selector</span><span class="p">:</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">bodySelector</span><span class="p">,</span><span class="w"> </span><span class="c1">// 指定“提取哪一部分 HTML 内容”</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// PDF 解析器。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">pdfParser</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">pdfparser</span><span class="p">.</span><span class="nf">NewPDFParser</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">pdfparser</span><span class="p">.</span><span class="nx">Config</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">ToPages</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="c1">// 按页拆分 PDF，每一页生成一个 Document。更适合后续知识库切分、定位和召回，便于控制单个 chunk 大小</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// DOCX 解析器。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">docxParser</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">docxparser</span><span class="p">.</span><span class="nf">NewDocxParser</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">docxparser</span><span class="p">.</span><span class="nx">Config</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">ToSections</span><span class="p">:</span><span class="w">      </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="c1">// 按 Word 文档内部结构拆成多个 section，便于后续分块和索引。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">IncludeComments</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="c1">// 不提取批注，避免把审阅痕迹、协作噪声混进知识库。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">IncludeHeaders</span><span class="p">:</span><span class="w">  </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="c1">// 不提取页眉，避免重复标题、公司名、模板信息污染内容。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">IncludeFooters</span><span class="p">:</span><span class="w">  </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="c1">// 不提取页脚，避免页码、版权声明等无关信息进入知识库。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">IncludeTables</span><span class="p">:</span><span class="w">   </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="c1">// 提取表格内容。很多业务文档的重要信息都在表格里，通常建议保留。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// ExtParser 根据文件扩展名分派不同的解析器。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">extensionParser</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">parser</span><span class="p">.</span><span class="nf">NewExtParser</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">parser</span><span class="p">.</span><span class="nx">ExtParserConfig</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">Parsers</span><span class="p">:</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">parser</span><span class="p">.</span><span class="nx">Parser</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="c1">// Markdown 文件按纯文本解析，后续如果需要结构化切分，</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="s">&#34;.md&#34;</span><span class="p">:</span><span class="w">       </span><span class="nx">textParser</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="s">&#34;.markdown&#34;</span><span class="p">:</span><span class="w"> </span><span class="nx">textParser</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="c1">// Word 文档使用 docx 专用解析器。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="s">&#34;.docx&#34;</span><span class="p">:</span><span class="w"> </span><span class="nx">docxParser</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="c1">// PDF 文档使用 pdf 专用解析器。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="s">&#34;.pdf&#34;</span><span class="p">:</span><span class="w"> </span><span class="nx">pdfParser</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="c1">// HTML / HTM 文档使用 html 专用解析器。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="s">&#34;.html&#34;</span><span class="p">:</span><span class="w"> </span><span class="nx">htmlParser</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// FallbackParser 是兜底解析器。尝试按普通文本读取，而不是直接报错。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">FallbackParser</span><span class="p">:</span><span class="w"> </span><span class="nx">textParser</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// FileLoader 是本地文件加载器。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">fileloader</span><span class="p">.</span><span class="nf">NewFileLoader</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">fileloader</span><span class="p">.</span><span class="nx">FileLoaderConfig</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">UseNameAsID</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="c1">// 使用文件名作为 Document ID。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">Parser</span><span class="p">:</span><span class="w">      </span><span class="nx">extensionParser</span><span class="p">,</span><span class="w"> </span><span class="c1">// 指定刚才构建好的 extensionParser，让 loader 具备多格式解析能力。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="-文档分片策略">📏 文档分片策略
+</h3><p>项目采用基于文档结构的递归语义切分策略。利用文档自身的结构信息。Markdown 文档有标题层级，HTML 有标签结构，PDF 有段落和章节。按这些天然边界来切块，既简单又有效。这种方法特别适合结构化程度高的文档，例如技术文档、产品手册、法律合同等。</p>
+<p>项目的核心思想是先识别文档结构（章节标题、子标题、段落、表格、图片），然后按语义单元切分 —— 一个章节就是一个 Chunk（如果不超长的话），表格整块保留，列表项跟前导句合并。超长的章节再递归按子标题或段落切分。</p>
+<p>项目设置的Chunk Size 为 512 token。Overlap 为 100 token。</p>
+<ul>
+<li>识别文档层级结构:先理解文档结构，再决定在哪切
+<ul>
+<li>按结构化文档标题划分，例如Markdown 的二级标题（<code>##</code>）切，每个 <strong>chunk</strong> 就是一个完整的章节，语义自然完整。</li>
+<li>正则匹配常见编号模式</li>
+</ul>
+</li>
+<li>按语义单元切分:识别出层级结构后，切分逻辑变成了递归
+<ul>
+<li>如果一个章节的 token 数 ≤ Chunk Size ，整个章节作为一个 Chunk，不切。</li>
+<li>如果超过 Chunk Size，看有没有子标题。有的话按子标题切分，每个子章节再递归判断。</li>
+<li>如果没有子标题，按段落累积——段落逐个加入，直到接近 Chunk Size token 就封一个 Chunk。</li>
+<li>如果单个段落就超过 Chunk Size（极端情况），最后才按句子边界切分。</li>
+<li>表格和代码块作为不可拆分单元——无论多长，不在中间截断。如果单个表格超过 Chunk Size token，单独作为一个 Chunk。</li>
+</ul>
+</li>
+<li>语义完整性检查:切完之后不是直接用，还要做一轮检查——相邻的两个 Chunk 之间是不是被错误地断开了。
+<ul>
+<li>chunk 以冒号结尾 → 后面大概率是列表</li>
+<li>chunk 是列表项编号开头</li>
+<li>chunk 以转折词开头</li>
+</ul>
+</li>
+<li>动态 Overlap:基于句子边界的 overlap，找到前一个 Chunk 末尾最近的句号位置，从那之后开始 overlap。这样每个 Chunk 的 overlap 部分都是完整的句子。</li>
+<li>特殊元素处理
+<ul>
+<li>表格：不能直接整块保留，小表格直接整块作为一个 Chunk。对于远超 Chunk 上限的大表格，如果表格有分组（比如&quot;基本责任&quot;&ldquo;可选责任&quot;两组），按分组切分，每组带上完整表头。如果没有分组，按固定行数切分，但每个 Chunk 都复制表头。</li>
+<li>图片：不能直接丢掉，利用多模态模型，流程图和示意图生成文本描述，描述作为 Chunk 入库，数据图表提取结构化数据</li>
+</ul>
+</li>
+<li>Chunk 的元数据设计:Chunk 不只是一段文本。每个 Chunk 都应该带上丰富的元数据，这些元数据在检索和展示时都有用</li>
+</ul>
+<p>由于Eino框架的限制，只能自定义一个Document Transformer。</p>
+<h3 id="-向量索引构建">🗂️ 向量索引构建
+</h3><p>使用Embedding模型把每个文本块转换成一个高维向量。这个向量是文本块语义信息的数学表示 —— 语义相近的文本块在向量空间中的距离也相近。这一步的关键是 Embedding 模型的质量，它直接决定了后续检索的准确率。然后把所有文本块的向量及其对应的原文存入 向量数据库（如 Milvus、Pinecone、Weaviate、Chroma 等）。向量数据库的核心能力是 ANN（Approximate Nearest Neighbor，近似最近邻搜索） —— 给定一个查询向量，能在毫秒级别从百万甚至亿级的向量中找到最相似的 Top-K 个。</p>
+<h4 id="-向量数据库选择">🗄️ 向量数据库选择
+</h4><p>本项目的向量数据库采用Milvus。Milvus是一个基于向量的数据库，支持高维度向量的存储和检索。它提供了丰富的索引类型，如IVF、NSW等，能够高效地处理大规模的向量数据。
+Milvus配置如下</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// IndexConfig 是知识库向量索引的统一配置。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">IndexConfig</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">MilvusAddress</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="c1">// Milvus 服务地址</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">CollectionName</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="c1">// collection 名称</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">CollectionDesc</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="c1">// collection 描述</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// ========== Dense Vector 配置 ==========</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">EnableDense</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="c1">// 是否启用密集向量索引</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">VectorField</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="c1">// 向量字段名称</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">VectorDim</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="c1">// 稠密向量维度，必须和 embedding 模型输出维度一致。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">MetricType</span><span class="w"> </span><span class="nx">entity</span><span class="p">.</span><span class="nx">MetricType</span><span class="w"> </span><span class="c1">// 向量距离度量方式</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">HNSWM</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="c1">// HNSW 索引参数 M 控制图中每个节点最大连接数，影响召回和索引大小。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">HNSWEFConstruction</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="c1">// HNSW 建索引参数 efConstruction，值越大，索引质量通常越高，但建索引更慢。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// ========== Sparse / BM25 配置 ==========</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">EnableBM25</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="c1">// 是否启用稀疏向量索引</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">SparseVectorField</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="c1">// 稀疏向量字段名称</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">BM25MetricType</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="c1">// BM25 度量方式</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">AnalyzerName</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="c1">// 分词器名称</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">EnableAnalyzer</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="c1">// 是否启用分词器</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">EnableHybridSearch</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="c1">// 是否启用混合搜索</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">HybridTopK</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="c1">// 混合搜索 Top-K 数量</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">HybridFusionK</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="c1">// 混合搜索融合 Top-K 数量</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// ========== Collection 通用配置 ==========</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">ConsistencyLevel</span><span class="w"> </span><span class="nx">entity</span><span class="p">.</span><span class="nx">ConsistencyLevel</span><span class="w"> </span><span class="c1">// 一致性级别</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">EnableDynamicSchema</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="c1">// 是否启用动态 schema</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">ShardNum</span><span class="w"> </span><span class="kt">int32</span><span class="w"> </span><span class="c1">// 创建 collection 时的 shard 数。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// DefaultIndexConfig 返回一套默认文旅知识库配置。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">DefaultIndexConfig</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">IndexConfig</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">IndexConfig</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">MilvusAddress</span><span class="p">:</span><span class="w">       </span><span class="s">&#34;localhost:19530&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">CollectionName</span><span class="p">:</span><span class="w">      </span><span class="s">&#34;knowledge_chunks&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">CollectionDesc</span><span class="p">:</span><span class="w">      </span><span class="s">&#34;cultural tourism knowledge base chunks&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// Dense Vector</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">EnableDense</span><span class="p">:</span><span class="w">         </span><span class="kc">true</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">VectorField</span><span class="p">:</span><span class="w">         </span><span class="s">&#34;vector&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">VectorDim</span><span class="p">:</span><span class="w">           </span><span class="mi">1024</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">MetricType</span><span class="p">:</span><span class="w">          </span><span class="nx">entity</span><span class="p">.</span><span class="nx">COSINE</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">HNSWM</span><span class="p">:</span><span class="w">               </span><span class="mi">16</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">HNSWEFConstruction</span><span class="p">:</span><span class="w">  </span><span class="mi">200</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// BM25 / Sparse</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">EnableBM25</span><span class="p">:</span><span class="w">          </span><span class="kc">true</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">SparseVectorField</span><span class="p">:</span><span class="w">   </span><span class="s">&#34;sparse_vector&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">BM25MetricType</span><span class="p">:</span><span class="w">      </span><span class="s">&#34;BM25&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">AnalyzerName</span><span class="p">:</span><span class="w">        </span><span class="s">&#34;standard&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">EnableAnalyzer</span><span class="p">:</span><span class="w">      </span><span class="kc">true</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// Hybrid Search</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">EnableHybridSearch</span><span class="p">:</span><span class="w">  </span><span class="kc">true</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">HybridTopK</span><span class="p">:</span><span class="w">          </span><span class="mi">20</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">HybridFusionK</span><span class="p">:</span><span class="w">       </span><span class="mi">60</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// Collection 通用配置</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">ConsistencyLevel</span><span class="p">:</span><span class="w">    </span><span class="nx">entity</span><span class="p">.</span><span class="nx">ClBounded</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">EnableDynamicSchema</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">ShardNum</span><span class="p">:</span><span class="w">            </span><span class="mi">1</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="-embedding模型选取">🤖 Embedding模型选取
+</h4><p>在文旅Agent中，我们选择 <code>BGE-M3</code> 作为Embedding模型，主要考虑以下因素：</p>
+<ul>
+<li><strong>语义理解能力</strong>：能够准确理解文旅场景中的展品、景区、活动等相关语义</li>
+<li><strong>向量化质量</strong>：相似文本的向量距离更近</li>
+<li><strong>维度适中</strong>：1024维，兼顾存储和计算效率</li>
+<li><strong>开源可部署</strong>：支持本地部署，保证数据安全</li>
+</ul>
+<p><strong>Embedding配置</strong>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">EmbedderConfig</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Model</span><span class="p">:</span><span class="w">       </span><span class="s">&#34;BGE-M3&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Dimensions</span><span class="p">:</span><span class="w">  </span><span class="mi">1024</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">BatchSize</span><span class="p">:</span><span class="w">   </span><span class="mi">32</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">MaxRetries</span><span class="p">:</span><span class="w">  </span><span class="mi">3</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="-向量索引类型">📊 向量索引类型
+</h4><p>本项目的向量数据库采用Milvus。Milvus是一个基于向量的数据库，支持高维度向量的存储和检索。它提供了丰富的索引类型，如IVF、NSW等，能够高效地处理大规模的向量数据。</p>
+<ul>
+<li>向量的数据类型选择FloatVector，每个向量的维度为1024维。主流文本 embedding 模型天然输出浮点向量</li>
+<li>度量方式选择余弦相似度(Cosine Similarity)。</li>
+<li>向量检索算法选择近似最近邻索引算法(HNSW)。提前构建图结构来组织向量，查询时不用和全库每个向量逐个比较，而是在图里快速跳转，逼近最相似的结果。在低延迟和召回效果之间通常更适合在线 RAG 场景。HNSW 索引有两个关键参数：m（每层的邻居数）和 ef_search（检索时的候选数）。m 越大索引越准但占用内存越多，ef_search 越大检索越准但越慢。我们实测下来 m=16、ef_search=100 在准确率和延迟之间是比较好的平衡。”</li>
+</ul>
+<p>####引设计
+在 Milvus 里，schema 用来规定一个 collection 里有哪些字段、每个字段的数据类型是什么、哪个是主键、哪个是向量字段、字符串最大长度是多少、向量维度是多少，是否有分区键等。
+也就是说collection对应MySQL中的实体表，schema对应表的结构</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;collection&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;knowledge_chunks&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;知识库切分后的 chunk 集合&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;用于存储文档切分后的文本片段、稠密向量、BM25 稀疏向量和检索元数据，支撑混合检索、过滤、版本治理和上下文拼装&#34;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;fields&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;id&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;chunk 唯一主键&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;VarChar&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;唯一标识一条向量记录，便于删除、更新、追踪&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;设计过程&#34;</span><span class="p">:</span> <span class="s2">&#34;用 doc_id + chunk_no + version 生成&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;kb_id&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;知识库 ID&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;VarChar&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;多知识库隔离&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;tenant_id&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;租户 ID&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;VarChar&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;多租户隔离&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;doc_id&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;原始文档 ID&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;VarChar&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;把 chunk 归属到某个源文档，便于文档级重建与删除&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;source&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;原始来源&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;VarChar&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;保存文件路径、URL、对象存储 key&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;title_path&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;章节路径&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;VarChar&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;保存文档结构路径，比如 产品手册 / 安装说明 / 环境准备&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;chunk_type&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;chunk 类型&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;VarChar&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;区分 section、paragraph、table、code、image_desc&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;page_no&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;页码&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;Int64&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;适用于 PDF / DOCX 等分页文档&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;chunk_no&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;文档内 chunk 顺序号&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;Int64&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;恢复上下文顺序、支持相邻块拼接&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;content&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;chunk 正文&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;VarChar&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;召回后直接用于展示和拼 prompt，同时作为 BM25 分词和稀疏向量生成的来源字段&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;配置要求&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;enable_analyzer&#34;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;analyzer_params&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">          <span class="nt">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;standard&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;vector&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;稠密文本向量&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;FloatVector&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;语义检索核心字段&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;设计建议&#34;</span><span class="p">:</span> <span class="s2">&#34;向量维度必须与 Embedding 模型输出维度严格一致&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;sparse_vector&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;BM25 稀疏向量&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;SparseFloatVector&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;用于关键词检索和混合检索中的稀疏召回&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;设计建议&#34;</span><span class="p">:</span> <span class="s2">&#34;由 Milvus 服务端基于 content 自动生成，需要 Milvus 2.5+&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;version&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;文档版本&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;Int64&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;支持版本治理和重建&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;is_deleted&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;软删除标记&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;Bool&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;不要物理删库时很有用&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;created_at&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;创建时间戳&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;Int64&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;审计、治理、增量同步&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;updated_at&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;更新时间戳&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;Int64&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;重建和数据一致性管理&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;metadata&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;含义&#34;</span><span class="p">:</span> <span class="s2">&#34;扩展 JSON 元数据&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;类型&#34;</span><span class="p">:</span> <span class="s2">&#34;JSON&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;作用&#34;</span><span class="p">:</span> <span class="s2">&#34;保存不常过滤但又需要保留的信息&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;设计建议&#34;</span><span class="p">:</span> <span class="s2">&#34;显式字段优先，JSON 只做兜底&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;dense_index&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;field&#34;</span><span class="p">:</span> <span class="s2">&#34;vector&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;index_type&#34;</span><span class="p">:</span> <span class="s2">&#34;HNSW&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;metric_type&#34;</span><span class="p">:</span> <span class="s2">&#34;COSINE&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;params&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;M&#34;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;efConstruction&#34;</span><span class="p">:</span> <span class="mi">100</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;sparse_index&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;field&#34;</span><span class="p">:</span> <span class="s2">&#34;sparse_vector&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;index_type&#34;</span><span class="p">:</span> <span class="s2">&#34;SPARSE_INVERTED_INDEX&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;metric_type&#34;</span><span class="p">:</span> <span class="s2">&#34;BM25&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;source_field&#34;</span><span class="p">:</span> <span class="s2">&#34;content&#34;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;hybrid_search&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;enabled&#34;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;strategy&#34;</span><span class="p">:</span> <span class="s2">&#34;dense + sparse(BM25)&#34;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="-向量索引实现">⚙️ 向量索引实现
+</h4><p>Eino框架提供Indexer 组件，Indexer 组件是一个用于存储和索引文档的组件。它的主要作用是将文档及其向量表示存储到后端存储系统中，并提供高效的检索能力。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">indexer</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">milvus2</span><span class="p">.</span><span class="nf">NewIndexer</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">milvus2</span><span class="p">.</span><span class="nx">IndexerConfig</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// Milvus 客户端</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Client</span><span class="p">:</span><span class="w"> </span><span class="nx">client</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// collection 名称</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Collection</span><span class="p">:</span><span class="w"> </span><span class="nx">cfg</span><span class="p">.</span><span class="nx">CollectionName</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// collection 描述</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Description</span><span class="p">:</span><span class="w"> </span><span class="nx">cfg</span><span class="p">.</span><span class="nx">CollectionDesc</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 显式 schema 字段定义</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Fields</span><span class="p">:</span><span class="w"> </span><span class="nx">svc</span><span class="p">.</span><span class="nf">buildCollectionFields</span><span class="p">(),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 稠密向量配置</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Vector</span><span class="p">:</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">milvus2</span><span class="p">.</span><span class="nx">VectorConfig</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">Dimension</span><span class="p">:</span><span class="w">   </span><span class="nb">int64</span><span class="p">(</span><span class="nx">cfg</span><span class="p">.</span><span class="nx">VectorDim</span><span class="p">),</span><span class="w">   </span><span class="c1">// 稠密向量维度，必须与 embedding 输出一致</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">MetricType</span><span class="p">:</span><span class="w">  </span><span class="nx">cfg</span><span class="p">.</span><span class="nx">MetricType</span><span class="p">,</span><span class="w">         </span><span class="c1">// 稠密向量度量方式，文本检索通常使用 COSINE</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">VectorField</span><span class="p">:</span><span class="w"> </span><span class="nx">cfg</span><span class="p">.</span><span class="nx">VectorField</span><span class="p">,</span><span class="w">        </span><span class="c1">// 稠密向量字段名，例如 vector</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 稀疏向量配置</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Sparse</span><span class="p">:</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">milvus2</span><span class="p">.</span><span class="nx">SparseVectorConfig</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">VectorField</span><span class="p">:</span><span class="w"> </span><span class="nx">cfg</span><span class="p">.</span><span class="nx">SparseVectorField</span><span class="p">,</span><span class="w">  </span><span class="c1">// 稀疏向量字段名，例如 sparse_vector</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">MetricType</span><span class="p">:</span><span class="w">  </span><span class="nx">milvus2</span><span class="p">.</span><span class="nx">BM25</span><span class="p">,</span><span class="w">           </span><span class="c1">// BM25 稀疏检索</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// BM25 场景下 Method 可不显式指定，默认走 Auto</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 为 content 字段启用 analyzer，供 BM25 分词和稀疏向量生成使用</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">FieldParams</span><span class="p">:</span><span class="w"> </span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="s">&#34;content&#34;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="s">&#34;enable_analyzer&#34;</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;true&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="s">&#34;analyzer_params&#34;</span><span class="p">:</span><span class="w"> </span><span class="s">`{&#34;type&#34;:&#34;standard&#34;}`</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 是否开启动态 schema</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">EnableDynamicSchema</span><span class="p">:</span><span class="w"> </span><span class="nx">cfg</span><span class="p">.</span><span class="nx">EnableDynamicSchema</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 一致性级别</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">ConsistencyLevel</span><span class="p">:</span><span class="w"> </span><span class="nx">cfg</span><span class="p">.</span><span class="nx">ConsistencyLevel</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 文本向量化模型，仅用于 dense 向量生成</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Embedding</span><span class="p">:</span><span class="w"> </span><span class="nx">embedder</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 文档转换器：把 schema.Document 映射成显式字段行数据</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">DocumentConverter</span><span class="p">:</span><span class="w"> </span><span class="nx">svc</span><span class="p">.</span><span class="nx">convertDocumentsToRows</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">})</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="增量索引">增量索引
+</h4><p>在数据库中维护了一张文档元数据表，记录每个文档的路径、最后修改时间、索引状态等信息。当有新文档上传或文档更新时，系统会比对最后修改时间，识别出需要重新索引的文档。对于需要重新索引的文档，会先从向量数据库中删除该文档的旧的向量数据，然后重新执行加载、分块、向量化、存储的流程。这个过程是异步的，不会影响正常的查询服务。用户上传文档后会立即返回，后台会有一个定时任务或消息队列来处理索引任务。整个增量索引的流程大概需要几秒到几十秒，取决于文档大小。这样既保证了数据的时效性，又不影响系统的可用性。</p>
+<h2 id="-在线流程">⚡ 在线流程
+</h2><h3 id="-查询加工">🔦 查询加工
+</h3><p>项目采用Multi-Query的策略对用户查询进行加工：从多个角度生成查询变体，合并结果以提高召回率。
+Eino框架提供了Flow封装，定义了Multi-Query的能力。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="w">	</span><span class="nx">mqr</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">multiquery</span><span class="p">.</span><span class="nf">NewRetriever</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">multiquery</span><span class="p">.</span><span class="nx">Config</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// RewriteLLM: 负责根据原始问题生成多个查询变体</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">RewriteLLM</span><span class="p">:</span><span class="w"> </span><span class="nx">llm</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// RewriteTemplate:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// 如果传 nil，则使用官方默认模板</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">RewriteTemplate</span><span class="p">:</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// QueryVar:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// 如果传空字符串，则使用默认 query 变量名</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">QueryVar</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// LLMOutputParser:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// 如果传 nil，则使用默认解析器</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">LLMOutputParser</span><span class="p">:</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// MaxQueriesNum:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// 最多生成多少个查询变体</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">MaxQueriesNum</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// OrigRetriever:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// 真正执行检索的底层 Retriever</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">OrigRetriever</span><span class="p">:</span><span class="w"> </span><span class="nx">hybridRetriever</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// FusionFunc:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="c1">// 结果融合函数，nil 时使用默认融合逻辑（按文档 ID 去重）</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">FusionFunc</span><span class="p">:</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">})</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="-粗排阶段">🎖️ 粗排阶段
+</h3><h4 id="-元数据过滤">📋 元数据过滤
+</h4><p>元数据过滤在向量检索之前或之后，利用文档的元数据（如时间、来源、类别、作者、权限范围）做预过滤。
+例如用户问“最近三个月有哪些适合亲子参观的临展”，可以先用元数据过滤出最近 3 个月、且带有亲子标签的文档，再在这个子集内做向量检索。这样有两个直接好处：</p>
+<ul>
+<li>准确率更高：先把明显不可能相关的数据排除掉。</li>
+<li>检索成本更低：缩小候选集合后，召回与精排压力都会下降。</li>
+</ul>
+<h4 id="-混合检索与多路召回">🔀 混合检索与多路召回
+</h4><p>项目采用混合检索策略，将密集向量检索和稀疏向量检索结合起来，以提高召回率和相关性。
+Hybrid Search（混合检索） 是目前工业界最常见的方案。它会同时使用稀疏检索（如 BM25）和稠密检索（向量检索），再通过融合策略合并结果。之所以有效，是因为两种检索方式的能力边界刚好互补：</p>
+<ul>
+<li>向量检索擅长理解语义，例如“青铜器”和“铜器”字面不同，但向量距离可能很近。因此对于文旅问答这类语义表达丰富的问题，它能够更好地覆盖口语化和模糊表达，相似度阈值设置为 0.8。</li>
+<li>BM25 等稀疏检索擅长精确关键词匹配，例如查询“千里江山图”时，不容易把“清明上河图”这类同属名作但字面不同的结果混进来。</li>
+</ul>
+<p>多路召回时采用 Rank Fusion，指的是对初步召回的候选文档做融合排序，将候选池合并，以提高召回率和准确性。其中使用的方法是 Reciprocal Rank Fusion（RRF）。它的逻辑很直接：分别根据候选文档在多路结果中的排名计算得分，再把这些得分加总为最终分数。这里 <code>k</code> 取默认值 <code>60</code>，主要考虑的是工程实现稳定性和不同查询类型下的通用表现，作为文旅知识库检索场景中的折中配置。</p>
+<p>向量检索和BM25检索各自取Top30，RRF融合后取Top10。</p>
+<p>RRF 的优势在于：</p>
+<ul>
+<li>不依赖分数归一化：BM25 与余弦相似度分数不在同一量纲，直接混合容易失真。</li>
+<li>工程实现简单：按排名融合更稳健，落地成本低。</li>
+<li>兼容多路召回：不仅能融合两路，也能扩展到多路检索结果。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">hybridMode</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">search_mode</span><span class="p">.</span><span class="nf">NewHybrid</span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">milvusclient</span><span class="p">.</span><span class="nf">NewRRFReranker</span><span class="p">().</span><span class="nf">WithK</span><span class="p">(</span><span class="mi">60</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="o">&amp;</span><span class="nx">search_mode</span><span class="p">.</span><span class="nx">SubRequest</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">VectorField</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;vector&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">VectorType</span><span class="p">:</span><span class="w">  </span><span class="nx">milvus2</span><span class="p">.</span><span class="nx">DenseVector</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">TopK</span><span class="p">:</span><span class="w">        </span><span class="mi">10</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">MetricType</span><span class="p">:</span><span class="w">  </span><span class="nx">milvus2</span><span class="p">.</span><span class="nx">COSINE</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="o">&amp;</span><span class="nx">search_mode</span><span class="p">.</span><span class="nx">SubRequest</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">VectorField</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;sparse_vector&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">VectorType</span><span class="p">:</span><span class="w">  </span><span class="nx">milvus2</span><span class="p">.</span><span class="nx">SparseVector</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">TopK</span><span class="p">:</span><span class="w">        </span><span class="mi">10</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">MetricType</span><span class="p">:</span><span class="w">  </span><span class="nx">milvus2</span><span class="p">.</span><span class="nx">BM25</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nx">hybridRetriever</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">milvus2</span><span class="p">.</span><span class="nf">NewRetriever</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">milvus2</span><span class="p">.</span><span class="nx">RetrieverConfig</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Client</span><span class="p">:</span><span class="w">            </span><span class="nx">client</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Collection</span><span class="p">:</span><span class="w">        </span><span class="s">&#34;knowledge_chunks&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">VectorField</span><span class="p">:</span><span class="w">       </span><span class="s">&#34;vector&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">SparseVectorField</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;sparse_vector&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">OutputFields</span><span class="p">:</span><span class="w">      </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;id&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;content&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;metadata&#34;</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Embedding</span><span class="p">:</span><span class="w">         </span><span class="nx">embedder</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">SearchMode</span><span class="p">:</span><span class="w">        </span><span class="nx">hybridMode</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h4 id="-rerank-重排序">🏅 ReRank 重排序
+</h4><p>ReRank 是在初步召回后，再根据模型的输出对候选文档进行排序，以提高召回率和准确性。
+前面检索阶段的 Rank Fusion，其目标通常是在海量文档中快速筛出一批大致相关的候选结果，所以它更偏向效率，准确性不是最高。Rerank 则会在这批候选结果上继续精排，挑出最匹配的问题上下文，再交给大模型使用。
+项目采用 BGE-Reranker-base 模型对初步召回的候选文档(Top30)进行排序，取出Top5，以提高召回率和准确性。Embedding 和 Rerank 尽量选同一系列的，因为它们在训练时的数据分布和语义空间更一致，搭配效果最好。</p>
+<h2 id="-总体链路">🛤️ 总体链路
+</h2><p>用户问题进入系统后，先通过 Multi-Query 生成多个更适合检索的查询变体；随后每个查询都会在预设的元数据过滤条件下进入同一个混合检索器，在 Milvus 中同时执行稠密向量检索和 BM25 关键词检索，并对单个查询内部的召回结果进行融合；接着再将多个查询变体产生的候选结果统一合并，形成粗排候选集；在精排阶段，使用 bge-reranker 对候选文档进行相关性重排序，筛选出最相关的结果；最后再对精排后的文档生成适合注入大模型的上下文，最终由模型完成回答生成。</p>
+<h2 id="-rag安全权限设计">🔒 RAG安全权限设计
+</h2><p>我们来看一个在文旅场景里同样真实会发生的事故：某博物馆把内部知识库做成了 RAG，馆内人员可以直接提问。策展部门把尚未公开的特展方案、借展清单和布展说明上传到了知识库。一名普通讲解员在系统里问了一句“下季度重点展览会有哪些亮点”，RAG 做了语义检索，返回的却是尚未公开的策展文档。对于文旅项目来说，这同样是严重问题：不同场馆、不同项目组、不同合作方能访问的资料范围并不相同，未公开展览方案、藏品修复记录、合作票务合同等内容都不应该被任意检索。一套没有权限控制的 RAG，不只是产品缺陷，也会直接带来内容泄露和运营风险。根本原因在于向量数据库的设计目标是做语义检索，不是做权限管理。Milvus、Qdrant、Weaviate 等主流向量数据库，默认状态下所有存入 Collection 的向量对所有查询都是可见的。没有类似关系型数据库那样的行级安全（Row Level Security）。</p>
+<h3 id="-接入层身份认证">🔐 接入层身份认证
+</h3><p>用户登录后，系统签发 JWT Token，Token 的 payload 里携带用户的核心权限信息：这里把role（角色）、security_level（安全级别）都放在了 Token 里。这样每次请求过来，API Gateway 校验 Token 合法性，同时解析出用户的权限上下文，向下游服务传递，不需要每次都去数据库查用户权限。</p>
+<h3 id="-检索层向量数据库过滤">🔎 检索层向量数据库过滤
+</h3><ul>
+<li>Milvus 元数据过滤:文档入库时，每个 chunk 都必须带上权限元数据，检索时，根据用户 Token 里的权限信息动态构建过滤条件。真实踩坑:刚做这个系统的时候，把权限过滤放在检索之后。就是先用向量搜出来 top_k 个结果，再逐条判断用户有没有权限，过滤掉没权限的。结果发现这样做有个严重问题：如果用户有权限看的文档很少，搜出来的 top_k 基本都被过滤掉了，最终返回的结果可能只有 2 条甚至 0 条，召回率极低。</li>
+<li>Milvus 分区物理隔离:引入分区物理隔离。每个场馆、项目组或租户的数据存入独立的 Partition，搜索时只在授权的 Partition 里搜索。</li>
+</ul>
+<h3 id="-返回层二次验证">✅ 返回层二次验证
+</h3><p>检索结果出来之后，在返回给用户之前，再做一次权限校验。这是防止第二层出现配置错误或边界情况时的最后一道防线。</p>
+<h2 id="-评估过程">📉 评估过程
+</h2><h3 id="-测试集的构建">🧪 测试集的构建
+</h3><ul>
+<li>确定评估范围:明确要覆盖哪些领域和文档类型。在我们的文旅项目中，测试集主要覆盖了展品讲解、场馆信息查询、活动展览检索和路线/推荐问答这四个核心场景。</li>
+<li>设计评估问题:实践中我们用的是组合方案：LLM 先生成 500 条初始问题，人工筛选保留 200 条高质量问题。筛选标准是：问题必须能在知识库中找到明确答案、表述自然不生硬、不跟其他问题重复。
+<ul>
+<li>人工编写——由熟悉文档的人基于内容提出问题。质量高但成本大，适合核心场景。</li>
+<li>LLM 自动生成——让大模型阅读文档后生成问答对。速度快但质量参差不齐，需要人工筛选。</li>
+</ul>
+</li>
+<li>标注参考答案和支持证据
+<ul>
+<li>参考答案——这个问题的正确回答是什么。由人工撰写或确认，尽量覆盖关键信息点。</li>
+<li>支持证据——答案来自哪个文档的哪个片段。记录文档 ID、Chunk ID、页码。这不仅用于检索评估（判断系统有没有找到正确片段），也用于生成评估（判断 LLM 有没有基于证据回答）。</li>
+</ul>
+</li>
+<li>覆盖多样性和难度
+<ul>
+<li>简单事实题——答案在单个 Chunk 里</li>
+<li>多跳推理题——需要综合多个 Chunk</li>
+<li>否定性查询——要求系统拒绝回答，或者提供拒绝理由</li>
+<li>口语化查询——表述跟知识库差异大</li>
+</ul>
+</li>
+</ul>
+<h3 id="-评估框架">🧪 评估框架
+</h3><p>Ragas 是一个面向 LLM/RAG/Agent 应用的评估框架，核心用途是把“凭感觉评估”变成可重复、可量化的评估流程。它既支持用 LLM 做语义评估，也支持非 LLM 的传统指标，还支持测试集生成、实验对比和生产反馈闭环。</p>
+<p>在检索阶段，我们使用以下指标评估检索效果：</p>
+<ul>
+<li><strong>召回率（Recall@K）</strong>：Top-K 召回的相关片段数 / Top-K 召回的总片段数</li>
+<li><strong>精确率（Precision@K）</strong>：Top-K 召回的相关片段数 / 总相关片段数</li>
+</ul>
+<p>在排序阶段，我们使用以下指标评估精排效果：</p>
+<ul>
+<li>MRR（Mean Reciprocal Rank，平均倒数排名） 专门衡量 &ldquo;第一个相关文档排在什么位置&rdquo;。如果第一个相关文档排在第 1 位，得分是 1；排在第 2 位，得分是 1/2；排在第 5 位，得分是 1/5。MRR 越高，说明系统越能把最相关的结果排到前面，用户（或 LLM）越快就能看到有用的信息。</li>
+<li>Context Relevance（上下文相关性），这是 RAGAS 框架提出的评估维度。它不是简单地看每个 Chunk 是否相关，而是评估检索回来的整体上下文中，有多大比例的内容对回答用户问题确实有用。一个常见的实现方式是用 LLM 从检索到的上下文中提取所有能用于回答问题的句子，然后计算这些有用句子占总上下文的比例。这个指标特别适合发现 &ldquo;检索了很多 Chunk 但大部分是废话&rdquo; 的情况。</li>
+</ul>
+<p>在生成阶段，我们使用以下指标评估生成效果：</p>
+<ul>
+<li>Faithfulness（忠实度） 是 RAG 生成评估中最核心的指标，没有之一。它衡量的是 &ldquo;LLM 生成的回答是否忠实于检索到的文档内容，有没有编造检索结果中不存在的信息&rdquo;。为什么说它最核心？因为 RAG 系统存在的根本意义就是让 LLM 基于可靠的外部知识来回答，而不是靠自己的参数记忆胡编乱造。如果生成的回答中出现了检索文档完全没有提到的 &ldquo;事实&rdquo;，那这个 RAG 系统就失去了存在的意义 —— 用户还不如直接问 LLM。Faithfulness 的评估通常是这样做的：先让 LLM 把生成的回答拆分成若干独立的事实性陈述（Claims），然后逐一检验每个陈述是否能被检索到的上下文所支持。Faithfulness 得分 = 被上下文支持的陈述数 / 总陈述数。这个拆分 - 验证的思路在 RAGAS 和 TruLens 等评估框架中被广泛使用</li>
+<li>Answer Relevance（回答相关性） 衡量的是生成的回答是否切题、是否真正回答了用户的问题。一个回答可能完全忠实于检索文档（Faithfulness 满分），但如果它答非所问，同样是一个低质量的回答。比如用户问 &ldquo;Python 的 GIL 是什么&rdquo;，LLM 却大谈 Python 的安装方法 —— 内容可能没有编造，但完全没有回答用户的问题。RAGAS 框架中评估 Answer Relevance 的一个巧妙方法是：用 LLM 根据生成的回答反向生成几个问题，然后计算这些反向生成的问题与原始问题之间的语义相似度，相似度越高说明回答越切题。</li>
+<li>Answer Completeness / Correctness（回答完整性 / 正确性） 关注的是回答是否覆盖了问题的所有要点。一个忠实且切题的回答，如果只回答了问题的一半，也不算好答案。这个指标通常需要一个参考答案（Ground Truth）来对比，评估生成的回答覆盖了参考答案中多少关键信息点。在有标注数据的场景下，这是一个很有说服力的指标。</li>
+</ul>
+<hr>
+<h2 id="-评估结果">📉 评估结果
+</h2><p>在文旅测试集上，我们在测试集上做了完整的A/B对比：整体Recall@5从72%提升到85%，提升13个百分点。最终这套组合的MRR为0.86，最终这套检索链路做到 <code>Precision@5 = 85%</code>、<code>Recall@5 = 85%</code>、<code>MRR = 0.86</code>。从具体查询类型来看，也能比较清楚地看到混合检索的价值：</p>
+<ul>
+<li><strong>展品讲解类问题</strong>：比如“这件青铜器的历史背景是什么”这类语义表达丰富的问题，从79%提升到85%，提升约6个百分点。这类查询向量检索本来就做得不错，BM25的补充效果有限，但RRF融合后依然有小幅提升，因为BM25能额外召回一些包含关键动词的相关文档。</li>
+<li><strong>场馆信息类问题</strong>：比如开放时间、展厅分布、参观规则这类包含明确关键词的查询，BM25在这类查询上贡献最大，从51%提升到78%，提升约27个百分点。BM25能够把字面命中的资料稳定召回出来，而向量检索则可能把字面类似的名词也排进来。</li>
+<li><strong>活动展览类问题</strong>：对于临展名称、时间范围、主题活动这类既需要语义理解、又依赖精确名词匹配的场景，混合检索加 <code>RRF</code> 融合能够有效减少误召回，再通过重排阶段进一步提升最终结果质量。从48%提升到73%，提升约25个百分点。这是提升最显著的一类，BM25对专业术语的精确匹配能力是关键。</li>
+</ul>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026-04-13 17:04 UTC
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/%E6%96%87%E6%97%85agent%E4%B8%89%E5%AF%B9%E8%AF%9Dagent/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">文旅Agent（三）对话Agent</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%BA%8C%E7%BB%84%E4%BB%B6%E6%A8%A1%E5%9E%8B/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">分布式批处理计算平台（二）组件模型</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%B8%80%E9%A1%B9%E7%9B%AE%E8%B5%B7%E6%AD%A5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">分布式批处理计算平台（一）项目起步</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/%E8%AF%86%E7%89%A9%E6%8E%A2%E8%B6%A3%E4%B8%89%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E6%A8%A1%E5%9D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">识物探趣（三）用户管理模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/%E8%AF%86%E7%89%A9%E6%8E%A2%E8%B6%A3%E4%BA%8C%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84%E5%92%8C%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">识物探趣（二）项目架构和技术选型</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2026 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.93ec85291de2934df13aa4307b756a6eb93dd4ff935a9810e787a938c351043f.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

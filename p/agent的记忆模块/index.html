@@ -10,7 +10,7 @@
 <meta property='og:description' content="深入理解Agent的记忆系统设计：短期记忆与长期记忆的原理、策略与工程实现">
 <meta property='og:url' content='https://Tyritic.github.io/p/agent%E7%9A%84%E8%AE%B0%E5%BF%86%E6%A8%A1%E5%9D%97/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='智能体' /><meta property='article:published_time' content='2026-03-25T16:20:00&#43;08:00'/><meta property='article:modified_time' content='2026-03-27T03:34:19&#43;00:00'/>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='智能体' /><meta property='article:published_time' content='2026-03-25T16:20:00&#43;08:00'/><meta property='article:modified_time' content='2026-04-13T17:04:01&#43;00:00'/>
 <meta name="twitter:title" content="Agent的记忆模块">
 <meta name="twitter:description" content="深入理解Agent的记忆系统设计：短期记忆与长期记忆的原理、策略与工程实现">
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -311,14 +311,18 @@
     <li><a href="#-记忆模块的重要性">🧠 记忆模块的重要性</a></li>
     <li><a href="#-人类记忆的类比">🧬 人类记忆的类比</a></li>
     <li><a href="#-多轮对话的实现">💡 多轮对话的实现</a></li>
-    <li><a href="#-短期记忆上下文窗口的管理艺术">📋 短期记忆：上下文窗口的管理艺术</a>
+    <li><a href="#-工作记忆上下文窗口的管理">📋 工作记忆：上下文窗口的管理</a>
       <ol>
         <li><a href="#-上下文窗口的核心挑战">⚠️ 上下文窗口的核心挑战</a></li>
         <li><a href="#-滑动窗口sliding-window">🔧 滑动窗口（Sliding Window）</a></li>
         <li><a href="#-对话摘要conversation-summary">📝 对话摘要（Conversation Summary）</a></li>
         <li><a href="#-token-buffertoken-缓冲区">📐 Token Buffer（Token 缓冲区）</a></li>
         <li><a href="#-基于重要度的选择性保留">📌 基于重要度的选择性保留</a></li>
-        <li><a href="#-map-reduce-模式分块处理与并行计算">🧪 Map-Reduce 模式：分块处理与并行计算</a></li>
+        <li><a href="#-map-reduce-模式分块处理与并行计算">🔄 Map-Reduce 模式：分块处理与并行计算</a></li>
+      </ol>
+    </li>
+    <li><a href="#-短期记忆承载会话的完整历史">⏰ 短期记忆：承载会话的完整历史</a>
+      <ol>
         <li><a href="#-工业级异构存储">🏭 工业级异构存储</a></li>
       </ol>
     </li>
@@ -328,15 +332,19 @@
         <li><a href="#-关系型数据库--kv-存储">🗄️ 关系型数据库 / KV 存储</a></li>
         <li><a href="#-知识图谱knowledge-graph">🧩 知识图谱（Knowledge Graph）</a></li>
         <li><a href="#-模型微调fine-tuning">📚 模型微调（Fine-tuning）</a></li>
-        <li><a href="#-异构混合存储架构">🏢 异构混合存储架构</a>
+      </ol>
+    </li>
+    <li><a href="#-异构混合存储架构">🏢 异构混合存储架构</a>
+      <ol>
+        <li><a href="#-主链路同步记忆组装">📥 主链路同步“记忆组装”</a></li>
+        <li><a href="#-旁路异步记忆剥离与落盘">📤 旁路异步&quot;记忆剥离与落盘&quot;</a>
           <ol>
-            <li><a href="#-主链路同步记忆组装">📥 主链路同步“记忆组装”</a></li>
-            <li><a href="#-旁路异步记忆剥离与落盘">📤 旁路异步&quot;记忆剥离与落盘&quot;</a></li>
+            <li><a href="#异步记忆更新">异步记忆更新</a></li>
             <li><a href="#-事件驱动的惰性更新机制">⚡ 事件驱动的惰性更新机制</a></li>
             <li><a href="#-一致性兜底">🛡️ 一致性兜底</a></li>
-            <li><a href="#-进阶优化方案">🚀 进阶优化方案</a></li>
           </ol>
         </li>
+        <li><a href="#-进阶优化方案">🚀 进阶优化方案</a></li>
       </ol>
     </li>
     <li><a href="#-记忆的写入检索与更新机制">⚙️ 记忆的写入、检索与更新机制</a>
@@ -424,7 +432,7 @@
 
 
                 <time class="article-time--reading">
-                    阅读时长: 15 分钟
+                    阅读时长: 16 分钟
                 </time>
             </div>
 
@@ -432,7 +440,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：7307 字
+                     字数统计：7916 字
                 </time>
             </div>
 
@@ -457,7 +465,8 @@
 <h2 id="-人类记忆的类比">🧬 人类记忆的类比
 </h2><p>Agent 的记忆系统设计，其实是从认知科学中借鉴过来的。人类的记忆大致分为两类：</p>
 <ul>
-<li><strong>短期记忆（Short-term Memory）</strong>：也叫工作记忆，容量有限，持续时间短。比如你听到一个手机号码，能暂时记住但过一会儿就忘了。</li>
+<li><strong>工作记忆（Working Memory）</strong>：容量有限，持续时间短。对于你在思考中需要临时存储的信息，比如你正在解决的问题、你正在考虑的选项等，工作记忆就是你正在使用的记忆。</li>
+<li><strong>短期记忆（Short-term Memory）</strong>：容量有限，持续时间短。比如你听到一个手机号码，能暂时记住但过一会儿就忘了。</li>
 <li><strong>长期记忆（Long-term Memory）</strong>：容量几乎无限，能持续很长时间。比如你的名字、骑自行车的技能、上周开会的内容。</li>
 </ul>
 <p>把这个类比映射到 Agent 身上就非常自然了：</p>
@@ -483,38 +492,43 @@
   </tbody>
 </table></div>
 <div align="center">
-  <img src="人类记忆的类比.png" alt="人类记忆的类比" width="75%">
+  <img src="人类记忆的类比.png" alt="人类记忆的类比" width="80%">
 </div>
 <hr>
 <h2 id="-多轮对话的实现">💡 多轮对话的实现
-</h2><p>所有大模型API都是“无状态”的——说白了，模型本身没有记忆，也不记你上一轮说了啥，每次请求都是独立的。目前行业内通用的解决方案是维护一个叫 messages 的对话数组，里面只存两种角色的内容</p>
+</h2><p>所有大模型API都是&quot;无状态&quot;的——说白了，模型本身没有记忆，也不记你上一轮说了啥，每次请求都是独立的。目前行业内通用的解决方案是维护一个叫 messages 的对话数组，里面只存两种角色的内容：</p>
 <ul>
-<li>user：用户问的问题</li>
-<li>assistant：模型答的内容</li>
+<li><strong>user</strong>：用户问的问题</li>
+<li><strong>assistant</strong>：模型答的内容</li>
 </ul>
 <p>每一轮对话都走固定流程：追加用户问题 → 把完整笔记传给模型 → 拿回回复再追加进笔记，循环下去就是连贯的多轮对话。</p>
-<p>// 第一轮：只问问题</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">[{</span><span class="nt">&#34;role&#34;</span><span class="p">:</span><span class="s2">&#34;user&#34;</span><span class="p">,</span><span class="nt">&#34;content&#34;</span><span class="p">:</span><span class="s2">&#34;推荐一本编程书籍&#34;</span><span class="p">}]</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>// 第二轮：带上历史+新问题</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">[{</span><span class="nt">&#34;role&#34;</span><span class="p">:</span><span class="s2">&#34;user&#34;</span><span class="p">,</span><span class="nt">&#34;content&#34;</span><span class="p">:</span><span class="s2">&#34;推荐一本编程书籍&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;role&#34;</span><span class="p">:</span><span class="s2">&#34;assistant&#34;</span><span class="p">,</span><span class="nt">&#34;content&#34;</span><span class="p">:</span><span class="s2">&#34;推荐《Python编程：从入门到实践》&#34;</span><span class="p">},{</span><span class="nt">&#34;role&#34;</span><span class="p">:</span><span class="s2">&#34;user&#34;</span><span class="p">,</span><span class="nt">&#34;content&#34;</span><span class="p">:</span><span class="s2">&#34;这本书适合零基础吗？&#34;</span><span class="p">}]</span>
+<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="c1">// 第一轮：只问问题
+</span></span></span><span class="line"><span class="cl"><span class="p">[{</span><span class="nt">&#34;role&#34;</span><span class="p">:</span><span class="s2">&#34;user&#34;</span><span class="p">,</span><span class="nt">&#34;content&#34;</span><span class="p">:</span><span class="s2">&#34;推荐一本编程书籍&#34;</span><span class="p">}]</span>
 </span></span></code></pre></td></tr></table>
 </div>
-</div><h2 id="-短期记忆上下文窗口的管理艺术">📋 短期记忆：上下文窗口的管理艺术
-</h2><p>Agent 的短期记忆，最直接的载体就是 LLM 的 <strong>Context Window（上下文窗口）</strong>。每次调用 LLM 时，我们把之前的对话历史、系统提示词、工具调用记录等信息拼接成一个 prompt 发给模型，模型就是基于这些&quot;短期记忆&quot;来理解当前状态并做出决策的。</p>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="c1">// 第二轮：带上历史+新问题
+</span></span></span><span class="line"><span class="cl"><span class="p">[{</span><span class="nt">&#34;role&#34;</span><span class="p">:</span><span class="s2">&#34;user&#34;</span><span class="p">,</span><span class="nt">&#34;content&#34;</span><span class="p">:</span><span class="s2">&#34;推荐一本编程书籍&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;role&#34;</span><span class="p">:</span><span class="s2">&#34;assistant&#34;</span><span class="p">,</span><span class="nt">&#34;content&#34;</span><span class="p">:</span><span class="s2">&#34;推荐《Python编程：从入门到实践》&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;role&#34;</span><span class="p">:</span><span class="s2">&#34;user&#34;</span><span class="p">,</span><span class="nt">&#34;content&#34;</span><span class="p">:</span><span class="s2">&#34;这本书适合零基础吗？&#34;</span><span class="p">}]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="-工作记忆上下文窗口的管理">📋 工作记忆：上下文窗口的管理
+</h2><p>Agent 的工作记忆，最直接的载体就是 LLM 的 <strong>Context Window（上下文窗口）</strong>。每次调用 LLM 时，我们把之前的对话历史、系统提示词、工具调用记录等信息拼接成一个 prompt 发给模型，模型就是基于这些&quot;工作记忆&quot;来理解当前状态并做出决策的。</p>
 <h3 id="-上下文窗口的核心挑战">⚠️ 上下文窗口的核心挑战
 </h3><p>Context Window 的容量是有限的。即使现在的模型已经支持 128K 甚至更长的上下文，在实际 Agent 场景中，上下文很容易就被撑满：</p>
 <ul>
@@ -523,40 +537,43 @@
 <li>再加上系统提示词和工具定义，上下文窗口很快就不够用了</li>
 </ul>
 <p>而且即使窗口足够大，研究表明模型在处理超长上下文时会出现 <strong>&ldquo;Lost in the Middle&quot;现象</strong>——对上下文中间位置的信息关注度明显下降。</p>
-<p>所以短期记忆的核心挑战是：<strong>如何在有限的上下文窗口里，尽可能保留最有用的信息？</strong></p>
+<p>所以工作记忆的核心挑战是：<strong>如何在有限的上下文窗口里，尽可能保留最有用的信息？</strong></p>
 <hr>
 <h3 id="-滑动窗口sliding-window">🔧 滑动窗口（Sliding Window）
-</h3><p>滑动窗口是最简单粗暴的方案。给messages数组设个长度上限，当对话历史超过窗口限制时，直接截断最早的消息，只保留最近的 N 轮对话。给messages数组设个长度上限，超出就删掉最早的对话，只保留最近N轮内容。目前也有一种动态滑动窗口：不固定对话轮数，按token数动态调整，只保留最近的对话内容，保证注入的token数不超过窗口上限的70%，预留空间给系统提示、工具返回结果、当前query；</p>
+</h3><p>滑动窗口是最简单粗暴的方案。给messages数组设个长度上限，当对话历史超过窗口限制时，直接截断最早的消息，只保留最近的 N 轮对话。</p>
+<p>目前也有一种动态滑动窗口：不固定对话轮数，按token数动态调整，只保留最近的对话内容，保证注入的token数不超过窗口上限的70%，预留空间给系统提示、工具返回结果、当前query。</p>
 <p><strong>优点：</strong> 实现简单</p>
-<p><strong>缺点：</strong> 信息丢失严重——可能用户在第一轮告诉了 Agent 一个关键信息，到了第十轮就被截掉了，Agent 完全&quot;忘&quot;了这件事。</p>
+<p><strong>缺点：</strong> 信息丢失严重——可能用户在第一轮告诉了 Agent 一个关键信息，到了第十轮就被截掉了，Agent 完全&quot;忘&quot;了这件事</p>
 <hr>
 <h3 id="-对话摘要conversation-summary">📝 对话摘要（Conversation Summary）
 </h3><p>对话摘要是一种更优雅的方案。当对话历史变长时，不是直接截断，而是用 LLM 把较早的对话内容压缩成一段摘要，然后用这段摘要+最近对话替代原始的冗长历史。</p>
 <p>这种方式既控制了 token 用量，又保留了关键信息。<strong>LangChain</strong> 中的 <code>ConversationSummaryMemory</code> 和 <code>ConversationSummaryBufferMemory</code> 就是这种策略的实现：</p>
 <ul>
-<li>优点：只对更早的对话做摘要压缩，保留核心信息，兼顾了近期对话的完整性和历史信息的保留Token消耗骤减。</li>
-<li>缺点：需要额外的 LLM 调用来做摘要压缩，可能增加推理时间。</li>
+<li><strong>优点</strong>：只对更早的对话做摘要压缩，保留核心信息，兼顾了近期对话的完整性和历史信息的保留，Token消耗骤减</li>
+<li><strong>缺点</strong>：需要额外的 LLM 调用来做摘要压缩，可能增加推理时间</li>
 </ul>
 <hr>
 <h3 id="-token-buffertoken-缓冲区">📐 Token Buffer（Token 缓冲区）
 </h3><p>Token Buffer 则是按 token 数量来精确控制。设置一个 token 上限，比如 4000 token，当历史消息的总 token 数超过这个值时，从最早的消息开始逐条丢弃，直到总量回到阈值以内。</p>
-<p><strong>优点：</strong> 比简单的轮次截断更精确</p>
-<p><strong>缺点：</strong> 本质上还是&quot;先进先出&quot;的淘汰策略，可能丢失重要信息</p>
+<p><strong>优点</strong>：比简单的轮次截断更精确</p>
+<p><strong>缺点</strong>：本质上还是&quot;先进先出&quot;的淘汰策略，可能丢失重要信息</p>
 <hr>
 <h3 id="-基于重要度的选择性保留">📌 基于重要度的选择性保留
 </h3><p>还有一种更精细的做法——不是简单地按时间顺序淘汰，而是评估每条历史消息的&quot;重要程度&rdquo;。</p>
 <p>比如：</p>
 <ul>
-<li>包含用户需求的消息比闲聊更重要</li>
-<li>工具调用失败的经验比成功的记录更重要</li>
-<li>用户明确纠正 Agent 的信息比普通对话更重要</li>
+<li><strong>包含用户需求的消息</strong>比闲聊更重要</li>
+<li><strong>工具调用失败的经验</strong>比成功的记录更重要</li>
+<li><strong>用户明确纠正 Agent 的信息</strong>比普通对话更重要</li>
 </ul>
 <p><strong>优先保留重要的、淘汰次要的。</strong></p>
-<p><strong>优点：</strong> 效果最好，最大化利用有限的上下文窗口</p>
-<p><strong>缺点：</strong> 实现最复杂，通常需要额外的 LLM 调用来做重要度评估</p>
-<h3 id="-map-reduce-模式分块处理与并行计算">🧪 Map-Reduce 模式：分块处理与并行计算
-</h3><p>针对超长文档、超长上下文的处理，采用Map-Reduce模式，先把长文档分块，让大模型并行处理每个分块，提取核心信息，再把所有分块的结果汇总，做最终的处理，完美适配长文档总结、全文检索的场景。</p>
+<p><strong>优点</strong>：效果最好，最大化利用有限的上下文窗口</p>
+<p><strong>缺点</strong>：实现最复杂，通常需要额外的 LLM 调用来做重要度评估</p>
+<h3 id="-map-reduce-模式分块处理与并行计算">🔄 Map-Reduce 模式：分块处理与并行计算
+</h3><p>针对超长文档、超长上下文的处理，采用Map-Reduce模式，先把长文档分块，让大模型并行处理每个分块，得到多个中间答案，最后再用一次 LLM 把中间答案合并成最终答案，完美适配长文档总结、全文检索的场景。</p>
 <hr>
+<h2 id="-短期记忆承载会话的完整历史">⏰ 短期记忆：承载会话的完整历史
+</h2><p>这一层的作用时在工作记忆的上下文窗口不够用时，提供快速的补充检索。</p>
 <h3 id="-工业级异构存储">🏭 工业级异构存储
 </h3><p>在真实的工业级落地里，短期记忆绝对不能靠 “傻瓜式截断”。落地标准，是在 Redis 里维护两层结构化存储，从根源上解决核心信息丢失的问题：</p>
 <ul>
@@ -665,8 +682,8 @@
   </tbody>
 </table></div>
 <hr>
-<h3 id="-异构混合存储架构">🏢 异构混合存储架构
-</h3><p>长期记忆方案，不能纯向量库，而是一套异构混合存储架构，不同类型的记忆，用不同的存储承载，严格划分优先级，从根源上规避幻觉风险。</p>
+<h2 id="-异构混合存储架构">🏢 异构混合存储架构
+</h2><p>长期记忆方案，不能纯向量库，而是一套异构混合存储架构，不同类型的记忆，用不同的存储承载，严格划分优先级，从根源上规避幻觉风险。</p>
 <ul>
 <li>强事实结构化数据：用户基础信息、手机号、过敏史、明确禁忌、确定性标签等零容错数据，用关系型数据库存储。召回优先级最高，必须 100% 准确，结果不可被推翻。</li>
 <li>半结构化长文本：历史对话总结、长文本需求、过往方案、关键字强相关内容，用 BM25 算法做精确召回，召回优先级高（关键字匹配准确率远超单纯向量检索）</li>
@@ -676,15 +693,16 @@
 <div align="center">
   <img src="1774527085924.png" alt="异构混合存储架构" width="85%">
 </div>
-<h4 id="-主链路同步记忆组装">📥 主链路同步“记忆组装”
-</h4><ul>
+<h3 id="-主链路同步记忆组装">📥 主链路同步“记忆组装”
+</h3><ul>
 <li>查短期缓存（Redis）：根据 SessionID，优先去 Redis 捞取最近 5 轮的完整对话记录，以及当前 Session 的动态状态机 State，这一步保证核心信息不丢失，对话上下文连贯。</li>
 <li>查强事实标签（MySQL）：根据 UserID，并发去 MySQL 查询用户的确定性画像标签，比如 allergy=seafood、destination=Tokyo，这部分数据零容错，必须 100% 准确，优先级最高。</li>
 <li>查经验与补充知识（ES + 向量库）：对用户输入做意图识别，如果涉及历史经验查询，同时向 ES 发起关键字检索、向向量库发起语义检索，两路结果返回后，做 Rerank 重排和截断，只保留高相关度的内容。</li>
 <li>Prompt 组装与大模型调用：把 MySQL 的强事实标签、ES / 向量库的检索结果，按优先级塞进 System Prompt 里，把 Redis 里的短期对话塞进 messages 数组，统一格式化后，再传给 LLM 做推理生成。</li>
 </ul>
 <p>在主链路上，大模型只是一个 “没有感情的计算 CPU”，真正的记忆提取、过滤、排序工作，全是由 Redis、MySQL、ES 这些成熟的存储组件并发完成的，这也是控制 RT、降低幻觉的核心。</p>
-<h4 id="-旁路异步记忆剥离与落盘">📤 旁路异步&quot;记忆剥离与落盘&quot;
+<h3 id="-旁路异步记忆剥离与落盘">📤 旁路异步&quot;记忆剥离与落盘&quot;
+</h3><h4 id="异步记忆更新">异步记忆更新
 </h4><p>采用完全异步的事件驱动架构，主线程只负责核心对话链路，记忆更新全走旁路，不影响主接口响应。</p>
 <ul>
 <li>关键事件投递（MQ）：主链路拿到用户的输入和 LLM 的输出后，直接打包丢进 RocketMQ/Kafka，主线程立刻给用户返回结果，不做任何额外的耗时操作。</li>
@@ -708,8 +726,8 @@
 <li>关键数据同步更新，非关键数据异步更新：过敏史、手机号、安全禁忌这类零容错数据，直接同步更新 MySQL，不经过 MQ 异步，保证更新成功后再返回；非核心偏好走异步更新，兼顾一致性与性能。</li>
 <li>版本号乐观锁 + 重试补偿机制：给用户记忆数据加上版本号，每次更新必须匹配版本号才能成功；消费失败的消息进入重试队列，同时给数据加上 “待更新” 标记，主链路读到标记时触发补偿查询。</li>
 </ul>
-<h4 id="-进阶优化方案">🚀 进阶优化方案
-</h4><ul>
+<h3 id="-进阶优化方案">🚀 进阶优化方案
+</h3><ul>
 <li>图数据库补充实体关系存储：除了结构化数据库，还会引入 Nebula、Neo4j 等图数据库，存储用户实体之间的关联关系，比如 “用户 A 的母亲是 B，B 对海鲜过敏，同行人包括 B”，解决多实体关联的记忆召回问题，比关系型数据库和向量库更适配。</li>
 <li>标量过滤 + 向量检索的混合查询：不是完全放弃向量库，而是给向量数据加上结构化标量标签，检索时先按 UserID、记忆类型做标量过滤，缩小检索范围，再做语义检索，极大降低召回错误的概率。</li>
 <li>实时 + 离线双链路更新：除了实时事件驱动的状态更新，还会通过离线大数据分析，挖掘用户的隐性偏好批量更新用户画像，补充实时链路无法覆盖的隐性记忆。</li>
@@ -732,10 +750,19 @@
 <h3 id="-检索机制">🔎 检索机制
 </h3><p>最关键的问题是&rdquo;<strong>检索的时机和精度</strong>&quot;。</p>
 <p><strong>时机上：</strong> Agent 在开始处理每个新任务时，都应该先从长期记忆中检索与当前任务相关的历史信息，把它们注入到短期记忆（上下文）中。</p>
-<p><strong>精度上：</strong> 除了基于向量相似度的语义检索，还可以结合：</p>
+<p><strong>精度上：</strong> 最朴素的做法是纯向量相似度检索——把当前 query embedding 之后去向量库里找最近邻。但在实际场景中，光靠语义相似度远远不够。斯坦福那篇经典的 Generative Agents 论文给出了一个非常优雅的三维评分模型，在实际项目中也可以沿用这个思路：</p>
 <ul>
-<li><strong>元数据过滤</strong>（比如按时间范围、按用户 ID 过滤）</li>
-<li><strong>重排序（Reranking）</strong> 来提高检索质量</li>
+<li>Recency（时近性）——越近的记忆越容易被想起。人类如此，Agent 也应该如此。实现上通常用指数衰减函数：距离当前时间越远的记忆，分数衰减越多。这保证了 Agent 在近期行为上的连贯性，不会突然跳回一个月前的上下文。</li>
+<li>Relevance（相关性）——和当前任务语义上越相关的记忆越应该被召回。这就是向量相似度检索擅长的部分。通过 Embedding 模型将 query 和记忆条目都映射到同一个向量空间，用余弦相似度衡量相关程度。</li>
+<li>Importance（重要性）——有些记忆本身就比其他的更重要，不管它是否是近期的、是否和当前 query 直接相关。比如&quot;用户是 VIP 客户&quot;这条信息可能在很多场景下都应该被召回。重要性评分通常在记忆写入时由 LLM 打分确定，也可以根据该记忆被引用的频率动态调整。</li>
+</ul>
+<div align="center">
+  <img src="记忆检索.png" alt="记忆检索" width="85%">
+</div>
+<p>还可以结合：</p>
+<ul>
+<li><strong>元数据过滤</strong>在做向量检索之前，先按用户 ID、记忆类型、时间范围等结构化字段筛掉一大批不相关的条目，缩小搜索空间。</li>
+<li><strong>二阶段检索</strong> 类似RAG的思路，第一阶段用向量相似度从大库中粗召回 Top-50，第二阶段用交叉编码器（Cross-Encoder）对这 50 条做精排，最终取 Top-5 注入上下文。</li>
 </ul>
 <p><strong>常见组合：</strong> &ldquo;向量检索召回 + 交叉编码器重排序&rdquo;</p>
 <hr>
@@ -862,7 +889,7 @@
 
 
         <span>
-            最后更新于 2026-03-27 03:34 UTC
+            最后更新于 2026-04-13 17:04 UTC
         </span>
     </section></footer>
 
