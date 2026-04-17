@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en-us" dir="ltr">
     <head><meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="系统介绍RAG系统的分阶段评估方法，包括检索阶段和生成阶段的核心指标及LLM-as-Judge评估框架。">
-<title>RAG的评估体系</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="对模型上下文协议（MCP）的一些个人理解和官方文档的阅读">
+<title>MCP协议</title>
 
-<link rel='canonical' href='https://Tyritic.github.io/p/rag%E7%9A%84%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB/'>
+<link rel='canonical' href='https://Tyritic.github.io/p/mcp%E5%8D%8F%E8%AE%AE/'>
 
-<link rel="stylesheet" href="/scss/style.min.95b3e8a9f429a3f591b1715d9326402e4d295cd4792b2a9f889894b865231684.css"><meta property='og:title' content="RAG的评估体系">
-<meta property='og:description' content="系统介绍RAG系统的分阶段评估方法，包括检索阶段和生成阶段的核心指标及LLM-as-Judge评估框架。">
-<meta property='og:url' content='https://Tyritic.github.io/p/rag%E7%9A%84%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB/'>
+<link rel="stylesheet" href="/scss/style.min.95b3e8a9f429a3f591b1715d9326402e4d295cd4792b2a9f889894b865231684.css"><meta property='og:title' content="MCP协议">
+<meta property='og:description' content="对模型上下文协议（MCP）的一些个人理解和官方文档的阅读">
+<meta property='og:url' content='https://Tyritic.github.io/p/mcp%E5%8D%8F%E8%AE%AE/'>
 <meta property='og:site_name' content='Tyritic'>
-<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='RAG' /><meta property='article:published_time' content='2025-05-04T19:29:50&#43;08:00'/><meta property='article:modified_time' content='2026-04-13T17:04:02&#43;00:00'/>
-<meta name="twitter:title" content="RAG的评估体系">
-<meta name="twitter:description" content="系统介绍RAG系统的分阶段评估方法，包括检索阶段和生成阶段的核心指标及LLM-as-Judge评估框架。">
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='MCP' /><meta property='article:published_time' content='2025-03-27T10:00:39&#43;08:00'/><meta property='article:modified_time' content='2026-04-17T03:08:56&#43;00:00'/>
+<meta name="twitter:title" content="MCP协议">
+<meta name="twitter:description" content="对模型上下文协议（MCP）的一些个人理解和官方文档的阅读">
     <link rel="shortcut icon" href="/favicon.ico" />
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -308,17 +308,20 @@
         <div class="widget--toc">
             <nav id="TableOfContents">
   <ol>
-    <li><a href="#-分阶段评估">📊 分阶段评估</a></li>
-    <li><a href="#-检索阶段评估">🔍 检索阶段评估</a>
+    <li><a href="#-llm-的典型局限">🤔 LLM 的典型局限</a></li>
+    <li><a href="#-传统方案函数调用">🧰 传统方案：函数调用</a></li>
+    <li><a href="#-mcp-是什么">🔌 MCP 是什么</a></li>
+    <li><a href="#-mcp-相比-function-call-带来了什么">🧩 MCP 相比 Function Call 带来了什么</a></li>
+    <li><a href="#-mcp-和-function-call-的区别">🆚 MCP 和 Function Call 的区别</a></li>
+    <li><a href="#-核心架构与运行方式">🏗️ 核心架构与运行方式</a>
       <ol>
-        <li><a href="#-基础指标">📏 基础指标</a></li>
-        <li><a href="#-排序指标">📈 排序指标</a></li>
+        <li><a href="#-核心架构">🗂️ 核心架构</a></li>
+        <li><a href="#-传输模式">📡 传输模式</a></li>
       </ol>
     </li>
-    <li><a href="#-生成阶段评估">✨ 生成阶段评估</a></li>
-    <li><a href="#-传统-nlp-指标">📐 传统 NLP 指标</a></li>
-    <li><a href="#-llm-as-judge让-llm-作为裁判">🤖 LLM-as-Judge（让 LLM 作为裁判）</a></li>
-    <li><a href="#-完整的评估流程">🔄 完整的评估流程</a></li>
+    <li><a href="#-mcp-的工作流程">🔄 MCP 的工作流程</a></li>
+    <li><a href="#-安全性设计">🔐 安全性设计</a></li>
+    <li><a href="#-小结">✅ 小结</a></li>
   </ol>
 </nav>
         </div>
@@ -346,12 +349,12 @@
 
     <div class="article-title-wrapper">
         <h2 class="article-title">
-            <a href="/p/rag%E7%9A%84%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB/">RAG的评估体系</a>
+            <a href="/p/mcp%E5%8D%8F%E8%AE%AE/">MCP协议</a>
         </h2>
     
         
         <h3 class="article-subtitle">
-            系统介绍RAG系统的分阶段评估方法，包括检索阶段和生成阶段的核心指标及LLM-as-Judge评估框架。
+            对模型上下文协议（MCP）的一些个人理解和官方文档的阅读
         </h3>
         
     </div>
@@ -372,7 +375,7 @@
   <path d="M3 11h16" />
   <path d="M18 16.496v1.504l1 1" />
 </svg>
-                <time class="article-time--published">2025-05-04</time>
+                <time class="article-time--published">2025-03-27</time>
             </div>
         
 
@@ -387,7 +390,7 @@
 
 
                 <time class="article-time--reading">
-                    阅读时长: 8 分钟
+                    阅读时长: 10 分钟
                 </time>
             </div>
 
@@ -395,7 +398,7 @@
             <div>
                 <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
                 <time class="article-words">
-                     字数统计：3775 字
+                     字数统计：4923 字
                 </time>
             </div>
 
@@ -413,95 +416,299 @@
     <section class="article-content">
     
     
-    <h2 id="-分阶段评估">📊 分阶段评估
-</h2><p>RAG 系统有一个根本特征：它是一个两阶段的 pipeline，每个阶段的失败模式完全不同，因此需要分而治之地评估。</p>
-<p>要理解 RAG 评估为什么难，先得理解 RAG 系统的&quot;责任链&quot;结构。用户提了一个问题，先经过检索模块从知识库中找出若干相关文档片段（<strong>Chunks</strong>），再把这些 Chunks 连同问题一起交给 <strong>LLM</strong> 生成最终回答。这意味着最终回答的质量取决于两个环节的连乘：如果检索没找对文档，LLM 再强也是&quot;巧妇难为无米之炊&quot;；反过来，即使检索完美地找到了所有相关信息，如果 <strong>LLM</strong> 没有正确地理解和整合这些信息，甚至编造了检索结果中不存在的内容（即&quot;幻觉&quot;），最终结果同样不合格。更麻烦的是，当最终回答出了问题，你必须能定位到底是哪个环节出了错——是检索阶段的锅还是生成阶段的锅——否则优化就无从下手。这就是为什么 RAG 评估必须分阶段进行。</p>
-<div align="center">
-  <img src="分阶段评估.png" alt="分阶段评估" width="78%" />
-</div>
-<p>以下是用于评估 RAG 系统不同方面的指标总结：</p>
-<div align="center">
-  <img src="RAG评估指标.png" alt="RAG评估指标" width="78%" />
-</div>
+    <h2 id="-llm-的典型局限">🤔 LLM 的典型局限
+</h2><p>人工智能的迅速发展，尤其是大型语言模型(LLMs)，为生成类人类文本、解决复杂问题和跨行业提升生产力打开了前所未有的潜力。然而，一个持续存在的挑战是:这些模型往往与驱动现代工作流的实时动态数据隔离。在真正落地业务场景时，LLM 虽然已经具备很强的理解和生成能力，但仍然有几个明显短板：</p>
+<ul>
+<li><strong>知识覆盖有限</strong>：大多数 LLM 基于公开语料训练，对垂直领域知识掌握不足，遇到不熟悉的问题时容易出现“看起来很自信、实际上不准确”的回答。</li>
+<li><strong>知识缺乏实时性</strong>：模型的知识停留在训练阶段，无法天然知道“今天”的天气、最新政策或最新业务数据。</li>
+<li><strong>缺少主动执行能力</strong>：LLM 更像一个“规划者”，能够理解和推理，但如果没有外部工具配合，它本身无法主动读取文件、访问网络或执行系统操作。</li>
+</ul>
 <hr>
-<h2 id="-检索阶段评估">🔍 检索阶段评估
-</h2><p>检索阶段的核心任务是从知识库中找出与用户问题相关的文档片段。评估这个阶段的好坏，本质上就是在回答三个问题：找到的东西是不是真的相关？该找到的东西有没有漏掉？找到的东西排列顺序合不合理？</p>
+<h2 id="-传统方案函数调用">🧰 传统方案：函数调用
+</h2><p>Function Call 于 <strong>2023 年</strong> 由 OpenAI 推出。在此之前，LLM 主要只能通过自然语言回答问题，无法直接触发 API 调用或插件交互。Function Call 的关键能力在于：<strong>模型能够以结构化 JSON 的形式输出函数参数，再交由应用程序执行对应逻辑。</strong></p>
 <div align="center">
-  <img src="检索阶段评估.png" alt="检索阶段评估" width="78%" />
+  <img src="Function Calling.png" alt="Function Call" width="82%">
 </div>
-<h3 id="-基础指标">📏 基础指标
-</h3><p><strong>Precision（精确率）</strong> 和 <strong>Recall（召回率）</strong> 是最基础也最重要的两个指标。</p>
+一个典型流程如下：
 <ul>
-<li>
-<p><strong>Precision</strong> 衡量的是&quot;检索回来的文档中，有多少是真正相关的&quot;——<strong>Top-K召回的相关片段数/Top-K召回的总片段数</strong>。如果你检索了 10 个 Chunk，其中只有 3 个和问题相关，那 Precision 就是 30%，说明有大量噪声文档被带了进来。</p>
-</li>
-<li>
-<p><strong>Recall</strong> 衡量的是&quot;所有相关的文档中，有多少被成功检索回来了&quot;——<strong>Top-K召回的相关片段数/总相关片段数</strong>。如果知识库中有 5 个 Chunk 和问题相关，你只检索到了 2 个，那 Recall 就是 40%，说明关键信息被遗漏了。</p>
-</li>
+<li><strong>识别意图</strong>：模型根据用户输入判断是否需要调用函数。</li>
+<li><strong>生成参数</strong>：模型输出结构化 JSON，用于描述目标函数及其参数。</li>
+<li><strong>应用执行</strong>：业务程序接收参数后调用本地函数或外部接口。</li>
+<li><strong>结果回传</strong>：函数执行结果再返回给模型，由模型整理成自然语言回答。</li>
 </ul>
-<p>在 RAG 场景中，这两个指标存在一个天然的张力。你想提高 Recall，最简单的办法就是多检索一些 Chunk（提高 <strong>Top-K</strong>），但这会导致 Precision 下降，大量无关的 Chunk 涌入上下文不仅浪费 token，还可能干扰 <strong>LLM</strong> 的理解。反之，如果 Top-K 设得太小，Precision 上去了，但可能漏掉了关键信息。实际工程中通常要在两者之间找到一个甜蜜点，这就是为什么 <strong>F1 Score</strong>（Precision 和 Recall 的调和平均）在检索评估中也很常用。</p>
-<h3 id="-排序指标">📈 排序指标
-</h3><p>但光看 Precision 和 Recall 还不够，因为它们没有考虑排序质量。在 RAG 系统中，检索返回的 Chunk 是有顺序的，排在前面的 Chunk 通常会在 <strong>LLM</strong> 的上下文中占据更显眼的位置，对生成结果的影响更大。如果最相关的 Chunk 被排在了第 8 位而一个勉强沾边的 Chunk 排在了第 1 位，即使整体的 Precision 和 Recall 看起来还行，实际效果也会大打折扣。</p>
+<p>虽然 Function Call 非常重要，但它也存在明显局限：</p>
 <ul>
-<li>
-<p><strong>MRR（Mean Reciprocal Rank，平均倒数排名）</strong> 专门衡量&quot;第一个相关文档排在什么位置&quot;。如果第一个相关文档排在第 1 位，得分是 1；排在第 2 位，得分是 1/2；排在第 5 位，得分是 1/5。MRR 越高，说明系统越能把最相关的结果排到前面，用户（或 LLM）越快就能看到有用的信息。</p>
-</li>
-<li>
-<p><strong>NDCG（Normalized Discounted Cumulative Gain，归一化折损累积增益）</strong> 则更进一步，它不仅关心第一个相关文档的位置，而是评估整个排序列表的质量。它的核心思想是：排在前面的文档对最终结果的贡献应该更大，排在后面的文档即使相关，其贡献也要被&quot;折损&quot;。NDCG 考虑了每个文档的相关性程度（不只是&quot;相关/不相关&quot;的二值判断，还可以有&quot;非常相关/部分相关/不太相关&quot;的多级标注），并且用理论最优排序作为归一化基准，所以它在评估分级相关性场景下特别有价值。</p>
-</li>
-<li>
-<p><strong>Context Relevance（上下文相关性）</strong>，这是 <strong>RAGAS</strong> 框架提出的评估维度。它不是简单地看每个 Chunk 是否相关，而是评估检索回来的整体上下文中，有多大比例的内容对回答用户问题确实有用。一个常见的实现方式是用 <strong>LLM</strong> 从检索到的上下文中提取所有能用于回答问题的句子，然后计算这些有用句子占总上下文的比例。这个指标特别适合发现&quot;检索了很多 Chunk 但大部分是废话&quot;的情况。</p>
-</li>
+<li><strong>平台依赖性强</strong>：不同 LLM 平台对 Function Call 的实现差异较大。</li>
+<li><strong>迁移成本高</strong>：从一个模型平台切换到另一个平台时，通常需要重写适配逻辑。</li>
+<li><strong>生态不统一</strong>：工具描述、参数约定和交互方式都可能不一致，难以形成统一标准。</li>
+<li>无状态：每次调用都是完全独立的，比如连数据库，每次调用都要重新传地址、账号、密码，重新建立连接，无法复用会话</li>
+<li>单向通信：只能 LLM 主动调用工具，工具无法主动给 LLM 推送消息，比如实时监听日志异常、Kafka 消息，完全做不到</li>
+<li>能力单一：只能实现 “单次调用 - 返回” 的简单场景，无法支撑复杂的、持久化的、多轮交互的业务。</li>
 </ul>
-<h2 id="-生成阶段评估">✨ 生成阶段评估
-</h2><p>检索阶段把相关文档找回来了，接下来就看 <strong>LLM</strong> 拿这些文档能产出什么质量的回答。生成阶段的评估比检索阶段更微妙，因为它要评判的是一段自然语言文本的质量，而自然语言的&quot;好坏&quot;远不像检索命中率那样容易量化。</p>
-<ul>
-<li>
-<p><strong>Faithfulness（忠实度）</strong> 是 RAG 生成评估中最核心的指标，没有之一。它衡量的是&quot;LLM 生成的回答是否忠实于检索到的文档内容，有没有编造检索结果中不存在的信息&quot;。为什么说它最核心？因为 RAG 系统存在的根本意义就是让 LLM 基于可靠的外部知识来回答，而不是靠自己的参数记忆胡编乱造。如果生成的回答中出现了检索文档完全没有提到的&quot;事实&quot;，那这个 RAG 系统就失去了存在的意义——用户还不如直接问 LLM。Faithfulness 的评估通常是这样做的：先让 <strong>LLM</strong> 把生成的回答拆分成若干独立的事实性陈述（<strong>Claims</strong>），然后逐一检验每个陈述是否能被检索到的上下文所支持。Faithfulness 得分 = 被上下文支持的陈述数 / 总陈述数。这个拆分-验证的思路在 <strong>RAGAS</strong> 和 <strong>TruLens</strong> 等评估框架中被广泛使用。</p>
-</li>
-<li>
-<p><strong>Answer Relevance（回答相关性）</strong> 衡量的是生成的回答是否切题、是否真正回答了用户的问题。一个回答可能完全忠实于检索文档（Faithfulness 满分），但如果它答非所问，同样是一个低质量的回答。比如用户问&quot;Python 的 GIL 是什么&quot;，LLM 却大谈 Python 的安装方法——内容可能没有编造，但完全没有回答用户的问题。RAGAS 框架中评估 Answer Relevance 的一个巧妙方法是：用 <strong>LLM</strong> 根据生成的回答反向生成几个问题，然后计算这些反向生成的问题与原始问题之间的语义相似度，相似度越高说明回答越切题。</p>
-</li>
-<li>
-<p><strong>Answer Completeness / Correctness（回答完整性/正确性）</strong> 关注的是回答是否覆盖了问题的所有要点。一个忠实且切题的回答，如果只回答了问题的一半，也不算好答案。这个指标通常需要一个参考答案（<strong>Ground Truth</strong>）来对比，评估生成的回答覆盖了参考答案中多少关键信息点。在有标注数据的场景下，这是一个很有说服力的指标。</p>
-</li>
-</ul>
-<div align="center">
-  <img src="生成阶段评估.png" alt="生成阶段评估" width="78%" />
-</div>
 <hr>
-<h2 id="-传统-nlp-指标">📐 传统 NLP 指标
-</h2><p>除了上面这些专门为 RAG 设计的语义级评估指标，还有一些经典的 NLP 文本评估指标也被用在 RAG 评估中，但它们各有局限，需要理解其适用边界。<strong>BLEU</strong> 和 <strong>ROUGE</strong> 是最常见的两个。</p>
+<h2 id="-mcp-是什么">🔌 MCP 是什么
+</h2><p>MCP 全称是 <strong>Model Context Protocol（模型上下文协议）</strong>，它由 Anthropic 在2024年11月推出，目标是为 LLM 与外部数据源、工具之间的交互提供一种更标准化的方式，旨在使AI模型，尤其是大型语言模型(LLMs)，能够更容易地与外部数据(如文件、数据库或API)连接。它就像一个通用插头，可以让AI&quot;与”不同的系统交流，而不需要为每个系统进行定制设置。官方文档见：<a class="link" href="https://modelcontextprotocol.io/introduction"  target="_blank" rel="noopener"
+    >MCP Introduction</a>。</p>
+<p>官方对 MCP 的描述是：</p>
+<blockquote>
+<p>MCP is an open protocol that standardizes how applications provide context to LLMs.</p>
+</blockquote>
+<p>可以把 MCP 理解成 AI 应用的 <strong>USB-C 接口</strong>。就像 USB-C 让不同设备可以通过统一标准连接各种外设一样，MCP 也希望让不同模型、不同工具、不同数据源之间通过统一协议协作。模型上下文协议(MCP)，由Anthropic发起的一种开放标准，就是为了解决这个问题的。MCP承诺通过提供一个通用的、标准化的框架来无缝集成数据，重新定义AI与工具的交互方式。就像 TCP/IP标准化了网络通信或ODBC改变了数据库连接一样，MCP希望成为互联AI生态系统的基础。</p>
+<div align="center">
+  <img src="MCP图示.png" alt="MCP 图示" width="82%" />
+</div>
+<p>从工程角度看，MCP 的价值在于：</p>
 <ul>
-<li><strong>BLEU</strong> 原本用于机器翻译评估，衡量生成文本与参考文本之间的 n-gram 重叠度</li>
-<li><strong>ROUGE</strong> 原本用于摘要评估，侧重衡量参考文本中的关键 n-gram 是否被生成文本覆盖</li>
+<li><strong>统一连接方式</strong>：让模型以一致的方式接入工具、资源和上下文，而不是每个平台都单独定制一套接入协议。具体来说，MCP其实是解决了“MxN”集成问题，其中M个不同的LLM需要与N个不同的工具连接，导致自定义解决方案的组合爆炸。通过提供单一协议，MCP将这种复杂性降低到N+M。</li>
+<li><strong>增强模型能力</strong>：模型不仅能“思考”，还可以借助外部系统去读取文件、调用服务、获取实时数据。</li>
+<li><strong>提升系统可维护性</strong>：协议统一之后，组件之间的职责边界会更清晰，适配和维护成本也更低。</li>
 </ul>
-<p>它们的优势是计算简单、不需要调用 LLM、成本几乎为零，适合在大规模评估中快速筛选。但它们的根本问题是只看表面文字的重叠，不理解语义。两句意思完全相同但措辞不同的回答，在 BLEU/ROUGE 下可能得分很低；反过来，一句大量复用了原文词汇但意思完全扭曲的回答，可能得分反而高。所以在 RAG 场景中，这些指标只能作为辅助参考，不能作为核心评估手段。</p>
-<p><strong>BERTScore</strong> 是一个改进方向，它用预训练语言模型的 <strong>Embedding</strong> 来计算生成文本和参考文本之间的语义相似度，而不是简单的词汇重叠。这在一定程度上解决了&quot;同义不同词&quot;的问题，但仍然依赖参考答案的存在，而且对于 RAG 这种开放式生成任务，参考答案本身就很难穷举。</p>
-<div align="center">
-  <img src="评估维度.png" alt="评估维度" width="78%" />
-</div>
+<p>如果用一句话总结：<strong>MCP 不是替代 Function Call，而是在它之上进一步标准化模型与外部能力的协作方式。</strong></p>
 <hr>
-<h2 id="-llm-as-judge让-llm-作为裁判">🤖 LLM-as-Judge（让 LLM 作为裁判）
-</h2><p>讲到这里，一个绕不开的实操问题浮出水面：上面说的 Faithfulness、Answer Relevance 这些语义级指标，到底靠什么来计算？ 靠人工标注当然最准，但成本高、速度慢，根本无法满足日常迭代的需求。RAG 评估领域目前最主流的解决方案就是 <strong>LLM-as-Judge</strong>——用一个 LLM（通常是 GPT-4 级别的强模型）来充当评估者，自动对 RAG 系统的输出进行评分。</p>
-<p><strong>RAGAS</strong> 框架是目前最成熟的 RAG 自动化评估工具，它的核心就是用 LLM 来评估前面提到的 Faithfulness、Answer Relevance、Context Relevance 等指标。<strong>TruLens</strong> 则提供了更灵活的反馈函数（<strong>Feedback Functions</strong>）机制，可以自定义各种评估逻辑。这些框架让 RAG 评估从&quot;每次改动都要找人标注&quot;变成了&quot;改完代码跑一遍评估脚本就能看到效果&quot;，极大地加速了迭代效率。</p>
-<p>但 LLM-as-Judge 本身也有局限。首先是评估模型本身可能犯错——它可能误判一个幻觉陈述为&quot;被上下文支持&quot;，或者对一个完全正确的回答打了低分。其次是成本——每次评估都要调用大模型，如果评估集很大，成本也不容小觑。实践中的做法是：日常迭代用 LLM-as-Judge 做快速评估，定期用人工标注做校准和修正，两者互补。</p>
-<div align="center">
-  <img src="LLM-as-Judge.png" alt="LLM-as-Judge" width="78%" />
-</div>
-<hr>
-<h2 id="-完整的评估流程">🔄 完整的评估流程
-</h2><p>虽然分阶段评估对于定位问题至关重要，但不能忘了最终关心的是端到端的效果。一个检索指标全优但用户满意度不高的 RAG 系统，和一个检索指标一般但最终回答恰好满足用户需求的系统，后者在业务上可能反而更有价值。</p>
-<p>所以在实际项目中，一套完善的 RAG 评估体系通常是这样分层的：</p>
+<h2 id="-mcp-相比-function-call-带来了什么">🧩 MCP 相比 Function Call 带来了什么
+</h2><p>MCP 的核心改进，可以从三个能力对象来理解：</p>
 <ul>
-<li><strong>最底层</strong>是各阶段的细粒度指标（<strong>Precision</strong>、<strong>Recall</strong>、<strong>MRR</strong>、<strong>Faithfulness</strong> 等），用于日常开发中的问题诊断和快速迭代</li>
-<li><strong>中间层</strong>是端到端的自动化指标（<strong>Answer Correctness</strong>、整体 RAGAS 分数），用于版本间的效果对比</li>
-<li><strong>最上层</strong>是人工评估和用户反馈，用于校准自动化指标的准确性和把握真实的用户体验</li>
+<li><strong>Tool</strong>：可供模型调用的外部工具。
+<ul>
+<li>服务器定义好工具，例如“发送邮件”“计算距离”“执行查询”等，客户端发现这些工具后，LLM 就可以在合适时机发起调用，结果再返回给模型继续推理。</li>
 </ul>
-<p>三层互补，缺一不可。</p>
+</li>
+<li><strong>Resource</strong>：可供模型读取的数据资源。
+<ul>
+<li>这类资源可以是文件内容、数据库结果、API 响应等。客户端会把这些资源作为上下文提供给模型使用。</li>
+</ul>
+</li>
+<li><strong>Prompt</strong>：由服务器提供的提示词模板。
+<ul>
+<li>服务器可以预先定义 Prompt 模板，例如“生成产品描述”“排查报错”“总结会议纪要”等，客户端按模板填参后交给模型执行。</li>
+</ul>
+</li>
+</ul>
+<p>也就是说MCP提供了以下能力：</p>
+<ul>
+<li>有状态的会话管理：支持长连接持久化，一次认证、长期复用，比如用 MCP 连接 MySQL，建立连接后，后续所有数据库操作都可以复用这个连接，不用每次都重新传参建连，就像后端的数据库连接池；</li>
+<li>双向实时通信：不仅 LLM 可以主动调用工具，外部工具也可以主动向 LLM 推送数据，比如日志系统出现 ERROR 级日志、Prometheus 出现异常指标，都可以实时推送给 LLM，触发 LLM 的自动分析和处理；</li>
+<li>标准化资源访问：定义了统一的资源模型，文件、数据库、消息队列、代码仓库、运维平台，都可以用标准化的方式对接 LLM，不用每个工具都单独写一套适配代码，就像后端的 ORM 框架，统一了不同数据库的访问方式；</li>
+<li>上下文实时同步：可以自动同步外部系统的上下文变化给 LLM，比如 Git 仓库的代码变更、业务系统的配置更新，不用你每次都手动把内容粘贴给 LLM，LLM 能实时感知最新状态。</li>
+</ul>
+<p>从这个角度看，MCP 不只是“让模型会调函数”，而是把 <strong>工具、资源、提示词模板</strong> 都纳入了统一的协议体系中。</p>
+<hr>
+<h2 id="-mcp-和-function-call-的区别">🆚 MCP 和 Function Call 的区别
+</h2><p>二者的核心区别就一句话：Function Call 是 LLM 的一项<strong>单轮工具调用能力</strong>，而 MCP 是一套<strong>标准化 LLM 与外部世界交互的完整通信协议</strong>——Function Call 只是 MCP 的能力子集，二者根本不是一个维度的东西。</p>
+<ul>
+<li><strong>LLM 的基础工具调用能力</strong>：Function Call 的本质，是 LLM 提供的单轮、无状态、单向的工具调用机制，解决的核心问题是&quot;让 LLM 不要瞎编答案，而是通过调用外部工具获取准确数据&quot;。Function Call 就像 HTTP 接口的单次调用，你发一次请求、传一次参数、拿一次结果，无状态、单向通信，每次调用都要重新认证、重新传参，只能你主动调用接口，接口不能主动给你推消息。</li>
+<li><strong>MCP 的完整协议设计</strong>：MCP 就是给二者建了一条稳定的、全双工的、持久化的通信管道。它不仅包含了 Function Call 的工具调用能力，还提供了 Function Call 完全不具备的核心能力。MCP 就像 TCP 长连接 + 完整的 RPC 协议，它不仅能实现单次调用，还能保持长连接、持久化会话状态、支持双向实时通信，有完整的资源管理、上下文同步、异常处理机制，能支撑复杂的、持久化的业务场景。</li>
+</ul>
+<h2 id="-核心架构与运行方式">🏗️ 核心架构与运行方式
+</h2><h3 id="-核心架构">🗂️ 核心架构
+</h3><p>MCP 采用 <strong>客户端 - 服务器架构</strong>，通信层通常使用 <a class="link" href="https://www.jsonrpc.org/"  target="_blank" rel="noopener"
+    >JSON-RPC 2.0</a> 来交换消息。</p>
 <div align="center">
-  <img src="分层评估.png" alt="分层评估体系" width="78%" />
+  <img src="77afbba7a4543387ddb1f1827dac0b71.png" alt="MCP 核心架构" width="82%" />
 </div>
+<p>架构中的关键角色如下：</p>
+<ul>
+<li><strong>主机（Host）</strong>：发起连接的 LLM 应用程序，主要是人工智能应用程序(例如，Claude桌面、集成开发环境或Agent 框架)，负责管理MCP</li>
+<li><strong>客户端（MCP Client）</strong>：Host内部专门用于与MCP Server建立和维持一对一连接的模块。它负责按照MCP协议的规范发送请求、接收响应和处理数据。简单来说，MCP Client是Host内部处理RPC通信的“代理”，专注于与一个MCP Server进行标准化的数据、工具或prompt的交换</li>
+</ul>
+<div align="center">
+  <img src="MCP Client.png" alt="MCP Client" width="82%" />
+</div>
+<ul>
+<li><strong>服务器（MCP Server）</strong>：对接具体的数据源或工具，向客户端暴露能力。
+<ul>
+<li><strong>Resources</strong>：提供给 AI 的数据来源，如文件、数据库记录或 API 响应，为 AI 提供上下文信息。</li>
+<li><strong>Tools</strong>：可被 LLM 调用的函数式能力，通常需要用户授权。</li>
+<li><strong>Prompts</strong>：预定义的提示模板，帮助用户更高效地完成特定任务。指导 AI 响应或任务的模板消息或工作流，增强互动</li>
+</ul>
+</li>
+</ul>
+<div align="center">
+  <img src="MCP Server.png" alt="MCP Server" width="82%" />
+</div>
+<ul>
+<li><strong>资源来源</strong>：既可以是本地资源，也可以是远程资源。
+<ul>
+<li><strong>本地资源</strong>：数据库、文件、服务等本机可访问对象。</li>
+<li><strong>远程资源</strong>：互联网上的 API、远端服务或其他在线能力。</li>
+</ul>
+</li>
+</ul>
+<h3 id="-传输模式">📡 传输模式
+</h3><p>MCP 常见有两种运行模式：</p>
+<ul>
+<li><strong>Stdio 模式</strong>：通过标准输入输出流通信，是最常见的本地部署方案。实现简单，适合同机进程间交互，也避免了额外网络开销。</li>
+<li><strong>SSE 模式</strong>：通过服务器发送事件（Server-Sent Events）通信，更适合远程部署场景，尤其是需要通过 HTTP 与多个客户端交互时。</li>
+</ul>
+<hr>
+<h2 id="-mcp-的工作流程">🔄 MCP 的工作流程
+</h2><div align="center">
+  <img src="image-20250327140914648.png" alt="MCP 工作流程" width="88%" />
+</div>
+<p>一个典型的 MCP 请求大致会经过以下步骤：</p>
+<ul>
+<li><strong>初始化</strong>：主机启动并初始化 MCP Client，每个 Client 与一个 MCP Server 建立连接。</li>
+<li><strong>能力协商</strong>：Client 和 Server 先确认彼此支持的功能、资源和工具。例如，当天气 API 服务器被调用时，它可以回复可用的“工具”、“提示模板”和其他资源供客户端使用。一旦此交换完成，MCP Client会确认连接成功，并继续进行进一步的消息交换。我们可以把它类比为TCP通信建立握手的过程，在正式传输消息前，TCP有一个三次握手建立连接的过程。</li>
+<li><strong>请求处理</strong>：Client 根据用户请求或模型推理结果，决定是否向 Server 发起资源读取或工具调用。</li>
+<li><strong>模型决策</strong>：LLM 根据上下文和工具描述，判断是否需要调用工具，以及该调用哪些能力。</li>
+<li><strong>执行调用</strong>：MCP Server 负责真正执行工具逻辑，或读取本地 / 远程资源。</li>
+<li><strong>结果整合</strong>：调用结果返回给模型，由模型将新信息与原问题一起整合，形成最终答案。</li>
+<li><strong>响应返回</strong>：最终结果再由 Client 传回主机应用程序。</li>
+</ul>
+<p>如果从 Agent 视角理解，MCP 的意义在于：<strong>模型不再只是“知道很多”，而是开始具备“按协议接入外部世界”的能力。</strong></p>
+<hr>
+<style type="text/css">
+   
+  .notice {
+    --title-color: #fff;
+    --title-background-color: #6be;
+    --content-color: #444;
+    --content-background-color: #e7f2fa;
+  }
+
+  .notice.info {
+    --title-background-color: #fb7;
+    --content-background-color: #fec;
+  }
+
+  .notice.tip {
+    --title-background-color: #5a5;
+    --content-background-color: #efe;
+  }
+
+  .notice.warning {
+    --title-background-color: #c33;
+    --content-background-color: #fee;
+  }
+
+   
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      --title-color: #fff;
+      --title-background-color: #069;
+      --content-color: #ddd;
+      --content-background-color: #023;
+    }
+
+    .notice.info {
+      --title-background-color: #a50;
+      --content-background-color: #420;
+    }
+
+    .notice.tip {
+      --title-background-color: #363;
+      --content-background-color: #121;
+    }
+
+    .notice.warning {
+      --title-background-color: #800;
+      --content-background-color: #400;
+    }
+  }
+
+  body.dark .notice {
+    --title-color: #fff;
+    --title-background-color: #069;
+    --content-color: #ddd;
+    --content-background-color: #023;
+  }
+
+  body.dark .notice.info {
+    --title-background-color: #a50;
+    --content-background-color: #420;
+  }
+
+  body.dark .notice.tip {
+    --title-background-color: #363;
+    --content-background-color: #121;
+  }
+
+  body.dark .notice.warning {
+    --title-background-color: #800;
+    --content-background-color: #400;
+  }
+
+   
+  .notice {
+    width: 100%;  
+    max-width: 600px;  
+    padding: 18px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+    color: var(--content-color);
+    background: var(--content-background-color);
+  }
+
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+
+   
+  .notice-title {
+    margin: -18px -18px 12px;
+    padding: 4px 18px;
+    border-radius: 4px 4px 0 0;
+    font-weight: 700;
+    color: var(--title-color);
+    background: var(--title-background-color);
+  }
+
+   
+  .icon-notice {
+    display: inline-flex;
+    align-self: center;
+    margin-right: 8px;
+  }
+
+  .icon-notice img,
+  .icon-notice svg {
+    height: 1em;
+    width: 1em;
+    fill: currentColor;
+  }
+
+  .icon-notice img,
+  .icon-notice.baseline svg {
+    top: 0.125em;
+    position: relative;
+  }
+</style><div
+  class="notice tip"
+  
+>
+  <p class="notice-title">
+    <span class="icon-notice baseline">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="300.5 134 300 300">
+  <path d="M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z"/>
+</svg>
+
+    </span>提示</p><p>MCP为什么需要设计一个功能交换的过程？</p>
+<ul>
+<li>在传统的 API 服务中，如果你的 API Server最初需要两个参数（例如， location 和 date 用于天气服务），用户需要将他们的应用程序集成以发送带有这些确切参数的请求。但假设你想要添加第三个必需参数（比如 unit ，用于温度单位，如摄氏度或华氏度），那么API 的请求协议就会发生变化。这就意味着所有使用你 API Server的用户都必须更新其代码以包含新参数。如果不更新，他们的请求可能会失败、返回错误或提供不完整的结果
+而MCP的这种设计就有效的避免了这种问题，MCP 引入了一种动态且灵活的方法，与传统的 API 形成了鲜明的对比。</li>
+<li>当客户端（例如，AI 应用程序如 Claude Desktop）连接到 MCP 服务器（例如，你的天气服务）时，它会发送一个初始请求以了解服务器的功能。服务器会响应其可用工具、资源、提示和参数的详细信息。比如，如果你的天气 API 最初支持 location 和 date ，服务器会将其作为功能的一部分进行通信。同样，假设后来你添加了一个 unit 参数，MCP 服务器可以在下一次交换中动态更新其能力描述。客户端不需要硬编码或预先定义这些参数，它只需查询服务器当前的能力并相应地进行调整。这样，客户端就可以根据需要实时调整其行为，使用更新的能力（例如，在其请求中包含单位）而无需重写或重新部署代码</li>
+</ul></div>
+
+<h2 id="-安全性设计">🔐 安全性设计
+</h2><p>MCP 的安全设计主要体现在以下几个方面：</p>
+<ul>
+<li><strong>用户授权与控制</strong>：模型访问工具、资源和提示词时，通常需要经过用户同意。主机负责权限管理和交互确认，避免模型在用户不知情的情况下访问外部能力。</li>
+<li><strong>隔离与沙箱机制</strong>：具体的工具调用被封装在 MCP Server 中，模型不会直接接触底层敏感系统，从而降低误操作和越权访问的风险。</li>
+<li><strong>传输安全与来源验证</strong>：协议层支持对请求来源和通信过程进行校验，确保只有可信请求可以访问相应资源。</li>
+</ul>
+<p>这也是 MCP 能够走向工程化的重要原因之一。它不是单纯强调“模型更强了”，而是强调 <strong>模型能力扩展必须建立在可控、可审计、可授权的前提下</strong>。</p>
+<hr>
+<h2 id="-小结">✅ 小结
+</h2><p>模型上下文协议（MCP） 的核心意义，在于为 LLM、工具、数据源之间建立了一套更统一的连接规范，通过提供一个标准化的开源框架，MCP 简化了将 LLMs 连接到外部数据源、工具和工作流的过程，消除了复杂的一次性集成的需要。 随着 AI 的不断发展，无缝地与动态的现实世界数据进行交互的能力对于构建真正智能和响应的应用程序至关重要。MCP 为更互联的 AI 生态系统奠定了基础，使开发人员能够以最小的摩擦创建更智能、更强大的 AI 系统。随着越来越多的采用和持续的创新，MCP 有可能成为 AI 工具集成的行业标准，就像 TCP/IP 对网络通信所做的那样。</p>
+<p>如果说 Function Call 解决的是“模型能不能调用函数”的问题，那么 MCP 进一步解决的是：</p>
+<ul>
+<li><strong>模型如何统一接入外部能力</strong></li>
+<li><strong>不同工具和数据源如何被标准化暴露</strong></li>
+<li><strong>整个调用链路如何在安全与可维护的前提下运行</strong></li>
+</ul>
+<p>对于 Agent 系统来说，MCP 很重要，因为它让模型从“只会生成内容”的角色，逐步走向“能够读取上下文、调用工具并完成任务”的执行型智能体。</p>
+
 </section>
 
 
@@ -509,7 +716,7 @@
     
     <section class="article-tags">
         
-            <a href="/tags/rag/">RAG</a>
+            <a href="/tags/mcp/">MCP</a>
         
     </section>
 
@@ -524,35 +731,11 @@
 
 
         <span>
-            最后更新于 2026-04-13 17:04 UTC
+            最后更新于 2026-04-17 03:08 UTC
         </span>
     </section></footer>
 
 
-    
-        <link 
-                rel="stylesheet" 
-                href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI&#43;WdtXRGWt2kTvGFasHpSy3SV"crossorigin="anonymous"
-            ><script 
-                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG&#43;vnGctmUb0ZY0l8"crossorigin="anonymous"
-                defer
-                >
-            </script><script 
-                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"integrity="sha384-&#43;VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4&#43;/RRE05"crossorigin="anonymous"
-                defer
-                >
-            </script><script>
-    window.addEventListener("DOMContentLoaded", () => {
-        renderMathInElement(document.body, {
-            delimiters: [
-                { left: "$$", right: "$$", display: true },
-                { left: "$", right: "$", display: false },
-                { left: "\\(", right: "\\)", display: false },
-                { left: "\\[", right: "\\]", display: true }
-            ],
-            ignoredClasses: ["gist"]
-        });})
-</script>
     
 </article>
 
@@ -567,38 +750,12 @@
             
                 
 <article class="">
-    <a href="/p/rag%E7%9A%84%E4%BC%98%E5%8C%96%E7%AD%96%E7%95%A5/">
+    <a href="/p/agent%E7%9A%84%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8/">
         
         
 
         <div class="article-details">
-            <h2 class="article-title">RAG的优化策略</h2>
-        </div>
-    </a>
-</article>
-
-            
-                
-<article class="">
-    <a href="/p/rag%E7%9A%84%E5%87%A0%E5%A4%A7%E8%8C%83%E5%BC%8F/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">RAG的几大范式</h2>
-        </div>
-    </a>
-</article>
-
-            
-                
-<article class="">
-    <a href="/p/rag%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E5%92%8C%E6%B5%81%E7%A8%8B/">
-        
-        
-
-        <div class="article-details">
-            <h2 class="article-title">RAG的基本概念和流程</h2>
+            <h2 class="article-title">Agent的工具调用</h2>
         </div>
     </a>
 </article>
@@ -625,6 +782,32 @@
 
         <div class="article-details">
             <h2 class="article-title">Agent的规划模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E8%AE%B0%E5%BF%86%E6%A8%A1%E5%9D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的记忆模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的核心组件</h2>
         </div>
     </a>
 </article>

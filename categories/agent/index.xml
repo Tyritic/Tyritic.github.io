@@ -76,7 +76,22 @@
       &lt;/tr&gt;
   &lt;/tbody&gt;
 &lt;/table&gt;
-&lt;p&gt;&lt;strong&gt;一句话总结&lt;/strong&gt;：Prompt 是用户即时表达意图的载体；Skills 是包含元数据（何时使用）+ 正文（如何执行）的完整方案，通过 &lt;code&gt;load_skill()&lt;/code&gt; 机制按需加载到上下文。&lt;/p&gt;
+&lt;p&gt;提示词工程更像是“这一次对话里，我把要求写清楚”。Skill更像是“把这套要求、流程、模板，甚至脚本，打包成一个可复用的能力”。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;复用性不一样
+&lt;ul&gt;
+&lt;li&gt;提示词工程通常是一次性的，或者你得反复复制粘贴同一套 prompt。&lt;/li&gt;
+&lt;li&gt;Skill 是可复用的，后面再遇到类似任务，可以直接按这套固定方法做&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;封装的内容不一样
+&lt;ul&gt;
+&lt;li&gt;普通 prompt 主要是文字指令。&lt;/li&gt;
+&lt;li&gt;Skill 除了指令，还可以带参数、条件、循环等复杂逻辑。
+&lt;strong&gt;一句话总结&lt;/strong&gt;：Prompt 是用户即时表达意图的载体；Skills 是包含元数据（何时使用）+ 正文（如何执行）的完整方案，通过 &lt;code&gt;load_skill()&lt;/code&gt; 机制按需加载到上下文。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
 &lt;hr&gt;
 &lt;h3 id=&#34;-skills-vs-mcp&#34;&gt;🔌 Skills vs MCP
 &lt;/h3&gt;&lt;p&gt;这是最容易产生误解的地方。&lt;/p&gt;
@@ -120,6 +135,10 @@
 &lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;两者关系&lt;/strong&gt;：它们不是竞争关系，而是解决不同层面的问题。MCP 负责把外部系统接入，Skills 负责决定什么时候用、怎么组合这些能力。一个高级 Skill 的底层往往调用多个 MCP 工具。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当你的问题核心是“这一类任务每次都要按同一套方法做”。比如固定格式周报、PRD 摘要模板。这类场景重点是流程复用、输出一致、少重复解释，更适合 Skill。Skills 适合可重复任务、团队规范、模板/checklist、多步骤工作流&lt;/li&gt;
+&lt;li&gt;当你的问题核心是“模型需要访问某个外部系统，不连上就做不了”。比如要查 Notion、日历、数据库、GitHub、Figma、内部工具，或者要调用搜索、执行器、业务 API。这类场景重点是连接能力和工具能力，更适合 MCP。MCP 官方定义里明确把它定位成连接外部数据源、工具和工作流的标准接口。&lt;/li&gt;
+&lt;/ul&gt;
 &lt;hr&gt;
 &lt;h3 id=&#34;-function-calling-vs-skills&#34;&gt;🎯 Function Calling vs Skills
 &lt;/h3&gt;&lt;table&gt;
@@ -2289,11 +2308,11 @@
 </description>
         </item>
         <item>
-        <title>RAG的评估体系</title>
-        <link>https://Tyritic.github.io/p/rag%E7%9A%84%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB/</link>
+        <title>RAG的评估体系和排查策略</title>
+        <link>https://Tyritic.github.io/p/rag%E7%9A%84%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB%E5%92%8C%E6%8E%92%E6%9F%A5%E7%AD%96%E7%95%A5/</link>
         <pubDate>Sun, 04 May 2025 19:29:50 +0800</pubDate>
         
-        <guid>https://Tyritic.github.io/p/rag%E7%9A%84%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB/</guid>
+        <guid>https://Tyritic.github.io/p/rag%E7%9A%84%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB%E5%92%8C%E6%8E%92%E6%9F%A5%E7%AD%96%E7%95%A5/</guid>
         <description>&lt;h2 id=&#34;-分阶段评估&#34;&gt;📊 分阶段评估
 &lt;/h2&gt;&lt;p&gt;RAG 系统有一个根本特征：它是一个两阶段的 pipeline，每个阶段的失败模式完全不同，因此需要分而治之地评估。&lt;/p&gt;
 &lt;p&gt;要理解 RAG 评估为什么难，先得理解 RAG 系统的&amp;quot;责任链&amp;quot;结构。用户提了一个问题，先经过检索模块从知识库中找出若干相关文档片段（&lt;strong&gt;Chunks&lt;/strong&gt;），再把这些 Chunks 连同问题一起交给 &lt;strong&gt;LLM&lt;/strong&gt; 生成最终回答。这意味着最终回答的质量取决于两个环节的连乘：如果检索没找对文档，LLM 再强也是&amp;quot;巧妇难为无米之炊&amp;quot;；反过来，即使检索完美地找到了所有相关信息，如果 &lt;strong&gt;LLM&lt;/strong&gt; 没有正确地理解和整合这些信息，甚至编造了检索结果中不存在的内容（即&amp;quot;幻觉&amp;quot;），最终结果同样不合格。更麻烦的是，当最终回答出了问题，你必须能定位到底是哪个环节出了错——是检索阶段的锅还是生成阶段的锅——否则优化就无从下手。这就是为什么 RAG 评估必须分阶段进行。&lt;/p&gt;
@@ -2334,6 +2353,7 @@
 &lt;p&gt;&lt;strong&gt;Context Relevance（上下文相关性）&lt;/strong&gt;，这是 &lt;strong&gt;RAGAS&lt;/strong&gt; 框架提出的评估维度。它不是简单地看每个 Chunk 是否相关，而是评估检索回来的整体上下文中，有多大比例的内容对回答用户问题确实有用。一个常见的实现方式是用 &lt;strong&gt;LLM&lt;/strong&gt; 从检索到的上下文中提取所有能用于回答问题的句子，然后计算这些有用句子占总上下文的比例。这个指标特别适合发现&amp;quot;检索了很多 Chunk 但大部分是废话&amp;quot;的情况。&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
+&lt;hr&gt;
 &lt;h2 id=&#34;-生成阶段评估&#34;&gt;✨ 生成阶段评估
 &lt;/h2&gt;&lt;p&gt;检索阶段把相关文档找回来了，接下来就看 &lt;strong&gt;LLM&lt;/strong&gt; 拿这些文档能产出什么质量的回答。生成阶段的评估比检索阶段更微妙，因为它要评判的是一段自然语言文本的质量，而自然语言的&amp;quot;好坏&amp;quot;远不像检索命中率那样容易量化。&lt;/p&gt;
 &lt;ul&gt;
@@ -2357,14 +2377,14 @@
 &lt;li&gt;&lt;strong&gt;BLEU&lt;/strong&gt; 原本用于机器翻译评估，衡量生成文本与参考文本之间的 n-gram 重叠度&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;ROUGE&lt;/strong&gt; 原本用于摘要评估，侧重衡量参考文本中的关键 n-gram 是否被生成文本覆盖&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;它们的优势是计算简单、不需要调用 LLM、成本几乎为零，适合在大规模评估中快速筛选。但它们的根本问题是只看表面文字的重叠，不理解语义。两句意思完全相同但措辞不同的回答，在 BLEU/ROUGE 下可能得分很低；反过来，一句大量复用了原文词汇但意思完全扭曲的回答，可能得分反而高。所以在 RAG 场景中，这些指标只能作为辅助参考，不能作为核心评估手段。&lt;/p&gt;
+&lt;p&gt;它们的优势是计算简单、不需要调用 LLM，成本几乎为零，适合在大规模评估中快速筛选。但它们的根本问题是只看表面文字的重叠，不理解语义。两句意思完全相同但措辞不同的回答，在 BLEU/ROUGE 下可能得分很低；反过来，一句大量复用了原文词汇但意思完全扭曲的回答，可能得分反而高。所以在 RAG 场景中，这些指标只能作为辅助参考，不能作为核心评估手段。&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;BERTScore&lt;/strong&gt; 是一个改进方向，它用预训练语言模型的 &lt;strong&gt;Embedding&lt;/strong&gt; 来计算生成文本和参考文本之间的语义相似度，而不是简单的词汇重叠。这在一定程度上解决了&amp;quot;同义不同词&amp;quot;的问题，但仍然依赖参考答案的存在，而且对于 RAG 这种开放式生成任务，参考答案本身就很难穷举。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;评估维度.png&#34; alt=&#34;评估维度&#34; width=&#34;78%&#34; /&gt;
 &lt;/div&gt;
 &lt;hr&gt;
-&lt;h2 id=&#34;-llm-as-judge让-llm-作为裁判&#34;&gt;🤖 LLM-as-Judge（让 LLM 作为裁判）
-&lt;/h2&gt;&lt;p&gt;讲到这里，一个绕不开的实操问题浮出水面：上面说的 Faithfulness、Answer Relevance 这些语义级指标，到底靠什么来计算？ 靠人工标注当然最准，但成本高、速度慢，根本无法满足日常迭代的需求。RAG 评估领域目前最主流的解决方案就是 &lt;strong&gt;LLM-as-Judge&lt;/strong&gt;——用一个 LLM（通常是 GPT-4 级别的强模型）来充当评估者，自动对 RAG 系统的输出进行评分。&lt;/p&gt;
+&lt;h2 id=&#34;-llm-as-judge&#34;&gt;🤖 LLM-as-Judge
+&lt;/h2&gt;&lt;p&gt;讲到这里，一个绕不开的实操问题浮出水面：上面说的 Faithfulness、Answer Relevance 这些语义级指标，到底靠什么来计算？靠人工标注当然最准，但成本高、速度慢，根本无法满足日常迭代的需求。RAG 评估领域目前最主流的解决方案就是 &lt;strong&gt;LLM-as-Judge&lt;/strong&gt;——用一个 LLM（通常是 GPT-4 级别的强模型）来充当评估者，自动对 RAG 系统的输出进行评分。&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;RAGAS&lt;/strong&gt; 框架是目前最成熟的 RAG 自动化评估工具，它的核心就是用 LLM 来评估前面提到的 Faithfulness、Answer Relevance、Context Relevance 等指标。&lt;strong&gt;TruLens&lt;/strong&gt; 则提供了更灵活的反馈函数（&lt;strong&gt;Feedback Functions&lt;/strong&gt;）机制，可以自定义各种评估逻辑。这些框架让 RAG 评估从&amp;quot;每次改动都要找人标注&amp;quot;变成了&amp;quot;改完代码跑一遍评估脚本就能看到效果&amp;quot;，极大地加速了迭代效率。&lt;/p&gt;
 &lt;p&gt;但 LLM-as-Judge 本身也有局限。首先是评估模型本身可能犯错——它可能误判一个幻觉陈述为&amp;quot;被上下文支持&amp;quot;，或者对一个完全正确的回答打了低分。其次是成本——每次评估都要调用大模型，如果评估集很大，成本也不容小觑。实践中的做法是：日常迭代用 LLM-as-Judge 做快速评估，定期用人工标注做校准和修正，两者互补。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
@@ -2382,7 +2402,38 @@
 &lt;p&gt;三层互补，缺一不可。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;分层评估.png&#34; alt=&#34;分层评估体系&#34; width=&#34;78%&#34; /&gt;
-&lt;/div&gt;</description>
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-排查策略&#34;&gt;🧑 排查策略
+&lt;/h2&gt;&lt;p&gt;:
+RAG 的检索链路是一条多环节串联的管道——文档处理、向量化、检索召回、结果过滤，任何一个环节出了问题，最终表现都是一样的：用户问了，系统答不上来。所以排查的核心思路是沿着数据流方向，从前往后逐层定位。像查水管漏水一样，从水源开始一段一段检查，哪段没水就是哪段出了问题。&lt;/p&gt;
+&lt;h3 id=&#34;-文档处理排查&#34;&gt;📄 文档处理排查
+&lt;/h3&gt;&lt;p&gt;很多时候根因出奇地简单——文档压根没有正确入库。比如入库脚本跑挂了、某些 PDF 解析失败静默跳过了、或者入库过程中途异常退出只进了一半，这些情况在生产环境中比想象的常见得多。&lt;/p&gt;
+&lt;p&gt;排查方法很直接：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;向量数据库里查文档总数，和预期对比。如果数量不对，翻入库日志找报错。&lt;/li&gt;
+&lt;li&gt;再要看切分（Chunking）质量。切分策略直接决定了每个 Chunk 的语义完整性——切得太大，一个 Chunk 里混了好几个主题，语义不聚焦；切得太小，上下文丢失，单个 Chunk 读起来都不知道在说什么。最坏的是把关键信息切断了，比如一个完整的表格被劈成两半，用户问相关问题时两个 Chunk 单独看都不完整，自然匹配不上。实际操作中随机抽几个 Chunk 看看内容是否连贯，基本就能判断切分策略有没有问题。&lt;/li&gt;
+&lt;li&gt;元数据（Metadata）错误。如果系统在检索时加了元数据过滤（比如按时间、按部门筛选），而文档的元数据字段缺失或格式不对，本该被检索到的内容就会被静默过滤掉。用户问&amp;quot;2024年的销售数据&amp;quot;，但文档的时间戳字段是空的——这种 bug 不看元数据根本发现不了。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;文档处理排查.jpg&#34; alt=&#34;文档处理排查&#34; width=&#34;78%&#34; /&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;-语义表示排查&#34;&gt;🧠 语义表示排查
+&lt;/h3&gt;&lt;p&gt;这个环节的核心问题是：文档和查询是否被正确地映射到了同一个语义空间。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;模型不一致&lt;/strong&gt;是最常见的错误。文档入库时用的 text-embedding-ada-002，后来升级换成了 bge-large-zh，但存量文档没有重新向量化——新查询和老文档在两个完全不同的向量空间里，相似度计算毫无意义。这种问题在系统迁移或模型升级时特别容易出现，排查时第一件事就是确认入库和查询用的是同一个模型、同一个版本。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;模型能力是否匹配场景&lt;/strong&gt;。通用 Embedding 模型在专业领域（医疗、法律、金融）的表现往往不够好，因为这些领域有大量专业术语和特定的语义关系，通用模型没见过或者理解不准确。中文场景用英文为主的模型也会打折扣。解决方案是换更适合的模型（中文场景 bge、m3e 系列表现不错），或者用领域数据对 Embedding 模型做 fine-tune。&lt;/li&gt;
+&lt;li&gt;还有一种更隐蔽的问题：&lt;strong&gt;查询和文档的表述方式差异太大&lt;/strong&gt;。用户问&amp;quot;怎么退货&amp;quot;，文档里写的是&amp;quot;退货流程：客户需在收到商品后7日内联系客服……&amp;quot;。语义是相关的，但一个是口语化的短问句，一个是正式的书面长段落，向量距离可能比预期大得多。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-检索召回排查&#34;&gt;🔎 检索召回排查
+&lt;/h3&gt;&lt;p&gt;向量化没问题，但结果还是不理想，问题往往出在检索参数配置上。这一层的排查思路是逐个放宽限制，看哪个参数卡住了召回。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;相似度阈值&lt;/strong&gt;。很多系统会设一个阈值，只返回相似度高于阈值的结果。阈值设得太高（比如 0.85），一些相关但不是完全匹配的内容就被过滤掉了。排查时把阈值临时调低到 0.5 或 0.6，看是否能检索到——如果能，说明阈值过严。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;TopK&lt;/strong&gt;。TopK 设为 3，但相关内容排在第 5 位，用户就看不到。把 TopK 调到 20，看相关内容是否出现在后面的位置。如果出现了，问题不是&amp;quot;检索不到&amp;quot;而是&amp;quot;排序不够靠前&amp;quot;，这时候需要优化的是排序策略而不是检索本身。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;元数据过滤条件&lt;/strong&gt;。临时去掉所有过滤条件做一次纯向量检索，如果能找到内容，说明是过滤条件把它排除掉了。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;索引参数&lt;/strong&gt;。向量数据库的近似最近邻索引（HNSW、IVF 等）为加速检索会牺牲一定的召回率。如果 HNSW 的 ef_search 或 IVF 的 nprobe 设置过小，可能漏掉相关内容。对比精确检索（暴力遍历）和索引检索的结果，就能判断是不是索引参数的问题。&lt;/li&gt;
+&lt;/ul&gt;
+</description>
         </item>
         <item>
         <title>RAG的优化策略</title>
@@ -2392,7 +2443,7 @@
         <guid>https://Tyritic.github.io/p/rag%E7%9A%84%E4%BC%98%E5%8C%96%E7%AD%96%E7%95%A5/</guid>
         <description>&lt;h2 id=&#34;-rag-的常见瓶颈&#34;&gt;⚠️ RAG 的常见瓶颈
 &lt;/h2&gt;&lt;p&gt;很多人一开始会把&amp;quot;检索优化&amp;quot;理解成&amp;quot;换一个向量库&amp;quot;或&amp;quot;把 Top-K 从 3 调到 5&amp;quot;。但真正影响效果的，往往是整条检索链路：&lt;strong&gt;查询怎么改写、索引怎么组织、召回怎么融合、候选怎么精排&lt;/strong&gt;。&lt;/p&gt;
-&lt;h3 id=&#34;-基础向量检索的瓶颈&#34;&gt;🔍 基础向量检索的瓶颈
+&lt;h3 id=&#34;-基础向量检索的瓶颈&#34;&gt;🔎 基础向量检索的瓶颈
 &lt;/h3&gt;&lt;p&gt;在进入各种优化手段之前，先要看清楚 &lt;strong&gt;基础向量检索本身的瓶颈&lt;/strong&gt;。很多问题不是&amp;quot;参数没调好&amp;quot;，而是方案本身就有边界：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;查询和文档之间存在语义鸿沟&lt;/strong&gt;：用户提问常常是口语化、问题体，但知识库里的文档往往是陈述句、术语化表达。&lt;/li&gt;
@@ -2532,7 +2583,7 @@
   &lt;p&gt;如果底层问题出在&amp;quot;查询表达不清、切块不合理、候选噪声太多&amp;quot;，那么单纯调大 &lt;code&gt;Top-K&lt;/code&gt; 往往只会把更多噪声送进模型，而不是稳定提升效果。&lt;/p&gt;
   &lt;/div&gt;
 
-&lt;h3 id=&#34;-rag-本身的局限性&#34;&gt;📌 RAG 本身的局限性
+&lt;h3 id=&#34;-rag-本身的局限性&#34;&gt;📍 RAG 本身的局限性
 &lt;/h3&gt;&lt;p&gt;一个成熟的系统不应该只讲优势而忽略局限。RAG 也有它的短板：&lt;/p&gt;
 &lt;ol&gt;
 &lt;li&gt;
@@ -2565,6 +2616,31 @@
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;工业级RAG索引管道.jpg&#34; alt=&#34;索引侧优化策略&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
+&lt;h3 id=&#34;-设计合适的存储架构&#34;&gt;🗃️ 设计合适的存储架构
+&lt;/h3&gt;&lt;h4 id=&#34;-数据类型&#34;&gt;📦 数据类型
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;向量数据&lt;/strong&gt;：每个文档 chunk 经过 Embedding 模型编码后生成的高维向量，用于语义相似度检索。但只有向量远远不够。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;原始文本&lt;/strong&gt;：每个 chunk 对应的原始文本，这是最终要塞进 LLM Prompt 的内容。向量库检索返回的是&amp;quot;最相似的 chunk ID&amp;quot;，你还得拿着这个 ID 去取回原文。Milvus 支持在向量旁边附带存储 payload/原文，但当 chunk 文本很长或者需要存储多种格式（Markdown 原文、清洗后纯文本、HTML 渲染版本）时，把所有内容都塞进向量库不是好主意——会严重影响向量索引的内存效率和构建速度。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;结构化元数据&lt;/strong&gt;：文档来源、作者、创建时间、所属部门、知识类目、版本号、权限标签等。这些元数据的访问模式是精确查询和范围过滤（&amp;ldquo;只看法务部门的文档&amp;rdquo;、&amp;ldquo;只看2024年之后的&amp;rdquo;），这恰恰是关系数据库的强项，向量库在这方面先天不足。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;文档级的管理信息&lt;/strong&gt;：原始文件的存储路径、文档和 chunk 之间的前后顺序关系、文档的解析状态和版本记录。这些信息和检索无关，但对知识库的日常运维（增删改查文档、追溯 chunk 来源、支撑增量更新）至关重要。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-存储架构设计&#34;&gt;🏗️ 存储架构设计
+&lt;/h4&gt;&lt;p&gt;系统的存储层都可以归结为三层结构：向量检索层、内容存储层、管理与元数据层。三层各司其职，通过 chunk_id 和 document_id 这两个核心标识串联在一起。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;向量检索层&lt;/strong&gt;：这一层是整个架构中对性能要求最高的部分，负责根据查询向量快速找到最相似的 chunk_id。这一层的核心是向量数据库和它的索引结构。具体选型上，使用 Milvus 在大数据量下的性能和稳定性最好，Milvus 支持分布式部署、数据分片和多种索引策略（HNSW 适合高召回场景，IVF_PQ 适合内存受限场景），是千万级以上向量规模的首选。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;内容存储层&lt;/strong&gt;：这一层负责存放 chunk 的原始文本和解析后的结构化内容。
+&lt;ul&gt;
+&lt;li&gt;直接用关系数据库（PostgreSQL/MySQL）的一张 chunk 表来存：chunk_id 主键、chunk_text 存原文、document_id 外键关联到文档表。&lt;/li&gt;
+&lt;li&gt;原文存在向量库的 payload 字段里，省去一次跨库查询——虽然这会增加向量库的存储压力（本项目采用此方式）。&lt;/li&gt;
+&lt;li&gt;用 Elasticsearch 同时承担原文存储和 BM25 关键词检索的角色。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;管理与元数据层&lt;/strong&gt;：这一层负责存储结构化元数据和文档级别的管理信息，用于运维。用关系数据库来实现是最自然的选择。这一层通常包含几张核心表：文档表（document_id、文件名、来源、上传时间、解析状态、版本号）、chunk 元数据表（chunk_id、document_id、在文档中的位置序号、chunk 类型标记、标题层级路径、业务标签）、以及 document-chunk 映射表（维护父子关系，支撑多级索引和增量更新时的批量删除）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;三层之间的数据流是这样的：文档入库时，原始文件经解析分块后，chunk 文本写入内容存储层，对应的向量写入检索层，元数据和文档信息写入管理层，三处共用同一个 chunk_id。检索时方向反过来——查询向量在检索层做 ANN 搜索拿到 chunk_id 列表，再分别去内容层取原文、去管理层取元数据用于后续过滤和溯源。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;存储架构.png&#34; alt=&#34;知识库存储架构示意图&#34; width=&#34;82%&#34;&gt;
+&lt;/div&gt;
 &lt;h3 id=&#34;-选择合适的分块策略&#34;&gt;✂️ 选择合适的分块策略
 &lt;/h3&gt;&lt;h4 id=&#34;-文本切块在-rag-中的角色&#34;&gt;🎯 文本切块在 RAG 中的角色
 &lt;/h4&gt;&lt;p&gt;RAG 的基本流程是：用户提问 → 检索相关文档片段 → 将片段拼入 &lt;strong&gt;Prompt&lt;/strong&gt; → &lt;strong&gt;LLM&lt;/strong&gt; 基于这些片段生成回答。而&amp;quot;切块&amp;quot;发生在更早的离线阶段——把原始文档切分成小片段，每个片段生成一个 &lt;strong&gt;Embedding&lt;/strong&gt; 向量存入向量数据库。用户查询时，查询向量和这些片段向量做相似度匹配，找出最相关的 &lt;strong&gt;Top-K&lt;/strong&gt; 片段。&lt;/p&gt;
@@ -2576,7 +2652,6 @@
 &lt;li&gt;&lt;strong&gt;便于精准定位信息&lt;/strong&gt;：用户问题通常只关心文档中的某一小部分内容，分块后能更快检索到相关片段。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;兼顾上下文与检索效率&lt;/strong&gt;：块太大，检索不精准；块太小，上下文可能断裂。合理分块能在效果和效率之间取得平衡。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;所以，分块本质上就是把输入文档切成多个粒度可控的语义单元，方便后续的向量检索与生成模块高效协作。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;切块的影响.png&#34; alt=&#34;切块的影响&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
@@ -2595,7 +2670,7 @@
 &lt;/div&gt;
 &lt;p&gt;所以 chunk size 的选择不是一个固定的&amp;quot;最优值&amp;quot;，而是根据具体场景在这两极之间找平衡点。工程实践中的经验是：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;FAQ、事实问答&lt;/strong&gt; 适合偏小的块，例如 &lt;code&gt;256 ~ 512 token&lt;/code&gt;。因为答案往往在某一段话里，精准检索更重要&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;FAQ、事实问答&lt;/strong&gt; 适合偏小的块，例如 &lt;code&gt;256 ~ 512 token&lt;/code&gt;。因为答案往往在某一段话里，精准检索更重要。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;技术文档、法律条款、分析型内容&lt;/strong&gt; 更适合偏大的块，例如 &lt;code&gt;512 ~ 1024 token&lt;/code&gt;。因为上下文完整性更关键。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h4 id=&#34;-overlap-的作用&#34;&gt;🔗 Overlap 的作用
@@ -2605,17 +2680,17 @@
 &lt;/div&gt;
 &lt;p&gt;常见的经验值是 &lt;code&gt;overlap&lt;/code&gt; 设为 &lt;code&gt;chunk size&lt;/code&gt; 的 &lt;code&gt;10% ~ 25%&lt;/code&gt;。比如 chunk size 是 512 token，overlap 可以设 50-128 token。过小起不到衔接作用，过大又会带来两个副作用：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;存储膨胀&lt;/strong&gt;：同一段内容被重复编码多次。向量数据库的体积和索引成本显著增加&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;存储膨胀&lt;/strong&gt;：同一段内容被重复编码多次。向量数据库的体积和索引成本显著增加。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;检索重复&lt;/strong&gt;：多个 &lt;strong&gt;chunk&lt;/strong&gt; 包含大量相同内容，检索时可能返回一堆&amp;quot;长得差不多&amp;quot;的片段，浪费了宝贵的 &lt;strong&gt;Top-K&lt;/strong&gt; 配额，等于你明明可以看到 5 条不同信息，结果其中 3 条都在重复同一段话。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h4 id=&#34;-常见的切块策略&#34;&gt;📋 常见的切块策略
-&lt;/h4&gt;&lt;h5 id=&#34;固定大小切块fixed-size-chunking&#34;&gt;固定大小切块（&lt;strong&gt;Fixed-size Chunking&lt;/strong&gt;）
-&lt;/h5&gt;&lt;p&gt;最简单的方式——按 Chunk Size(假设为512 token) 一刀切，加 100 token 的 overlap。问题立刻暴露了：保险条款&amp;quot;第 3 条 保险责任：本保险承保……但以下情况除外：（1）战争……（2）核辐射……&amp;ldquo;被从&amp;quot;但以下情况除外&amp;quot;的地方截断，承保范围和免责条款分到了两个 Chunk 里。用户问免责相关的问题时，系统只召回了前半段（承保范围），给出了完全错误的答案。&lt;/p&gt;
-&lt;p&gt;在智能OnCall Agent项目中测试下来，固定长度切分的检索召回率只有 67%。&lt;/p&gt;
-&lt;h5 id=&#34;语义切块semantic-chunking&#34;&gt;语义切块（Semantic Chunking）
+&lt;/h4&gt;&lt;h5 id=&#34;-固定大小切块&#34;&gt;⚒️ 固定大小切块
+&lt;/h5&gt;&lt;p&gt;最简单的方式——按 Chunk Size（假设为 512 token）一刀切，加 100 token 的 overlap。问题立刻暴露了：保险条款&amp;quot;第 3 条 保险责任：本保险承保……但以下情况除外：（1）战争……（2）核辐射……&amp;ldquo;被从&amp;quot;但以下情况除外&amp;quot;的地方截断，承保范围和免责条款分到了两个 Chunk 里。用户问免责相关的问题时，系统只召回了前半段（承保范围），给出了完全错误的答案。&lt;/p&gt;
+&lt;p&gt;在智能 OnCall Agent 项目中测试下来，固定长度切分的检索召回率只有 67%。&lt;/p&gt;
+&lt;h5 id=&#34;-语义切块&#34;&gt;🧩 语义切块
 &lt;/h5&gt;&lt;p&gt;改用句号、问号等标点作为切分点，确保不在句子中间截断。不按固定 token 数切，而是按语义边界切。先把文本按句子分割，然后计算相邻句子之间的 &lt;strong&gt;Embedding&lt;/strong&gt; 相似度，当相似度出现明显下降时（说明话题发生了转换），就在那里切一刀。这样每个 &lt;strong&gt;chunk&lt;/strong&gt; 自然地对应一个完整的语义单元，不需要 &lt;strong&gt;overlap&lt;/strong&gt; 来&amp;quot;缝合&amp;quot;了。&lt;/p&gt;
-&lt;p&gt;每个 Chunk 累积句子直到接近 512 token 上限。比 固定大小切块 好了一些，但还是有问题：列表项&amp;rdquo;（1）战争（2）核辐射（3）核爆炸&amp;quot;会被拆到不同 Chunk——每个列表项都是一个&amp;quot;句子&amp;quot;，但脱离了前面的&amp;quot;以下情况除外&amp;quot;就失去了语义。而且章节标题&amp;quot;第 3 条 保险责任&amp;quot;可能跟下面的正文被分开。&lt;/p&gt;
-&lt;p&gt;在智能OnCall Agent项目中测试下来，召回率提升到 74%。&lt;/p&gt;
+&lt;p&gt;每个 Chunk 累积句子直到接近 512 token 上限。比固定大小切块好了一些，但还是有问题：列表项&amp;rdquo;（1）战争（2）核辐射（3）核爆炸&amp;quot;会被拆到不同 Chunk——每个列表项都是一个&amp;quot;句子&amp;quot;，但脱离了前面的&amp;quot;以下情况除外&amp;quot;就失去了语义。而且章节标题&amp;quot;第 3 条 保险责任&amp;quot;可能跟下面的正文被分开。&lt;/p&gt;
+&lt;p&gt;在智能 OnCall Agent 项目中测试下来，召回率提升到 74%。&lt;/p&gt;
 &lt;h5 id=&#34;-基于文档结构的递归语义切分&#34;&gt;📑 基于文档结构的递归语义切分
 &lt;/h5&gt;&lt;p&gt;利用文档自身的结构信息。Markdown 文档有标题层级，HTML 有标签结构，PDF 有段落和章节。按这些天然边界来切块，既简单又有效。这种方法特别适合结构化程度高的文档，例如技术文档、产品手册、法律合同等。&lt;/p&gt;
 &lt;p&gt;先识别文档结构（章节标题、子标题、段落、表格、图片），然后按语义单元切分——一个章节就是一个 Chunk（如果不超长的话），表格整块保留，列表项跟前导句合并。超长的章节再递归按子标题或段落切分。&lt;/p&gt;
@@ -2623,14 +2698,14 @@
 &lt;li&gt;
 &lt;p&gt;&lt;strong&gt;识别文档层级结构&lt;/strong&gt;：先理解文档结构，再决定在哪切&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;按结构化文档标题划分，例如Markdown 的二级标题（&lt;code&gt;##&lt;/code&gt;）切，每个 &lt;strong&gt;chunk&lt;/strong&gt; 就是一个完整的章节，语义自然完整。&lt;/li&gt;
-&lt;li&gt;正则匹配常见编号模式&lt;/li&gt;
+&lt;li&gt;按结构化文档标题划分，例如 Markdown 的二级标题（&lt;code&gt;##&lt;/code&gt;）切，每个 &lt;strong&gt;chunk&lt;/strong&gt; 就是一个完整的章节，语义自然完整。&lt;/li&gt;
+&lt;li&gt;正则匹配常见编号模式。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;按语义单元切分&lt;/strong&gt;：识别出层级结构后，切分逻辑变成了递归&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;按语义单元切分&lt;/strong&gt;：识别出层级结构后，切分逻辑变成了递归。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;如果一个章节的 token 数 ≤ Chunk Size ，整个章节作为一个 Chunk，不切。&lt;/li&gt;
+&lt;li&gt;如果一个章节的 token 数 ≤ Chunk Size，整个章节作为一个 Chunk，不切。&lt;/li&gt;
 &lt;li&gt;如果超过 Chunk Size，看有没有子标题。有的话按子标题切分，每个子章节再递归判断。&lt;/li&gt;
 &lt;li&gt;如果没有子标题，按段落累积——段落逐个加入，直到接近 Chunk Size token 就封一个 Chunk。&lt;/li&gt;
 &lt;li&gt;如果单个段落就超过 Chunk Size（极端情况），最后才按句子边界切分。&lt;/li&gt;
@@ -2640,9 +2715,9 @@
 &lt;li&gt;
 &lt;p&gt;&lt;strong&gt;语义完整性检查&lt;/strong&gt;：切完之后不是直接用，还要做一轮检查——相邻的两个 Chunk 之间是不是被错误地断开了。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;chunk 以冒号结尾 → 后面大概率是列表&lt;/li&gt;
-&lt;li&gt;chunk 是列表项编号开头&lt;/li&gt;
-&lt;li&gt;chunk 以转折词开头&lt;/li&gt;
+&lt;li&gt;chunk 以冒号结尾 → 后面大概率是列表。&lt;/li&gt;
+&lt;li&gt;chunk 是列表项编号开头。&lt;/li&gt;
+&lt;li&gt;chunk 以转折词开头。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;li&gt;
@@ -2652,14 +2727,24 @@
 &lt;p&gt;&lt;strong&gt;特殊元素处理&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;表格：不能直接整块保留，小表格直接整块作为一个 Chunk。对于远超 Chunk 上限的大表格，如果表格有分组（比如&amp;quot;基本责任&amp;quot;&amp;ldquo;可选责任&amp;quot;两组），按分组切分，每组带上完整表头。如果没有分组，按固定行数切分，但每个 Chunk 都复制表头。&lt;/li&gt;
-&lt;li&gt;图片：不能直接丢掉，利用多模态模型，流程图和示意图生成文本描述，描述作为 Chunk 入库，数据图表提取结构化数据&lt;/li&gt;
+&lt;li&gt;图片：不能直接丢掉，利用多模态模型，流程图和示意图生成文本描述，描述作为 Chunk 入库，数据图表提取结构化数据。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;Chunk 的元数据设计&lt;/strong&gt;：Chunk 不只是一段文本。每个 Chunk 都应该带上丰富的元数据，这些元数据在检索和展示时都有用&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Chunk 的元数据设计&lt;/strong&gt;：Chunk 不只是一段文本。每个 Chunk 都应该带上丰富的元数据，这些元数据在检索和展示时都有用。&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;-实战调优的步骤&#34;&gt;💡 实战调优的步骤
+&lt;h5 id=&#34;-多级索引&#34;&gt;🗂️ 多级索引
+&lt;/h5&gt;&lt;p&gt;核心思想是：检索时用细粒度的小 chunk 做匹配（精准），生成时用粗粒度的大 chunk 提供上下文（完整）。要实现这一点，存储层需要同时维护两级 chunk，并且建立它们之间的映射关系。在 parent 之上再加一层 document summary（文档摘要）。对每篇文档生成一段摘要并存储在 chunk 表中（chunk_level = &amp;lsquo;summary&amp;rsquo;），也做向量索引。&lt;/p&gt;
+&lt;p&gt;具体的存储设计是这样的：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;chunk 表中每条记录增加两个字段——parent_chunk_id（指向父级 chunk）和 chunk_level（标记是 child/parent/summary）。Child chunk（比如 256 token）和 Parent chunk（比如 1024 token）和 Summary 都各自独立存储，child 的 parent_chunk_id 指向它所属的 parent。&lt;/li&gt;
+&lt;li&gt;向量检索层只索引 child chunk 的向量，parent chunk 不做向量索引。检索时先到这些文档的 child chunk 中做细粒度 ANN 搜索，命中后通过 parent_chunk_id 回溯到 parent，取 parent 的原文送给 LLM。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;多级索引.png&#34; alt=&#34;多级索引&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;h4 id=&#34;-实战调优的步骤&#34;&gt;🧪 实战调优的步骤
 &lt;/h4&gt;&lt;ol&gt;
 &lt;li&gt;
 &lt;p&gt;&lt;strong&gt;先看数据&lt;/strong&gt;：在动手切之前，先抽样看看原始文档长什么样——平均段落长度、内容结构化程度、信息密度。技术文档和闲聊记录显然需要完全不同的策略。&lt;/p&gt;
@@ -2675,16 +2760,31 @@
 &lt;/li&gt;
 &lt;/ol&gt;
 &lt;p&gt;如果文档结构比较稳定，更进一步的做法是结合 &lt;strong&gt;语义切块、按标题分块、递归分块&lt;/strong&gt;，甚至引入 &lt;strong&gt;多级索引&lt;/strong&gt;。例如用小块做精确召回，命中后再回溯父块或原始段落给模型，这样检索和生成两端都能拿到更合适的粒度。&lt;/p&gt;
-&lt;h3 id=&#34;-设计合理的索引架构&#34;&gt;🗃️ 设计合理的索引架构
+&lt;h3 id=&#34;-设计合理的索引架构&#34;&gt;🏗️ 设计合理的索引架构
 &lt;/h3&gt;&lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;rag-index-architectures.png&#34; alt=&#34;RAG 中常见的索引架构&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
 &lt;h4 id=&#34;-parent-child-索引&#34;&gt;🕸️ Parent-Child 索引
 &lt;/h4&gt;&lt;p&gt;&lt;strong&gt;Parent-Child 索引&lt;/strong&gt;是一种非常实用的索引架构。核心思想是：用小 &lt;code&gt;chunk&lt;/code&gt; 做检索，但返回大 &lt;code&gt;chunk&lt;/code&gt; 给 &lt;strong&gt;LLM&lt;/strong&gt;。具体来说，先把文档切成较大的 &lt;code&gt;chunk&lt;/code&gt;（比如 &lt;code&gt;2000 token&lt;/code&gt;），再把每个大 &lt;code&gt;chunk&lt;/code&gt; 进一步切成小的子 &lt;code&gt;chunk&lt;/code&gt;（比如 &lt;code&gt;200 token&lt;/code&gt;）。检索时用小 &lt;code&gt;chunk&lt;/code&gt; 的向量做匹配，小 &lt;code&gt;chunk&lt;/code&gt; 语义集中，匹配更精准；命中后，返回它所属的父级大 &lt;code&gt;chunk&lt;/code&gt; 给 &lt;strong&gt;LLM&lt;/strong&gt;，大 &lt;code&gt;chunk&lt;/code&gt; 上下文完整，&lt;strong&gt;LLM&lt;/strong&gt; 能更好地理解和利用。这种设计同时兼顾了检索精度和上下文完整性，在实际项目中效果很好。&lt;/p&gt;
+&lt;p&gt;要实现这一点，存储层需要同时维护两级 chunk，并且建立它们之间的映射关系。&lt;/p&gt;
+&lt;p&gt;具体的存储设计是这样的：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;chunk 表中每条记录增加两个字段——parent_chunk_id（指向父级 chunk）和 chunk_level（标记是 child/parent/summary）。Child chunk（比如 256 token）和 Parent chunk（比如 1024 token）和 Summary 都各自独立存储，child 的 parent_chunk_id 指向它所属的 parent。&lt;/li&gt;
+&lt;li&gt;向量检索层只索引 child chunk 的向量，parent chunk 不做向量索引。检索时先到这些文档的 child chunk 中做细粒度 ANN 搜索，命中后通过 parent_chunk_id 回溯到 parent，取 parent 的原文送给 LLM。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;多级索引.png&#34; alt=&#34;多级索引&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
 &lt;h4 id=&#34;-文档摘要索引&#34;&gt;📄 文档摘要索引
 &lt;/h4&gt;&lt;p&gt;对于每篇文档，先用 &lt;strong&gt;LLM&lt;/strong&gt; 生成一段摘要，把摘要也做向量化存入索引。检索时，除了匹配原文 &lt;code&gt;chunk&lt;/code&gt;，还会匹配摘要。摘要天然是对全文内容的高度凝练，很多时候用户的查询和摘要的匹配度反而比和原文碎片的匹配度更高。命中摘要后，再定位到对应的原文段落，返回详细内容。这种&amp;quot;先粗后细&amp;quot;的两级检索在处理长文档时特别有效。&lt;/p&gt;
-&lt;h4 id=&#34;-多层级索引&#34;&gt;🏗️ 多层级索引
+&lt;p&gt;在具体实现上在 parent 之上再加一层 document summary（文档摘要）。对每篇文档生成一段摘要并存储在 chunk 表中（chunk_level = &amp;lsquo;summary&amp;rsquo;），也做向量索引。&lt;/p&gt;
+&lt;p&gt;向量检索层只索引 child chunk 和 summary 的向量，parent chunk 不做向量索引。检索时先在 summary 层做一次粗筛确定相关文档，再到这些文档的 child chunk 中做细粒度 ANN 搜索，命中后通过 parent_chunk_id 回溯到 parent，取 parent 的原文送给 LLM。&lt;/p&gt;
+&lt;p&gt;这种两级检索在长文档场景中效果非常好——摘要能捕获文档的整体主题，原文能提供具体细节。&lt;/p&gt;
+&lt;h4 id=&#34;-多层级索引&#34;&gt;🏛️ 多层级索引
 &lt;/h4&gt;&lt;p&gt;&lt;strong&gt;多层级索引&lt;/strong&gt; 不只是文档-chunk 两层，而是构建多层级的索引结构——比如**&amp;ldquo;领域 → 主题 → 文档 → 段落&amp;rdquo;**。查询时先在高层级（如领域、主题）做粗筛，快速定位相关范围，再在低层级（如段落）做精确匹配。这种分层策略在文档量很大（数十万篇以上）时优势明显，因为它避免了在全量向量中做暴力搜索，大幅减少检索范围的同时提高了匹配准确率。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;多层次索引.png&#34; alt=&#34;多层次索引&#34; width=&#34;80%&#34; /&gt;
+&lt;/div&gt;
 &lt;h3 id=&#34;-选取合适的嵌入模型&#34;&gt;🧠 选取合适的嵌入模型
 &lt;/h3&gt;&lt;p&gt;如果说分块决定了&amp;quot;知识被切成什么样&amp;rdquo;，那么 &lt;strong&gt;Embedding 模型&lt;/strong&gt; 决定的就是&amp;quot;这些知识被表示成什么样&amp;quot;。两者共同决定了检索上限。&lt;/p&gt;
 &lt;h4 id=&#34;-embedding-模型的角色&#34;&gt;🔬 Embedding 模型的角色
@@ -2693,7 +2793,7 @@
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;embedding-role.png&#34; alt=&#34;Embedding 在 RAG 中的角色&#34; width=&#34;80%&#34; /&gt;
 &lt;/div&gt;
-&lt;h4 id=&#34;-选型时的核心因素&#34;&gt;📊 选型时的核心因素
+&lt;h4 id=&#34;-选型时的核心因素&#34;&gt;📈 选型时的核心因素
 &lt;/h4&gt;&lt;p&gt;选择嵌入模型时，通常需要重点考虑以下因素：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;语义准确性&lt;/strong&gt;：模型能否准确捕捉长句、上下文关系和同义表达，直接影响检索质量。&lt;/li&gt;
@@ -2751,7 +2851,7 @@
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;embedding-mteb.png&#34; alt=&#34;MTEB 与自有数据评估&#34; width=&#34;80%&#34; /&gt;
 &lt;/div&gt;
-&lt;h4 id=&#34;-工程实践考量&#34;&gt;🔧 工程实践考量
+&lt;h4 id=&#34;-工程实践考量&#34;&gt;🔩 工程实践考量
 &lt;/h4&gt;&lt;p&gt;在实际项目中，除了模型效果本身，还有一些工程因素对选型影响很大。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;
@@ -2764,27 +2864,31 @@
 &lt;p&gt;&lt;strong&gt;Matryoshka&lt;/strong&gt;：&lt;strong&gt;Matryoshka&lt;/strong&gt;是近期一个很值得关注的技术。传统模型生成固定维度的向量，而 Matryoshka Embedding 允许你在推理后截取前 N 维作为压缩向量使用，不同维度下的效果会渐进衰减但不会断崖式下降。OpenAI 的 text-embedding-3 系列和 Nomic 的 nomic-embed-text 就支持这个特性。它的工程价值在于你可以在同一个模型上灵活调节&amp;quot;效果-成本&amp;quot;的平衡——存储紧张时用低维向量，追求效果时用全维向量。&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;-综合考量&#34;&gt;🔍 综合考量
+&lt;h4 id=&#34;-综合考量&#34;&gt;🧐 综合考量
 &lt;/h4&gt;&lt;p&gt;选择 Embedding 模型需要从多个维度综合考量，不能简单看排行榜选分数最高的。首先要匹配任务类型，RAG 场景下应该重点看模型在检索任务上的表现而不是看综合总分，MTEB 排行榜把任务拆得很细，可以针对性地看。其次是语言和领域匹配，中文场景下 BGE、M3E 这类专门做过中文优化的模型通常比纯英文模型效果好很多，垂直领域如果通用模型效果不够还需要做领域微调。第三要关注对称和非对称检索的区别，RAG 是典型的短查询检索长文档的非对称场景，BGE 和 E5 都支持通过 query/passage 前缀来优化这种场景，这个细节在实际中对效果影响很大。工程层面还要考虑向量维度带来的存储和计算成本、模型支持的最大输入长度是否和分块策略匹配、以及推理吞吐能否满足在线服务的延迟要求。&lt;/p&gt;
 &lt;p&gt;评估指标方面，检索场景最核心的是 Recall@K、MRR、NDCG@K 和 MAP 这几个。Recall 衡量能不能找全，MRR 衡量第一个相关结果排得准不准，NDCG 综合衡量排序质量，MAP 则综合了精确度和排序。语义相似度任务主要看 Spearman 相关系数。但最关键的一点是，公开基准上的分数只能用来初筛候选，最终一定要在自己的真实数据上做评估，因为 MTEB 的数据分布和你的业务数据可能差异很大。在实际项目中，我的做法是先从 MTEB 筛出 3-5 个候选，然后在自有标注数据上跑 Recall 和 NDCG 做离线对比，最优的模型再通过 A/B 测试在线验证，确认效果后才正式采用。&lt;/p&gt;
+&lt;h3 id=&#34;-文档增强document-enrichment&#34;&gt;📄 文档增强（Document Enrichment）
+&lt;/h3&gt;&lt;p&gt;文档增强（Document Enrichment）：在文档入库时，用 LLM 为每个 chunk 生成若干&amp;quot;假设问题&amp;quot;——也就是&amp;quot;用户可能会用什么方式来问这个 chunk 里的知识&amp;quot;。然后把这些假设问题和原始 chunk 一起存入向量库。这其实是 HyDE 的反向操作：HyDE 是用查询生成假设文档，Document Enrichment 是用文档生成假设查询。两者的共同目标都是缩小查询和文档之间的语言风格差异。&lt;/p&gt;
+&lt;hr&gt;
 &lt;h2 id=&#34;-检索阶段的优化&#34;&gt;🔬 检索阶段的优化
 &lt;/h2&gt;&lt;p&gt;检索侧优化解决的核心问题是：&lt;strong&gt;如何在海量候选内容里，把最值得送进模型的那一小部分上下文尽可能稳定地找出来。&lt;/strong&gt;&lt;/p&gt;
 &lt;h3 id=&#34;-查询阶段优化&#34;&gt;🔦 查询阶段优化
 &lt;/h3&gt;&lt;p&gt;很多时候检索质量差，根源并不在检索引擎，而在用户查询本身。用户的提问可能太模糊、太口语化，或者把多个子问题混在一起。如果能在检索之前先把查询&amp;quot;加工&amp;quot;一下，效果往往会明显提升。&lt;/p&gt;
-&lt;p&gt;查询侧最常见的做法包括：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Query Rewriting&lt;/strong&gt;：把口语化、模糊化的问题改写成更适合检索的表达。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;HyDE&lt;/strong&gt;：先让模型生成一段&amp;quot;假想答案&amp;quot;，再用这段答案的向量去检索，缩小查询和文档之间的表达鸿沟。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Multi-Query&lt;/strong&gt;：从多个角度生成查询变体，合并结果以提高召回率。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Sub-Question Decomposition&lt;/strong&gt;：把复杂问题拆成多个子问题分别检索，再汇总回答。&lt;/li&gt;
-&lt;/ul&gt;
+&lt;h4 id=&#34;-query-rewriting查询改写&#34;&gt;✍️ Query Rewriting（查询改写）
+&lt;/h4&gt;&lt;p&gt;Query Rewriting（查询改写） 是最基础也最实用的一招。在用户提问进入检索流程之前，先让 LLM 对查询做一次改写——补全省略的信息、消除歧义、把口语化表达转成更接近知识库文档风格的书面表达。比如用户问&amp;quot;苹果太贵了怎么办&amp;quot;，LLM 可以改写成&amp;quot;iPhone 产品价格过高时有哪些优惠方案或替代选择&amp;quot;，既消除了&amp;quot;苹果&amp;quot;的歧义，又把口语变成了更精准的检索语句。工程上通常就是在检索前插入一个 LLM 调用，prompt 类似于&amp;quot;请将以下用户问题改写为更适合在知识库中检索的查询语句&amp;quot;。成本不高，但效果立竿见影。&lt;/p&gt;
+&lt;h4 id=&#34;-hydehypothetical-document-embeddings&#34;&gt;💭 HyDE（Hypothetical Document Embeddings）
+&lt;/h4&gt;&lt;p&gt;让 LLM 先&amp;quot;假装&amp;quot;回答用户的问题，生成一段假设性的文档，然后用这段假设文档的向量去检索。为什么这样有效？因为 LLM 生成的&amp;quot;假设答案&amp;quot;在语言风格上天然接近知识库中的文档——都是陈述性的、结构化的书面语。这样一来，用来检索的向量就从&amp;quot;口语化提问的向量&amp;quot;变成了&amp;quot;类文档风格文本的向量&amp;quot;，和知识库文档在向量空间中的距离大幅缩短。举个具体例子：用户问&amp;quot;电脑蓝屏了咋整&amp;quot;，LLM 生成的假设文档可能是&amp;quot;Windows 操作系统出现蓝屏错误（BSOD）的常见原因包括驱动程序冲突、内存故障和系统文件损坏，排查步骤如下……&amp;quot;。这段文本和知识库里真正的蓝屏排查文档在向量空间中会非常接近。&lt;/p&gt;
+&lt;h4 id=&#34;-multi-query多查询扩展&#34;&gt;🔀 Multi-Query（多查询扩展）
+&lt;/h4&gt;&lt;p&gt;不是把一个查询改写成一个更好的查询，而是把一个查询拆分或扩展成多个不同角度的子查询，分别去检索，最后把结果合并去重。这样即使某一个角度的查询没命中，其他角度可能会命中。比如用户问&amp;quot;新能源汽车的优缺点&amp;quot;，可以扩展成&amp;quot;电动汽车的优势有哪些&amp;quot;、&amp;ldquo;新能源车有什么缺点和不足&amp;rdquo;、&amp;ldquo;燃油车和电动车对比&amp;quot;三个子查询。&lt;/p&gt;
+&lt;h4 id=&#34;-总结&#34;&gt;📌 总结
+&lt;/h4&gt;&lt;p&gt;这三种查询侧技术可以单独使用，也可以组合——比如先做 Query Rewriting 消除歧义，再做 Multi-Query 扩展覆盖面。在实际项目中，Query Rewriting 几乎是标配，HyDE 在文档风格差异大的场景效果特别好，Multi-Query 则在用户问题比较宽泛时更有价值。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;rag-query-optimization.png&#34; alt=&#34;查询侧优化策略&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
-&lt;h3 id=&#34;-粗排阶段优化&#34;&gt;📌 粗排阶段优化
+&lt;h3 id=&#34;-粗排阶段优化&#34;&gt;📍 粗排阶段优化
 &lt;/h3&gt;&lt;h4 id=&#34;-元数据过滤&#34;&gt;🔽 元数据过滤
 &lt;/h4&gt;&lt;p&gt;元数据过滤是一个经常被忽视、但非常实用的在粗排阶段的检索增强手段。它的做法是在向量检索之前或之后，利用文档的元数据（如时间、来源、类别、作者、权限范围）做预过滤。&lt;/p&gt;
-&lt;p&gt;例如用户问&amp;quot;最新的产品定价策略&amp;quot;，可以先用元数据过滤出最近 3 个月的文档，再在这个子集内做向量检索。这样有两个直接好处：&lt;/p&gt;
+&lt;p&gt;例如用户问&amp;quot;最新的产品定价策略&amp;rdquo;，可以先用元数据过滤出最近 3 个月的文档，再在这个子集内做向量检索。这样有两个直接好处：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;准确率更高&lt;/strong&gt;：先把明显不可能相关的数据排除掉。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;检索成本更低&lt;/strong&gt;：缩小候选集合后，召回与精排压力都会下降。&lt;/li&gt;
@@ -2820,7 +2924,7 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;混合检索.png&#34; alt=&#34;混合检索和多路召回&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
-&lt;h3 id=&#34;-精排阶段优化&#34;&gt;🎯 精排阶段优化
+&lt;h3 id=&#34;-精排阶段优化&#34;&gt;🎖️ 精排阶段优化
 &lt;/h3&gt;&lt;h4 id=&#34;-rerank-重排序&#34;&gt;🔄 Rerank 重排序
 &lt;/h4&gt;&lt;p&gt;前面检索阶段的 &lt;strong&gt;Rank Fusion&lt;/strong&gt;，其目标通常是&lt;strong&gt;在海量文档中快速筛出一批大致相关的候选结果&lt;/strong&gt;，所以它更偏向效率，准确性不是最高。&lt;strong&gt;Rerank&lt;/strong&gt; 则会在这批候选结果上继续精排，挑出最匹配的问题上下文，再交给大模型使用。&lt;/p&gt;
 &lt;p&gt;典型流程是：先用&lt;strong&gt;向量检索&lt;/strong&gt;做粗召回（比如返回 &lt;strong&gt;top-20&lt;/strong&gt;），再用专门的 &lt;strong&gt;&lt;code&gt;Cross-Encoder&lt;/code&gt;&lt;/strong&gt; 重排序模型对这 20 个结果逐一精排，重新排序后取 &lt;strong&gt;top-5&lt;/strong&gt; 送给 &lt;strong&gt;LLM&lt;/strong&gt;。&lt;/p&gt;
@@ -2833,10 +2937,10 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;p&gt;它之所以有效，是因为向量检索和重排序本质上是两种不同架构：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;向量检索&lt;/strong&gt;使用的是 &lt;strong&gt;Bi-Encoder&lt;/strong&gt;：也就是双编码器，Query和Document分别独立地编码成向量，再做相似度计算。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;向量检索&lt;/strong&gt;使用的是 &lt;strong&gt;Bi-Encoder&lt;/strong&gt;：也就是双编码器，把 Query 和 Document 分别独立地送入同一个编码器，各自得到一个向量表示，然后用余弦相似度或点积来衡量二者的距离。这是一种&amp;quot;双塔&amp;quot;结构，query 塔和 document 塔在编码过程中完全没有交互。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;优点是快，文档向量可以提前算好存进向量数据库，线上只需要算一次 Query 向量，然后做一次近似最近邻（ANN）搜索，毫秒级就能从百万级文档中捞出 Top-K，适合大规模召回。&lt;/li&gt;
-&lt;li&gt;缺点是Query 和 Document 在编码时完全看不到对方，模型看不到它们的细粒度关联。模型把查询和文档「分别」处理的。模型在编码一篇文档的时候，根本不知道用户会问什么问题。所以它只能生成一个「泛化的、平均化的」语义向量，无法针对具体的查询做优化。
+&lt;li&gt;优点是快，正因如此，Document 的向量可以离线预先计算好并建索引，线上只需要算一次 Query 向量，然后做一次近似最近邻（ANN）搜索，毫秒级就能从百万级文档中捞出 Top-K，适合大规模召回。&lt;/li&gt;
+&lt;li&gt;缺点是 Query 和 Document 在编码时完全看不到对方，模型看不到它们的细粒度关联。模型把查询和文档「分别」处理的。模型在编码一篇文档的时候，根本不知道用户会问什么问题。所以它只能生成一个「泛化的、平均化的」语义向量，无法针对具体的查询做优化。
 &lt;ul&gt;
 &lt;li&gt;信息压缩损失。就好比你用一句话来总结一篇论文，再精彩的总结也不可能把每个细节都留住。Embedding 也是一样，一段几百字的文本被压缩成一串数字，那些细微但关键的信息可能就丢了。&lt;/li&gt;
 &lt;li&gt;缺乏查询意图感知。文档的向量是在索引阶段就预先计算好的，那时候根本不知道用户会问什么。所以同一篇文档的向量，不管用户是在问事实、做对比分析还是查步骤说明，都是完全一样的，没法根据不同的问题做出针对性的判断。&lt;/li&gt;
@@ -2845,7 +2949,11 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;Reranker&lt;/strong&gt; 使用的是 &lt;strong&gt;Cross-Encoder&lt;/strong&gt;：也就是交叉编码器，把查询和文档拼接后一起送进模型，模型能逐 &lt;code&gt;token&lt;/code&gt; 地分析查询和文档之间的交叉关系，自然能更准确地判断相关性。优点是准，适合小规模精排。代价是慢（每对 &lt;strong&gt;&lt;code&gt;query-doc&lt;/code&gt;&lt;/strong&gt; 都要过一遍模型），所以只能用在候选量较小的重排阶段。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Reranker&lt;/strong&gt; 使用的是 &lt;strong&gt;Cross-Encoder&lt;/strong&gt;：也就是交叉编码器，它把 Query 和 Document 拼接在一起，作为一个整体送入 Transformer 编码器，模型能逐 &lt;code&gt;token&lt;/code&gt; 地分析查询和文档之间的交叉关系，自然能更准确地判断相关性。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;优点是在于 token 级别的深度交互。模型可以看到&amp;quot;用户问的是天数&amp;quot;，也可以看到&amp;quot;文档里写了具体的数字&amp;quot;，从而判断这个文档是否真正回答了这个问题。它不再只是比较两段文本的话题距离，而是在做真正意义上的相关性判断。&lt;/li&gt;
+&lt;li&gt;代价是慢，Cross-Encoder 无法预先建索引，因为每次都必须把 Query 带入，对每一对 (query, doc) 单独进行前向计算。所以只能用在候选量较小的重排阶段。&lt;/li&gt;
+&lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
@@ -2858,6 +2966,7 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;过滤漏斗.png&#34; alt=&#34;RAG过程中的漏斗&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
+&lt;hr&gt;
 &lt;h2 id=&#34;-增强阶段的优化&#34;&gt;🔧 增强阶段的优化
 &lt;/h2&gt;&lt;p&gt;检索完成后，还有一个重要的优化环节，就是&lt;strong&gt;后处理&lt;/strong&gt;。它的核心价值在于：将召回到的候选内容整理成大模型可以直接利用的上下文，最终构造成适合输入给模型的 Prompt，使模型能够在更充分、更准确的上下文中完成回答。&lt;/p&gt;
 &lt;h3 id=&#34;-contextual-compression-上下文压缩&#34;&gt;💾 Contextual Compression 上下文压缩
@@ -2869,8 +2978,8 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;li&gt;&lt;strong&gt;让上下文利用率更高&lt;/strong&gt;，把宝贵的上下文窗口留给真正重要的信息。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;LangChain&lt;/strong&gt; 的 &lt;code&gt;ContextualCompressionRetriever&lt;/code&gt; 就提供了开箱即用的实现。&lt;/p&gt;
-&lt;h3 id=&#34;-提示词优化&#34;&gt;📝 提示词优化
-&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;提示词（Prompt）&lt;/strong&gt; 是 RAG 系统的最后一道防线，检索把对的文档找回来，&lt;strong&gt;提示词（Prompt）&lt;/strong&gt; 决定模型用不用这些文档。把RAG Prompt 当成普通 Prompt 来写，这是根本性的认知错误。&lt;/p&gt;
+&lt;h3 id=&#34;-提示词优化&#34;&gt;✍️ 提示词优化
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;提示词（Prompt）&lt;/strong&gt; 是 RAG 系统的最后一道防线，检索把对的文档找回来，&lt;strong&gt;提示词（Prompt）&lt;/strong&gt; 决定模型用不用这些文档。把 RAG Prompt 当成普通 Prompt 来写，这是根本性的认知错误。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;普通 LLM Prompt&lt;/strong&gt; 的逻辑：你问一个问题，模型用自己训练时积累的参数知识来回答。模型的知识边界就是答案边界，这是完全合理的设计。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;RAG Prompt&lt;/strong&gt; 的逻辑完全不同：你传进去问题 + 检索到的文档片段，要求模型只用这些文档片段来回答，不能用参数知识。&lt;/li&gt;
@@ -2880,16 +2989,16 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
   &lt;img src=&#34;prompt设计.png&#34; alt=&#34;RAG Prompt 设计图&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
 &lt;p&gt;RAG Prompt 的核心任务是切断模型对参数知识的依赖，强制它只从检索文档里找答案。高质量的 &lt;strong&gt;提示词（Prompt）&lt;/strong&gt; 设计，可以显著提升 &lt;strong&gt;RAG&lt;/strong&gt; 的最终效果。&lt;/p&gt;
-&lt;h4 id=&#34;system-prompt&#34;&gt;System Prompt
-&lt;/h4&gt;&lt;p&gt;System Prompt 是整个 RAG Prompt 架构的基础层，它做三件事：定义角色、设置规则、写明负面约束。&lt;/p&gt;
+&lt;h4 id=&#34;-system-prompt&#34;&gt;🎛️ System Prompt
+&lt;/h4&gt;&lt;p&gt;System Prompt 是整个 RAG Prompt 架构的基础层，它做三件事：定义角色、设置规则，写明负面约束。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;明确角色与任务&lt;/strong&gt;：清晰说明模型身份、能力边界与回答目标，例如要求模型只能基于提供资料作答。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;结构化组织输入&lt;/strong&gt;：将提示拆成&amp;quot;背景 + 问题 + 输出格式&amp;quot;之类的清晰结构。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;加入上下文约束&lt;/strong&gt;：明确禁止模型脱离检索内容自由发挥，减少幻觉。这把推理空间大幅压缩，强迫模型找原文，而不是推断。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;设置兜底机制&lt;/strong&gt;：如果没有检索到相关资料，就要求模型明确返回&amp;quot;未找到相关内容&amp;quot;。很多初级写法里没有这条，导致模型在文档信息不足时，会悄悄调用参数知识来&amp;quot;补全&amp;quot;答案，这正是幻觉的高发场景。鼓励承认不确定&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;设置兜底机制&lt;/strong&gt;：如果没有检索到相关资料，就要求模型明确返回&amp;quot;未找到相关内容&amp;quot;。很多初级写法里没有这条，导致模型在文档信息不足时，会悄悄调用参数知识来&amp;quot;补全&amp;quot;答案，这正是幻觉的高发场景。鼓励承认不确定。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;引用要求&lt;/strong&gt;：强制引用来源，格式是 &lt;code&gt;[来源：文档名称第X页]&lt;/code&gt;，这条规则的效果在后面的数据对比里你会看到。它的原理是：模型要写出引用，必须真的在文档里找到对应内容。如果文档里没有，它无法凭空捏造一个引用（当然极少数情况也会捏造，但概率大幅下降）。引用要求本质上是给模型增加了一个&amp;quot;验证步骤&amp;quot;，它必须先找到原文，再写回答。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;user-prompt&#34;&gt;User Prompt
+&lt;h4 id=&#34;-user-prompt&#34;&gt;👤 User Prompt
 &lt;/h4&gt;&lt;p&gt;System Prompt 设好了基础规则，User Prompt 负责把每次请求的具体内容传进去：检索到的文档片段 + 用户问题。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;每段文档标了编号和来源&lt;/strong&gt;：参考文档1（来自：XX产品条款第3页）这样的格式，让模型在引用时有依据，不用自己猜来源名称。&lt;/li&gt;
@@ -2900,15 +3009,15 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;/ul&gt;
 &lt;hr&gt;
 &lt;h2 id=&#34;-工程实现上的优化&#34;&gt;⚙️ 工程实现上的优化
-&lt;/h2&gt;&lt;h3 id=&#34;首字响应速度time-to-first-token-ttft&#34;&gt;首字响应速度(Time to First Token, TTFT)
+&lt;/h2&gt;&lt;h3 id=&#34;-首字响应速度time-to-first-token-ttft&#34;&gt;⏱️ 首字响应速度（Time to First Token, TTFT）
 &lt;/h3&gt;&lt;p&gt;首字响应速度的定义是：从提问到看到第一个字的时间。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;TTFT优化.png&#34; alt=&#34;RAG 的性能公式&#34;  width=&#34;82%&#34; /&gt;
+  &lt;img src=&#34;TTFT优化.png&#34; alt=&#34;RAG 的性能公式&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
 &lt;p&gt;T_total = T_embed(query) + T_retrieval + T_prompt_build + T_infra_overhead&lt;/p&gt;
 &lt;p&gt;总延迟 = 查询向量化时间 + 向量检索时间 + 上下文构建时间 + 基础设施开销（网络/队列/IO）。&lt;/p&gt;
-&lt;h5 id=&#34;-embedding-阶段&#34;&gt;⚙️ Embedding 阶段
-&lt;/h5&gt;&lt;ul&gt;
+&lt;h4 id=&#34;-embedding-阶段&#34;&gt;⚡ Embedding 阶段
+&lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;
 &lt;p&gt;&lt;strong&gt;批量请求&lt;/strong&gt;：通常 Embedding 接口支持一次传入多个文本。如果你的系统需要同时给 query 和多个子查询（比如 query 扩写生成的变体）算 Embedding，别逐条发请求，把它们打包成一个数组一次性调用。这样几条文本的 Embedding 只需要一次网络往返，而不是 N 次。需要注意单次请求的 token 上限（约 8192 tokens），超出就拆批次。&lt;/p&gt;
 &lt;/li&gt;
@@ -2922,8 +3031,8 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;p&gt;&lt;strong&gt;对于文档语料的 Embedding&lt;/strong&gt;：一定要在离线阶段预先算好存入向量库，绝不能在查询时现算。&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h5 id=&#34;-向量检索阶段&#34;&gt;🔍 向量检索阶段
-&lt;/h5&gt;&lt;p&gt;&lt;strong&gt;HNSW 索引&lt;/strong&gt;是目前的最优选择。在百万级向量数据上，HNSW 能把查询延迟压到毫秒级，同时保持很高的召回率。Milvus 官方也推荐在需要高性能检索时优先使用 HNSW。关键参数有两个：&lt;/p&gt;
+&lt;h4 id=&#34;-向量检索阶段&#34;&gt;🔍 向量检索阶段
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;HNSW 索引&lt;/strong&gt;是目前的最优选择。在百万级向量数据上，HNSW 能把查询延迟压到毫秒级，同时保持很高的召回率。Milvus 官方也推荐在需要高性能检索时优先使用 HNSW。关键参数有两个：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;efConstruction&lt;/strong&gt;：建索引时的参数，越大索引质量越高但建索引越慢。一般设 128 就够了，这是一次性开销。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;efSearch&lt;/strong&gt;：查询时的参数，越大召回越全但查询越慢。根据场景调，64 是一个不错的起点，如果对召回率要求特别高可以往上加。&lt;/li&gt;
@@ -2940,8 +3049,8 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;p&gt;&lt;strong&gt;内存加载&lt;/strong&gt;：这是一个容易忽略的点——确保在查询前调用了 collection.load()，把数据加载到内存。如果数据还在磁盘上，每次查询都要走磁盘 IO，延迟会高一个数量级。&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h5 id=&#34;-系统架构&#34;&gt;🏗️ 系统架构
-&lt;/h5&gt;&lt;p&gt;&lt;strong&gt;全链路异步流水线&lt;/strong&gt;是最核心的思路。一次 RAG 请求的流程是：Embedding → 检索 → 构建 Prompt → LLM 流式生成。这四步对于单个请求来说是顺序依赖的，但系统层面可以做很多文章。&lt;/p&gt;
+&lt;h4 id=&#34;-系统架构&#34;&gt;🏗️ 系统架构
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;全链路异步流水线&lt;/strong&gt;是最核心的思路。一次 RAG 请求的流程是：Embedding → 检索 → 构建 Prompt → LLM 流式生成。这四步对于单个请求来说是顺序依赖的，但系统层面可以做很多文章。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;
 &lt;p&gt;&lt;strong&gt;把整个链路变成异步的&lt;/strong&gt;：Embedding 调 API 是 IO 密集型操作，等待返回的时候 CPU 是空闲的，可以同时处理其他用户的请求。检索同理。这样虽然单个请求的延迟没变，但系统的吞吐量（QPS）大幅提升。&lt;/p&gt;
@@ -2951,7 +3060,7 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;全链路异步流水线.png&#34; alt=&#34;全链路异步流水线&#34;  width=&#34;82%&#34; /&gt;
+  &lt;img src=&#34;全链路异步流水线.png&#34; alt=&#34;全链路异步流水线&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
 &lt;p&gt;同时也可以设计三级缓存架构：&lt;/p&gt;
 &lt;ul&gt;
@@ -2966,7 +3075,8 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;三级缓存的命中逻辑是：先查答案缓存（命中直接返回）→ 再查检索缓存（命中跳过 Embedding 和检索）→ 最后查 Embedding 缓存（命中跳过 Embedding 计算）→ 全部未命中才走完整链路。&lt;/p&gt;
-&lt;h2 id=&#34;-小结&#34;&gt;✅ 小结
+&lt;hr&gt;
+&lt;h2 id=&#34;-小结&#34;&gt;📝 小结
 &lt;/h2&gt;&lt;p&gt;&lt;strong&gt;RAG&lt;/strong&gt; 的核心价值，不是简单地&amp;quot;给大模型加个数据库&amp;quot;，而是通过 &lt;strong&gt;检索能力 + 上下文增强 + 生成能力&lt;/strong&gt; 的协同，解决大模型在知识实时性、准确性和可控性上的不足。&lt;/p&gt;
 &lt;p&gt;如果从工程视角来看，RAG 的效果往往取决于三个关键点：&lt;/p&gt;
 &lt;ul&gt;
@@ -2994,7 +3104,8 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;rag-advanced-directions.png&#34; alt=&#34;RAG 的进阶方向&#34; width=&#34;82%&#34; /&gt;
-&lt;/div&gt;</description>
+&lt;/div&gt;
+</description>
         </item>
         <item>
         <title>RAG的基本概念和流程</title>
@@ -3242,11 +3353,11 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;/div&gt;</description>
         </item>
         <item>
-        <title>MCP的概念</title>
-        <link>https://Tyritic.github.io/p/mcp%E7%9A%84%E6%A6%82%E5%BF%B5/</link>
+        <title>MCP协议</title>
+        <link>https://Tyritic.github.io/p/mcp%E5%8D%8F%E8%AE%AE/</link>
         <pubDate>Thu, 27 Mar 2025 10:00:39 +0800</pubDate>
         
-        <guid>https://Tyritic.github.io/p/mcp%E7%9A%84%E6%A6%82%E5%BF%B5/</guid>
+        <guid>https://Tyritic.github.io/p/mcp%E5%8D%8F%E8%AE%AE/</guid>
         <description>&lt;h2 id=&#34;-llm-的典型局限&#34;&gt;🤔 LLM 的典型局限
 &lt;/h2&gt;&lt;p&gt;人工智能的迅速发展，尤其是大型语言模型(LLMs)，为生成类人类文本、解决复杂问题和跨行业提升生产力打开了前所未有的潜力。然而，一个持续存在的挑战是:这些模型往往与驱动现代工作流的实时动态数据隔离。在真正落地业务场景时，LLM 虽然已经具备很强的理解和生成能力，但仍然有几个明显短板：&lt;/p&gt;
 &lt;ul&gt;
@@ -3258,7 +3369,7 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;h2 id=&#34;-传统方案函数调用&#34;&gt;🧰 传统方案：函数调用
 &lt;/h2&gt;&lt;p&gt;Function Call 于 &lt;strong&gt;2023 年&lt;/strong&gt; 由 OpenAI 推出。在此之前，LLM 主要只能通过自然语言回答问题，无法直接触发 API 调用或插件交互。Function Call 的关键能力在于：&lt;strong&gt;模型能够以结构化 JSON 的形式输出函数参数，再交由应用程序执行对应逻辑。&lt;/strong&gt;&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;Function Calling.png&#34; alt=&#34;Function Call&#34; width=&#34;78%&#34;&gt;
+  &lt;img src=&#34;Function Calling.png&#34; alt=&#34;Function Call&#34; width=&#34;82%&#34;&gt;
 &lt;/div&gt;
 一个典型流程如下：
 &lt;ul&gt;
@@ -3286,7 +3397,7 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;/blockquote&gt;
 &lt;p&gt;可以把 MCP 理解成 AI 应用的 &lt;strong&gt;USB-C 接口&lt;/strong&gt;。就像 USB-C 让不同设备可以通过统一标准连接各种外设一样，MCP 也希望让不同模型、不同工具、不同数据源之间通过统一协议协作。模型上下文协议(MCP)，由Anthropic发起的一种开放标准，就是为了解决这个问题的。MCP承诺通过提供一个通用的、标准化的框架来无缝集成数据，重新定义AI与工具的交互方式。就像 TCP/IP标准化了网络通信或ODBC改变了数据库连接一样，MCP希望成为互联AI生态系统的基础。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;MCP图示.png&#34; alt=&#34;MCP 图示&#34; width=&#34;78%&#34; /&gt;
+  &lt;img src=&#34;MCP图示.png&#34; alt=&#34;MCP 图示&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
 &lt;p&gt;从工程角度看，MCP 的价值在于：&lt;/p&gt;
 &lt;ul&gt;
@@ -3327,15 +3438,15 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;h2 id=&#34;-mcp-和-function-call-的区别&#34;&gt;🆚 MCP 和 Function Call 的区别
 &lt;/h2&gt;&lt;p&gt;二者的核心区别就一句话：Function Call 是 LLM 的一项&lt;strong&gt;单轮工具调用能力&lt;/strong&gt;，而 MCP 是一套&lt;strong&gt;标准化 LLM 与外部世界交互的完整通信协议&lt;/strong&gt;——Function Call 只是 MCP 的能力子集，二者根本不是一个维度的东西。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;LLM 的基础工具调用能力Function Call 的本质，是 LLM 提供的单轮、无状态、单向的工具调用机制，解决的核心问题是 “让 LLM 不要瞎编答案，而是通过调用外部工具获取准确数据”。Function Call 就像 HTTP 接口的单次调用，你发一次请求、传一次参数、拿一次结果，无状态、单向通信，每次调用都要重新认证、重新传参，只能你主动调用接口，接口不能主动给你推消息。&lt;/li&gt;
-&lt;li&gt;MCP 就是给二者建了一条稳定的、全双工的、持久化的通信管道。它不仅包含了 Function Call 的工具调用能力，还提供了 Function Call 完全不具备的核心能力。MCP 就像 TCP 长连接 + 完整的 RPC 协议，它不仅能实现单次调用，还能保持长连接、持久化会话状态、支持双向实时通信，有完整的资源管理、上下文同步、异常处理机制，能支撑复杂的、持久化的业务场景。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;LLM 的基础工具调用能力&lt;/strong&gt;：Function Call 的本质，是 LLM 提供的单轮、无状态、单向的工具调用机制，解决的核心问题是&amp;quot;让 LLM 不要瞎编答案，而是通过调用外部工具获取准确数据&amp;quot;。Function Call 就像 HTTP 接口的单次调用，你发一次请求、传一次参数、拿一次结果，无状态、单向通信，每次调用都要重新认证、重新传参，只能你主动调用接口，接口不能主动给你推消息。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;MCP 的完整协议设计&lt;/strong&gt;：MCP 就是给二者建了一条稳定的、全双工的、持久化的通信管道。它不仅包含了 Function Call 的工具调用能力，还提供了 Function Call 完全不具备的核心能力。MCP 就像 TCP 长连接 + 完整的 RPC 协议，它不仅能实现单次调用，还能保持长连接、持久化会话状态、支持双向实时通信，有完整的资源管理、上下文同步、异常处理机制，能支撑复杂的、持久化的业务场景。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2 id=&#34;-核心架构与运行方式&#34;&gt;🏗️ 核心架构与运行方式
-&lt;/h2&gt;&lt;h3 id=&#34;-核心架构&#34;&gt;🏛️ 核心架构
+&lt;/h2&gt;&lt;h3 id=&#34;-核心架构&#34;&gt;🗂️ 核心架构
 &lt;/h3&gt;&lt;p&gt;MCP 采用 &lt;strong&gt;客户端 - 服务器架构&lt;/strong&gt;，通信层通常使用 &lt;a class=&#34;link&#34; href=&#34;https://www.jsonrpc.org/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
     &gt;JSON-RPC 2.0&lt;/a&gt; 来交换消息。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;77afbba7a4543387ddb1f1827dac0b71.png&#34; alt=&#34;MCP 核心架构&#34; width=&#34;78%&#34; /&gt;
+  &lt;img src=&#34;77afbba7a4543387ddb1f1827dac0b71.png&#34; alt=&#34;MCP 核心架构&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
 &lt;p&gt;架构中的关键角色如下：&lt;/p&gt;
 &lt;ul&gt;
@@ -3343,7 +3454,7 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;li&gt;&lt;strong&gt;客户端（MCP Client）&lt;/strong&gt;：Host内部专门用于与MCP Server建立和维持一对一连接的模块。它负责按照MCP协议的规范发送请求、接收响应和处理数据。简单来说，MCP Client是Host内部处理RPC通信的“代理”，专注于与一个MCP Server进行标准化的数据、工具或prompt的交换&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;MCP Client.png&#34; alt=&#34;MCP Client&#34; width=&#34;78%&#34; /&gt;
+  &lt;img src=&#34;MCP Client.png&#34; alt=&#34;MCP Client&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;服务器（MCP Server）&lt;/strong&gt;：对接具体的数据源或工具，向客户端暴露能力。
@@ -3355,7 +3466,7 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;/li&gt;
 &lt;/ul&gt;
 &lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;MCP Server.png&#34; alt=&#34;MCP Server&#34; width=&#34;78%&#34; /&gt;
+  &lt;img src=&#34;MCP Server.png&#34; alt=&#34;MCP Server&#34; width=&#34;82%&#34; /&gt;
 &lt;/div&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;资源来源&lt;/strong&gt;：既可以是本地资源，也可以是远程资源。
@@ -3374,7 +3485,7 @@ k 越大，各个排名之间的分数差距越小，排名靠前的文档优势
 &lt;hr&gt;
 &lt;h2 id=&#34;-mcp-的工作流程&#34;&gt;🔄 MCP 的工作流程
 &lt;/h2&gt;&lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;image-20250327140914648.png&#34; alt=&#34;MCP 工作流程&#34; width=&#34;80%&#34; /&gt;
+  &lt;img src=&#34;image-20250327140914648.png&#34; alt=&#34;MCP 工作流程&#34; width=&#34;88%&#34; /&gt;
 &lt;/div&gt;
 &lt;p&gt;一个典型的 MCP 请求大致会经过以下步骤：&lt;/p&gt;
 &lt;ul&gt;
