@@ -7,204 +7,98 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>Tyritic</copyright><atom:link href="https://Tyritic.github.io/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/index.xml" rel="self" type="application/rss+xml" /><item>
-        <title>操作系统的IO模型</title>
-        <link>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/</link>
+        <title>操作系统(三)操作系统的IO模型</title>
+        <link>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%B8%89%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/</link>
         <pubDate>Sun, 16 Mar 2025 14:47:26 +0800</pubDate>
         
-        <guid>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/</guid>
-        <description>&lt;h2 id=&#34;常见的io模型&#34;&gt;常见的IO模型
-&lt;/h2&gt;&lt;h3 id=&#34;同步io型&#34;&gt;同步IO型
-&lt;/h3&gt;&lt;h4 id=&#34;阻塞型io模型&#34;&gt;阻塞型IO模型
+        <guid>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%B8%89%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/</guid>
+        <description>&lt;h2 id=&#34;-常见的io模型&#34;&gt;🧠 常见的IO模型
+&lt;/h2&gt;&lt;h3 id=&#34;-同步io型&#34;&gt;🔍 同步IO型
+&lt;/h3&gt;&lt;h4 id=&#34;-阻塞型io模型&#34;&gt;📖 阻塞型IO模型
 &lt;/h4&gt;&lt;p&gt;应用程序发起I/O操作后会被阻塞，直到操作完成才返回结果。期间调用方会被挂起，不能继续执行其他任务，直到请求的操作完成&lt;/p&gt;
 &lt;p&gt;此时 阻塞等待的是&lt;strong&gt;内核数据准备好&lt;/strong&gt;和&lt;strong&gt;数据从内核态拷贝到用户态&lt;/strong&gt;这两个过程。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;优点&lt;/strong&gt;：实现简单，逻辑直观；调用后直接等待数据就绪。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;缺点&lt;/strong&gt;：每个连接都需要一个线程，即使没有数据到达，线程也会被占用，导致资源浪费，不适合高并发场景。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/os-f06db5ff-661c-4ddf-9115-4ed9c9a21d01.png&#34;
-	width=&#34;816&#34;
-	height=&#34;485&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;阻塞I/O&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;168&#34;
-		data-flex-basis=&#34;403px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;h4 id=&#34;非阻塞型io模型&#34;&gt;非阻塞型IO模型
+&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;os-f06db5ff-661c-4ddf-9115-4ed9c9a21d01.png&#34; alt=&#34;阻塞I/O&#34; width=&#34;82%&#34;&gt;&lt;/div&gt;
+&lt;h4 id=&#34;-非阻塞型io模型&#34;&gt;📒 非阻塞型IO模型
 &lt;/h4&gt;&lt;p&gt;I/O操作不会阻塞进程，在非阻塞操作中，调用方在发出请求后立即返回。在没数据的时候，用户程序可以不再阻塞等着，而是直接返回错误，告知暂无准备就绪的数据，用户程序会通过轮询操作，不断发起 read 调用，直到内核中的数据拷贝就绪，才会停止发起 read 调用，这时调用方可以继续执行其他任务。&lt;/p&gt;
 &lt;p&gt;但是 &lt;strong&gt;从内核拷贝到用户空间这一步，用户线程还是会被阻塞的&lt;/strong&gt;。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;优点&lt;/strong&gt;：线程不会长时间阻塞，可以在无数据时执行其他任务；适用于部分实时性要求较高的场景。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;缺点&lt;/strong&gt;：轮询方式会频繁进行系统调用，上下文切换开销较大，CPU 占用率较高，不适合大规模连接。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/os-771e014e-7ed9-4101-8bb5-4413b8069fd6.png&#34;
-	width=&#34;813&#34;
-	height=&#34;676&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;非阻塞I/O&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;120&#34;
-		data-flex-basis=&#34;288px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;h4 id=&#34;io复用模型&#34;&gt;IO复用模型
+&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;os-771e014e-7ed9-4101-8bb5-4413b8069fd6.png&#34; alt=&#34;非阻塞I/O&#34; width=&#34;82%&#34;&gt;&lt;/div&gt;
+&lt;h4 id=&#34;-io复用模型&#34;&gt;📌 IO复用模型
 &lt;/h4&gt;&lt;p&gt;使用 &lt;strong&gt;&lt;code&gt;select&lt;/code&gt;&lt;/strong&gt; 、&lt;strong&gt;&lt;code&gt;poll&lt;/code&gt;&lt;/strong&gt;、&lt;strong&gt;&lt;code&gt;epoll&lt;/code&gt;&lt;/strong&gt; 等系统调用，允许程序同时等待多个I/O操作，当其中任意一个就绪时进行处理。当其中任何一个I/O操作准备就绪时，应用程序会被通知。通常使用select线程 ，可以往 select 线程注册需要被监听的连接，由 select 线程来监控它所管理的连接是否有数据已就绪，如果有则可以通知别的线程来 read 读取数据。&lt;/p&gt;
 &lt;p&gt;但是 &lt;strong&gt;从内核拷贝到用户空间这一步，用户线程还是会被阻塞的&lt;/strong&gt;。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/os-86e54fa3-ad36-43c7-9d2d-5a68139c310f.png&#34;
-	width=&#34;843&#34;
-	height=&#34;667&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;基于非阻塞的I/O多路复用&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;126&#34;
-		data-flex-basis=&#34;303px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;h3 id=&#34;异步io型&#34;&gt;异步IO型
+&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;os-86e54fa3-ad36-43c7-9d2d-5a68139c310f.png&#34; alt=&#34;基于非阻塞的I/O多路复用&#34; width=&#34;82%&#34;&gt;&lt;/div&gt;
+&lt;h3 id=&#34;-异步io型&#34;&gt;⚡ 异步IO型
 &lt;/h3&gt;&lt;p&gt;应用程序发起I/O操作后可以立即做其他事情，当I/O操作完成时，应用程序会得到通知。异步I/O模型由操作系统内核完成I/O操作，应用程序只需等待通知即可。&lt;/p&gt;
 &lt;p&gt;异步 I/O 是 &lt;strong&gt;内核数据准备好&lt;/strong&gt; 和 &lt;strong&gt;数据从内核态拷贝到用户态&lt;/strong&gt; 这两个过程都不⽤等待。&lt;/p&gt;
-&lt;p&gt;与多路复用模型的区别就是让内核直接把数据拷贝到用户空间之后再告知用户线程&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/os-869021ed-5e4e-4490-9174-7291d8ddf55c.png&#34;
-	width=&#34;781&#34;
-	height=&#34;614&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;异步/IO&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;127&#34;
-		data-flex-basis=&#34;305px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;h3 id=&#34;同步和异步的区别&#34;&gt;同步和异步的区别
-&lt;/h3&gt;&lt;p&gt;同步和异步（Asynchronous） 是两种不同的任务执行方式，主要区别在于任务的执行是否需要等待其他任务完成&lt;/p&gt;
+&lt;p&gt;与多路复用模型的区别就是让内核直接把数据拷贝到用户空间之后再告知用户线程。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;os-869021ed-5e4e-4490-9174-7291d8ddf55c.png&#34; alt=&#34;异步I/O&#34; width=&#34;82%&#34;&gt;&lt;/div&gt;
+&lt;h3 id=&#34;-同步和异步的区别&#34;&gt;⚖️ 同步和异步的区别
+&lt;/h3&gt;&lt;p&gt;同步和异步（Asynchronous）是两种不同的任务执行方式，主要区别在于任务的执行是否需要等待其他任务完成。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;同步&lt;/strong&gt; ：在同步操作中，任务需要等待前一个任务完成后才能继续。调用者发起请求后，会被阻塞，直到任务完成并返回结果。调用者必须等待结果才能进行后续操作。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;异步&lt;/strong&gt; ：在异步操作中，任务在发出请求后可以立即继续执行，不需要等待请求的完成。请求的结果会通过回调机制在任务完成后通知调用者。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;零拷贝技术&#34;&gt;零拷贝技术
-&lt;/h2&gt;&lt;h3 id=&#34;解放cpu的技术-dma技术&#34;&gt;解放CPU的技术-DMA技术
-&lt;/h3&gt;&lt;p&gt;传统的IO流程&lt;/p&gt;
-&lt;ul&gt;
+&lt;h2 id=&#34;-零拷贝技术&#34;&gt;🔄 零拷贝技术
+&lt;/h2&gt;&lt;h3 id=&#34;-解放cpu的技术dma技术&#34;&gt;⚡ 解放CPU的技术——DMA技术
+&lt;/h3&gt;&lt;h4 id=&#34;-传统的io流程&#34;&gt;📋 传统的IO流程
+&lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;用户进程调用 read 方法，向操作系统发出 I/O 请求，请求读取数据到自己的内存缓冲区中，进程进入阻塞状态&lt;/li&gt;
 &lt;li&gt;CPU 发出对应的指令给磁盘控制器，然后返回&lt;/li&gt;
 &lt;li&gt;磁盘控制器收到指令后，于是就开始准备数据，会把数据放入到磁盘控制器的内部缓冲区中，然后产生一个&lt;strong&gt;中断&lt;/strong&gt;&lt;/li&gt;
 &lt;li&gt;CPU 收到中断信号后，停下手头的工作，接着把磁盘控制器的缓冲区的数据一次一个字节地读进自己的寄存器，然后再把寄存器里的数据写入到内存，而在数据传输的期间 CPU 是无法执行其他任务的。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/%E4%BC%A0%E7%BB%9FIO%E4%B8%AD%E6%96%AD.png&#34;
-	width=&#34;1337&#34;
-	height=&#34;785&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;传统中断流程&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;170&#34;
-		data-flex-basis=&#34;408px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;p&gt;整个数据的传输过程，都要需要 CPU 亲自参与搬运数据的过程，而且这个过程，CPU 是不能做其他事情的。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;传统IO中断.png&#34; alt=&#34;传统中断流程&#34; width=&#34;88%&#34;&gt;&lt;/div&gt;
+&lt;p&gt;整个数据的传输过程，都需要 CPU 亲自参与搬运数据，而且在这个过程中 CPU 是无法执行其他事情的。&lt;/p&gt;
 &lt;p&gt;DMA（直接内存访问技术）：&lt;strong&gt;在进行 I/O 设备和内存的数据传输的时候，数据搬运的工作全部交给 DMA 控制器，而 CPU 不再参与任何与数据搬运相关的事情，CPU 就可以去处理别的事务&lt;/strong&gt; 。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;DMA的工作流程&lt;/strong&gt;&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;用户进程调用 read 方法，向操作系统发出 I/O 请求，请求读取数据到自己的内存缓冲区中，进程进入阻塞状态&lt;/li&gt;
-&lt;li&gt;CPU收到请求后，进一步将 I/O 请求发送 DMA，然后让 CPU 执行其他任务&lt;/li&gt;
-&lt;li&gt;DMA 进一步将 I/O 请求发送给磁盘；&lt;/li&gt;
+&lt;h4 id=&#34;-dma的工作流程&#34;&gt;🔧 DMA的工作流程
+&lt;/h4&gt;&lt;ol&gt;
+&lt;li&gt;用户进程调用 &lt;code&gt;read()&lt;/code&gt; 方法，向操作系统发出 I/O 请求，请求读取数据到自己的内存缓冲区中，进程进入阻塞状态&lt;/li&gt;
+&lt;li&gt;CPU 收到请求后，进一步将 I/O 请求发送 DMA，然后让 CPU 执行其他任务&lt;/li&gt;
+&lt;li&gt;DMA 进一步将 I/O 请求发送给磁盘&lt;/li&gt;
 &lt;li&gt;磁盘收到 DMA 的 I/O 请求，把数据从磁盘读取到磁盘控制器的缓冲区中&lt;/li&gt;
 &lt;li&gt;DMA 收到磁盘的信号，将磁盘控制器缓冲区中的数据拷贝到内核缓冲区中，此时不占用 CPU，CPU 可以执行其他任务&lt;/li&gt;
-&lt;li&gt;当 DMA 读取了足够多的数据，就会发送中断信号给 CPU；&lt;/li&gt;
+&lt;li&gt;当 DMA 读取了足够多的数据，就会发送中断信号给 CPU&lt;/li&gt;
 &lt;li&gt;CPU 收到 DMA 的信号，知道数据已经准备好，于是将数据从内核拷贝到用户空间，系统调用返回&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/DMA%E8%BF%87%E7%A8%8B.png&#34;
-	width=&#34;1832&#34;
-	height=&#34;860&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;DMA过程&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;213&#34;
-		data-flex-basis=&#34;511px&#34;
-	
-&gt;&lt;/p&gt;
+&lt;/ol&gt;
+&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;DMA过程.png&#34; alt=&#34;DMA过程&#34; width=&#34;88%&#34;&gt;&lt;/div&gt;
 &lt;p&gt;CPU 不再参与将数据从 &lt;strong&gt;磁盘控制器缓冲区搬运到内核空间&lt;/strong&gt; 的工作，这部分工作全程由 DMA 完成。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;DMA的模式&lt;/strong&gt;&lt;/p&gt;
+&lt;h4 id=&#34;-dma的模式&#34;&gt;🗂️ DMA的模式
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;突发传输模式&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;突发传输模式&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;一旦DMA控制器由处理器授权可以使用总线，就将系统总线的控制权交还給处理器之前传输数据块中的所有数据&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;使用场合：将程序或数据文件加载到内存中&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;缺点：使处理器在相对较长的时间内处于活动状态&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;一旦 DMA 控制器由处理器授权可以使用总线，就将系统总线的控制权交还给处理器之前，传输数据块中的所有数据&lt;/li&gt;
+&lt;li&gt;使用场合：将程序或数据文件加载到内存中&lt;/li&gt;
+&lt;li&gt;缺点：使处理器在相对较长的时间内处于活动状态&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;循环窃取模式&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;循环窃取模式&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;一旦DMA控制器获得对系统总线的使用权就传输一个字节的数据然后将系统总线的控制权返还给处理器&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;多次发出请求直到填满整个数据块&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;一旦 DMA 控制器获得对系统总线的使用权，就传输一个字节的数据，然后将系统总线的控制权返还给处理器&lt;/li&gt;
+&lt;li&gt;多次发出请求直到填满整个数据块&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;透明模式&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;透明模式&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;DMA控制器只在CPU执行不使用系统总线的操作时传输数据，DMA控制器不需要请求系统总线的控制权&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;优点：处理器不用停止执行程序&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;缺点：确定处理器何时需要使用系统总线所需硬件相对复杂&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;DMA 控制器只在 CPU 执行不使用系统总线的操作时传输数据，DMA 控制器不需要请求系统总线的控制权&lt;/li&gt;
+&lt;li&gt;优点：处理器不用停止执行程序&lt;/li&gt;
+&lt;li&gt;缺点：确定处理器何时需要使用系统总线所需硬件相对复杂&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;传统文件传输技术&#34;&gt;传统文件传输技术
-&lt;/h3&gt;&lt;p&gt;传统 I/O 的工作方式是，数据读取和写入是从用户空间到内核空间来回复制，而内核空间的数据是通过操作系统层面的 I/O 接口从磁盘读取或写入&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/%E4%BC%A0%E7%BB%9F%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93.png&#34;
-	width=&#34;1100&#34;
-	height=&#34;678&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;传统文件传输&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;162&#34;
-		data-flex-basis=&#34;389px&#34;
-	
-&gt;&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-传统文件传输技术&#34;&gt;🏗️ 传统文件传输技术
+&lt;/h3&gt;&lt;p&gt;传统 I/O 的工作方式是，数据读取和写入是从用户空间到内核空间来回复制，而内核空间的数据是通过操作系统层面的 I/O 接口从磁盘读取或写入。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;传统文件传输.png&#34; alt=&#34;传统文件传输&#34; width=&#34;88%&#34;&gt;&lt;/div&gt;
 &lt;p&gt;期间共&lt;strong&gt;发生了 4 次用户态与内核态的上下文切换&lt;/strong&gt; ，因为发生了两次系统调用，一次是 &lt;strong&gt;&lt;code&gt;read()&lt;/code&gt;&lt;/strong&gt; ，一次是 &lt;strong&gt;&lt;code&gt;write()&lt;/code&gt;&lt;/strong&gt; ，每次系统调用都得先从用户态切换到内核态，等内核完成任务后，再从内核态切换回用户态。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;第一次上下文切换：把磁盘上的数据拷贝到操作系统内核的缓冲区里，这个拷贝的过程是通过 DMA 搬运的。&lt;/li&gt;
@@ -212,81 +106,30 @@
 &lt;li&gt;第三次拷贝：把刚才拷贝到用户的缓冲区里的数据，再拷贝到内核的 socket 的缓冲区里，这个过程依然还是由 CPU 搬运的。&lt;/li&gt;
 &lt;li&gt;第四次拷贝：把内核的 socket 缓冲区里的数据，拷贝到网卡的缓冲区里，这个过程又是由 DMA 搬运的。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;零拷贝技术-1&#34;&gt;零拷贝技术
+&lt;h3 id=&#34;-零拷贝技术-1&#34;&gt;🚀 零拷贝技术
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;零拷贝（Zero-Copy）&lt;/strong&gt; 是一种高效的数据传输技术，它可以将数据从内核空间直接传输到应用程序的内存空间中，避免了不必要的数据拷贝，从而提高了数据传输的效率和性能。数据可以&lt;strong&gt;直接从外部设备复制到应用程序的内存空间中&lt;/strong&gt;，避免了&lt;strong&gt;中间的内核空间缓冲区&lt;/strong&gt;，减少了&lt;strong&gt;不必要的数据拷贝&lt;/strong&gt;，提高了&lt;strong&gt;数据传输的效率和性能&lt;/strong&gt;。&lt;/p&gt;
-&lt;h4 id=&#34;mmap--write&#34;&gt;mmap + write
-&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;mmap()&lt;/code&gt;&lt;/strong&gt; 系统调用函数会直接把内核缓冲区里的数据&lt;strong&gt;映射&lt;/strong&gt;到用户空间，这样，操作系统内核与用户空间就不需要再进行任何的数据拷贝操作。&lt;/p&gt;
+&lt;h4 id=&#34;-mmap--write&#34;&gt;💾 mmap + write
+&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;mmap()&lt;/code&gt;&lt;/strong&gt; 系统调用函数会直接把内核缓冲区里的数据&lt;strong&gt;映射&lt;/strong&gt;到用户空间，这样，操作系统内核与用户空间就不需要再进行任何的数据拷贝操作。其中mmap 映射的地址是虚拟地址。操作系统通过页表将这段虚拟地址空间映射到实际的物理内存页或文件页上。mmap 会将整个文件映射到虚拟内存，但不会一次性加载到物理内存，只有当访问某个虚拟地址时，才触发缺页中断，将对应的页加载进物理内存。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;应用进程调用了 &lt;strong&gt;&lt;code&gt;mmap()&lt;/code&gt;&lt;/strong&gt; 后，DMA 会把磁盘的数据拷贝到内核的缓冲区里。接着，应用进程跟操作系统内核共享这个缓冲区；&lt;/li&gt;
-&lt;li&gt;应用进程再调用 &lt;strong&gt;&lt;code&gt;write()&lt;/code&gt;&lt;/strong&gt;，操作系统直接将内核缓冲区的数据拷贝到 socket 缓冲区中，这一切都发生在内核态，由 CPU 来搬运数据；&lt;/li&gt;
+&lt;li&gt;应用进程调用了 &lt;strong&gt;&lt;code&gt;mmap()&lt;/code&gt;&lt;/strong&gt; 后，DMA 会把磁盘的数据拷贝到内核的缓冲区里。接着，应用进程跟操作系统内核共享这个缓冲区;&lt;/li&gt;
+&lt;li&gt;应用进程再调用 &lt;strong&gt;&lt;code&gt;write()&lt;/code&gt;&lt;/strong&gt;，操作系统直接将内核缓冲区的数据拷贝到 socket 缓冲区中，这一切都发生在内核态，由 CPU 来搬运数据;&lt;/li&gt;
 &lt;li&gt;最后，把内核的 socket 缓冲区里的数据，拷贝到网卡的缓冲区里，这个过程是由 DMA 搬运的。&lt;/li&gt;
-&lt;li&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/mmap%E5%92%8Cwrite%E9%9B%B6%E6%8B%B7%E8%B4%9D.png&#34;
-	width=&#34;1100&#34;
-	height=&#34;677&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;mmap实现&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;162&#34;
-		data-flex-basis=&#34;389px&#34;
-	
-&gt;&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;sendfile&#34;&gt;sendfile
+&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;mmap和write零拷贝.png&#34; alt=&#34;mmap实现&#34; width=&#34;85%&#34;&gt;&lt;/div&gt;
+&lt;h4 id=&#34;-sendfile&#34;&gt;📡 sendfile
 &lt;/h4&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;sendfile()&lt;/code&gt;&lt;/strong&gt; 可以替代前面的 &lt;strong&gt;&lt;code&gt;read()&lt;/code&gt;&lt;/strong&gt; 和 &lt;strong&gt;&lt;code&gt;write()&lt;/code&gt;&lt;/strong&gt; 这两个系统调用，这样就可以减少一次系统调用，也就减少了 2 次上下文切换的开销。这个系统调用可以直接把内核缓冲区里的数据拷贝到 socket 缓冲区里，不再拷贝到用户态&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/senfile-3%E6%AC%A1%E6%8B%B7%E8%B4%9D.png&#34;
-	width=&#34;1100&#34;
-	height=&#34;686&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;sendfile&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;160&#34;
-		data-flex-basis=&#34;384px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;p&gt;对于支持网卡支持 SG-DMA 技术的情况下， &lt;strong&gt;&lt;code&gt;sendfile()&lt;/code&gt;&lt;/strong&gt; 系统调用的过程得到优化，具体过程如下：&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;senfile-3次拷贝.png&#34; alt=&#34;sendfile&#34; width=&#34;85%&#34;&gt;&lt;/div&gt;
+&lt;p&gt;对于支持 SG-DMA 技术的网卡来说，&lt;strong&gt;&lt;code&gt;sendfile()&lt;/code&gt;&lt;/strong&gt; 系统调用的过程得到优化，具体过程如下：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;通过 DMA 将磁盘上的数据拷贝到内核缓冲区里；&lt;/li&gt;
 &lt;li&gt;缓冲区描述符和数据长度传到 socket 缓冲区，这样网卡的 SG-DMA 控制器就可以直接将内核缓存中的数据拷贝到网卡的缓冲区里，此过程不需要将数据从操作系统内核缓冲区拷贝到 socket 缓冲区中，这样就减少了一次数据拷贝；&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/senfile-%E9%9B%B6%E6%8B%B7%E8%B4%9D.png&#34;
-	width=&#34;1160&#34;
-	height=&#34;686&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;SG-DMA&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;169&#34;
-		data-flex-basis=&#34;405px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;h2 id=&#34;网络模型&#34;&gt;网络模型
-&lt;/h2&gt;&lt;h3 id=&#34;基本的socket模型&#34;&gt;基本的Socket模型
-&lt;/h3&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/tcp_socket.png&#34;
-	width=&#34;407&#34;
-	height=&#34;722&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;socket模型&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;56&#34;
-		data-flex-basis=&#34;135px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;h4 id=&#34;服务端&#34;&gt;服务端
+&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;senfile-零拷贝.png&#34; alt=&#34;SG-DMA&#34; width=&#34;85%&#34;&gt;&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-网络模型&#34;&gt;🌐 网络模型
+&lt;/h2&gt;&lt;h3 id=&#34;-基本的socket模型&#34;&gt;🛠️ 基本的Socket模型
+&lt;/h3&gt;&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;tcp_socket.png&#34; alt=&#34;socket模型&#34; width=&#34;85%&#34;&gt;&lt;/div&gt;
+&lt;h4 id=&#34;-服务端&#34;&gt;🖥️ 服务端
 &lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;服务端首先调用 &lt;code&gt;socket()&lt;/code&gt; 函数，创建网络协议为 IPv4，以及传输协议为 TCP 的 Socket&lt;/li&gt;
 &lt;li&gt;接着调用 &lt;code&gt;bind()&lt;/code&gt; 函数，给这个 Socket 绑定一个 &lt;strong&gt;IP 地址&lt;/strong&gt; 和 &lt;strong&gt;端口&lt;/strong&gt;
@@ -304,58 +147,47 @@
 &lt;li&gt;一个是「已经建立」连接的队列，称为 &lt;strong&gt;TCP 全连接队列&lt;/strong&gt; ，这个队列都是完成了三次握手的连接，此时服务端处于 &lt;code&gt;established&lt;/code&gt; 状态；&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;当 TCP 全连接队列不为空后，服务端的 &lt;code&gt;accept()&lt;/code&gt; 函数，就会从内核中的 TCP 全连接队列里拿出一个已经完成连接的 Socket 返回应用程序，后续数据传输都用这个 Socket。&lt;/p&gt;
-&lt;h4 id=&#34;客户端&#34;&gt;客户端
+&lt;h4 id=&#34;-客户端&#34;&gt;💻 客户端
 &lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;客户端创建好 Socket 后&lt;/li&gt;
 &lt;li&gt;调用 &lt;code&gt;connect()&lt;/code&gt; 函数发起连接，指明服务端的 IP 地址和端口号&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;连接建立后，客户端和服务端就开始相互传输数据了，双方都可以通过 &lt;code&gt;read()&lt;/code&gt; 和 &lt;code&gt;write()&lt;/code&gt; 函数来读写数据。&lt;/p&gt;
-&lt;h4 id=&#34;模型的限制&#34;&gt;模型的限制
+&lt;h4 id=&#34;-模型的限制&#34;&gt;⚠️ 模型的限制
 &lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;文件描述符&lt;/strong&gt; ：Socket 实际上是一个文件，也就会对应一个文件描述符。在 Linux 下，单个进程打开的文件描述符数是有限制的&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;系统内存&lt;/strong&gt; ：每个 TCP 连接在内核中都有对应的数据结构，意味着每个连接都是会占用一定内存的；&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;多进程模型&#34;&gt;多进程模型
+&lt;h3 id=&#34;-多进程模型&#34;&gt;🔀 多进程模型
 &lt;/h3&gt;&lt;p&gt;服务器的主进程负责监听客户的连接，一旦与客户端连接完成，accept() 函数就会返回一个「已连接 Socket」，这时就通过 &lt;code&gt;fork()&lt;/code&gt; 函数创建一个子进程。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;子进程会 &lt;strong&gt;复制父进程的文件描述符&lt;/strong&gt; ，于是就可以直接使用已连接 Socket 和客户端通信了&lt;/li&gt;
 &lt;li&gt;父进程将客户端服务交给子进程来处理，因此父进程不需要关心已连接 Socket，只需要关心监听 Socket&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/%E5%A4%9A%E8%BF%9B%E7%A8%8B.png&#34;
-	width=&#34;977&#34;
-	height=&#34;407&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;多进程模型&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;240&#34;
-		data-flex-basis=&#34;576px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;h3 id=&#34;多线程模型&#34;&gt;多线程模型
+&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;多进程.png&#34; alt=&#34;多进程模型&#34; width=&#34;85%&#34;&gt;&lt;/div&gt;
+&lt;h3 id=&#34;-多线程模型&#34;&gt;🧵 多线程模型
 &lt;/h3&gt;&lt;p&gt;当服务器与客户端 TCP 完成连接后，通过 &lt;code&gt;pthread_create()&lt;/code&gt; 函数创建线程，然后将已连接 Socket的文件描述符传递给线程函数，接着在线程里和客户端进行通信，从而达到并发处理的目的。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/%E7%BA%BF%E7%A8%8B%E6%B1%A0.png&#34;
-	width=&#34;1382&#34;
-	height=&#34;452&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;线程池&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;305&#34;
-		data-flex-basis=&#34;733px&#34;
-	
-&gt;&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;线程池.png&#34; alt=&#34;线程池&#34; width=&#34;85%&#34;&gt;&lt;/div&gt;
 &lt;p&gt;&lt;strong&gt;线程池&lt;/strong&gt; 可以避免线程的频繁创建和销毁，所谓的线程池，就是提前创建若干个线程，这样当由新连接建立时，将这个已连接的 Socket 放入到一个队列里，然后线程池里的线程负责从队列中取出「已连接 Socket 」进行处理。&lt;/p&gt;
-&lt;h3 id=&#34;io多路复用模型&#34;&gt;IO多路复用模型
-&lt;/h3&gt;&lt;h4 id=&#34;selectpoll模型&#34;&gt;select/poll模型
-&lt;/h4&gt;&lt;p&gt;&lt;strong&gt;IO 多路复用是&lt;/strong&gt;指将已连接的 Socket 都放到一个文件描述符集合 ，然后调用函数将文件描述符集合拷贝到内核里，让内核来检查是否有网络事件产生。&lt;/p&gt;
-&lt;p&gt;检查的方式，就是通过&lt;strong&gt;遍历&lt;/strong&gt;文件描述符集合的方式，当检查到有事件产生后，将此 Socket 标记为可读或可写， 接着再把整个文件描述符集合&lt;strong&gt;拷贝&lt;/strong&gt;回用户态里，然后用户态还需要再通过&lt;strong&gt;遍历&lt;/strong&gt;的方法找到可读或可写的 Socket，然后再对其处理。&lt;/p&gt;
+&lt;h3 id=&#34;-io多路复用模型&#34;&gt;📡 IO多路复用模型
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;IO 多路复用是&lt;/strong&gt;指将已连接的 Socket 都放到一个文件描述符集合 ，然后调用函数将文件描述符集合拷贝到内核里，让内核来检查是否有网络事件产生。
+有以下优势&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;降低上下文切换成本
+&lt;ul&gt;
+&lt;li&gt;在传统的多线程模型下，操作系统需要频繁地进行上下文切换（线程切换），这会带来性能上的损失。而 I/O 多路复用 允许一个线程处理多个 I/O 事件，无需频繁切换线程，从而减少上下文切换带来的性能开销。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;提高资源利用率&lt;/li&gt;
+&lt;li&gt;使用 I/O 多路复用，单个线程就可以同时处理多个客户端请求，在大规模高并发的场景中，它能够充分利用 CPU 资源，减少因线程过多而带来的内存占用和调度问题。&lt;/li&gt;
+&lt;li&gt;避免阻塞，提升响应效率
+&lt;ul&gt;
+&lt;li&gt;在 I/O 多路复用 中，进程或线程并不需要为每个请求阻塞等待，而是可以继续监视其他 I/O 操作，只有当某个 I/O 操作准备就绪时才进行处理。这样就避免了传统阻塞式 I/O 模型下的资源浪费。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-selectpoll模型&#34;&gt;⚙️ select/poll模型
+&lt;/h4&gt;&lt;p&gt;select/poll模型:将已连接的 Socket 都放到一个文件描述符集合，然后调用 select 函数将文件描述符集合拷贝到内核里，让内核来检查是否有网络事件产生的方式，就是通过&lt;strong&gt;遍历&lt;/strong&gt;文件描述符集合的方式，当检查到有事件产生后，将此 Socket 标记为可读或可写， 接着再把整个文件描述符集合&lt;strong&gt;拷贝&lt;/strong&gt;回用户态里，然后用户态还需要再通过&lt;strong&gt;遍历&lt;/strong&gt;的方法找到可读或可写的 Socket，然后再对其处理。&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;&lt;code&gt;select&lt;/code&gt;&lt;/strong&gt; 模型和 &lt;strong&gt;&lt;code&gt;poll&lt;/code&gt;&lt;/strong&gt; 模型没有本质区别，都是使用线性结构存储socket&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;
@@ -365,36 +197,42 @@
 &lt;p&gt;&lt;strong&gt;&lt;code&gt;poll&lt;/code&gt;&lt;/strong&gt; 使用动态数组，以链表形式来组织，突破了 &lt;strong&gt;&lt;code&gt;select&lt;/code&gt;&lt;/strong&gt; 的文件描述符个数限制&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;epoll模型&#34;&gt;epoll模型
+&lt;h4 id=&#34;-epoll模型&#34;&gt;🌲 epoll模型
 &lt;/h4&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;epoll&lt;/code&gt;&lt;/strong&gt; 是Linux系统对 &lt;strong&gt;&lt;code&gt;select&lt;/code&gt;&lt;/strong&gt; 和 &lt;strong&gt;&lt;code&gt;poll&lt;/code&gt;&lt;/strong&gt; 的优化。优化在以下方面。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
 &lt;p&gt;红黑树的使用：epoll 在内核里使用 &lt;strong&gt;红黑树&lt;/strong&gt; 代替线性结构跟踪进程所有待检测的文件描述符。红黑树的增删改一般时间复杂度是 $O(logn)$。相较于select/poll 每次操作时都传入整个 socket 集合给内核，而 epoll 因为在内核维护了红黑树，可以保存所有待检测的 socket，当事件发生时只需要传递活跃的文件描述符而不需要传递所有的文件描述符，减少了内核和用户空间大量的数据拷贝和内存分配。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
 &lt;p&gt;事件驱动的机制： epoll 使用 &lt;strong&gt;事件驱动&lt;/strong&gt; 的机制，内核里&lt;strong&gt;维护了一个链表来记录就绪事件&lt;/strong&gt; ，当某个 socket 有事件发生时，通过 &lt;strong&gt;回调函数&lt;/strong&gt; 内核会将其加入到这个就绪事件列表中，不需要像 select/poll 那样轮询扫描整个 socket 集合，大大提高了检测的效率。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
 &lt;p&gt;epoll提供了两种事件触发机制 &lt;strong&gt;边缘触发&lt;/strong&gt; 和 &lt;strong&gt;水平触发&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;边缘触发：当被监控的 Socket 描述符上有事件发生时， &lt;strong&gt;服务器端只会从 &lt;code&gt;epoll_wait&lt;/code&gt; 中苏醒一次，只会当事件发生时传递一次事件&lt;/strong&gt; ，即使进程没有调用 read 函数从内核读取数据，也依然只苏醒一次，因此我们程序要保证一次性将内核缓冲区的数据读取完&lt;/li&gt;
 &lt;li&gt;水平触发：当被监控的 Socket 上有可读事件发生时，&lt;strong&gt;服务器端不断地从 &lt;code&gt;epoll_wait&lt;/code&gt; 中苏醒，一直不断地把这个事件传递给用户&lt;/strong&gt;，直到内核缓冲区数据被 read 函数读完才结束 ，目的是告诉我们有数据需要读取&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;高性能网络模式&#34;&gt;高性能网络模式
-&lt;/h2&gt;&lt;h3 id=&#34;reactor模式&#34;&gt;Reactor模式
+&lt;h2 id=&#34;-高性能网络模式&#34;&gt;⚡ 高性能网络模式
+&lt;/h2&gt;&lt;h3 id=&#34;-reactor模式&#34;&gt;🔥 Reactor模式
 &lt;/h3&gt;&lt;p&gt;Reactor模式是对 I/O 多路复用作了一层封装，让使用者不用考虑底层网络 API 的细节，只需要关注应用代码的编写。&lt;/p&gt;
 &lt;p&gt;Reactor模式的核心思想是 &lt;strong&gt;将I/O事件与相应的处理程序解耦&lt;/strong&gt; ，并通过 &lt;strong&gt;事件分发器&lt;/strong&gt; 来管理事件和响应操作。&lt;/p&gt;
-&lt;h4 id=&#34;组成部分&#34;&gt;组成部分
+&lt;h4 id=&#34;-组成部分&#34;&gt;🧩 组成部分
 &lt;/h4&gt;&lt;p&gt;Reactor 模式主要由 Reactor 和处理资源池这两个核心部分组成&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;Reactor： 负责监听和分发事件，它通常封装了一个多路复用器（如 &lt;strong&gt;&lt;code&gt;select&lt;/code&gt;&lt;/strong&gt; 、&lt;strong&gt;&lt;code&gt;epoll&lt;/code&gt;&lt;/strong&gt; ），在事件到达时将其分发给相应的事件处理器。&lt;/li&gt;
 &lt;li&gt;Handler：负责处理事件，每个事件处理器与一个具体的I/O事件绑定，定义了在事件发生时应该执行的逻辑。&lt;/li&gt;
 &lt;li&gt;Acceptor：在服务器端，&lt;strong&gt;&lt;code&gt;Acceptor&lt;/code&gt;&lt;/strong&gt; 用于接受新的客户端连接，并为每个新连接分配一个Handler进行后续的数据处理&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;工作流程&#34;&gt;工作流程
+&lt;h4 id=&#34;-工作流程&#34;&gt;🔃 工作流程
 &lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Reactor&lt;/strong&gt; 通过多路复用器监听多个通道，等待事件（如连接到达、数据可读等）的发生。&lt;/li&gt;
 &lt;li&gt;当某个通道有事件发生时，Reactor将事件分发给相应的 &lt;strong&gt;Handler&lt;/strong&gt; 。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Handler&lt;/strong&gt; 根据事件类型执行相应的操作，如读取数据、写入数据或处理业务逻辑。&lt;/li&gt;
 &lt;li&gt;事件处理完成后，&lt;strong&gt;Reactor&lt;/strong&gt; 继续监听其他事件。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;proactor模式&#34;&gt;Proactor模式
+&lt;h3 id=&#34;-proactor模式&#34;&gt;🎯 Proactor模式
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;Proactor 是异步网络模式， 感知的是已完成的读写事件&lt;/strong&gt; 。在发起异步读写请求时，需要传入数据缓冲区的地址（用来存放结果数据）等信息，这样系统内核才可以自动帮我们把数据的读写工作完成，这里的读写工作全程由操作系统来做，并不需要像 Reactor 那样还需要应用进程主动发起 read/write 来读写数据，操作系统完成读写工作后，就会通知应用进程直接处理数据。&lt;/p&gt;
-&lt;h4 id=&#34;工作流程-1&#34;&gt;工作流程
+&lt;h4 id=&#34;-proactor工作流程&#34;&gt;🔹 Proactor工作流程
 &lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;Proactor Initiator 负责创建 Proactor 和 Handler 对象，并将 Proactor 和 Handler 都通过 Asynchronous Operation Processor 注册到内核；&lt;/li&gt;
 &lt;li&gt;Asynchronous Operation Processor 负责处理注册请求，并处理 I/O 操作&lt;/li&gt;
@@ -402,38 +240,26 @@
 &lt;li&gt;Proactor 根据不同的事件类型回调不同的 Handler 进行业务处理&lt;/li&gt;
 &lt;li&gt;Handler 完成业务处理&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/Proactor.png&#34;
-	width=&#34;1427&#34;
-	height=&#34;654&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;Proactor模式&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;218&#34;
-		data-flex-basis=&#34;523px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;h3 id=&#34;reactor模式和proactor模式的区别&#34;&gt;Reactor模式和Proactor模式的区别
-&lt;/h3&gt;&lt;ul&gt;
+&lt;div align=&#34;center&#34;&gt;&lt;img src=&#34;Proactor.png&#34; alt=&#34;Proactor模式&#34; width=&#34;85%&#34;&gt;&lt;/div&gt;
+&lt;h4 id=&#34;-reactor模式和proactor模式的区别&#34;&gt;⚖️ Reactor模式和Proactor模式的区别
+&lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Reactor 是非阻塞同步网络模式，感知的是就绪可读写事件&lt;/strong&gt; ：在每次感知到有事件发生（比如可读就绪事件）后，就需要应用进程主动调用 read 方法来完成数据的读取，也就是要应用进程主动将 socket 接收缓存中的数据读到应用进程内存中，这个过程是同步的，读取完数据后应用进程才能处理数据。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Proactor 是异步网络模式， 感知的是已完成的读写事件&lt;/strong&gt; ：在发起异步读写请求时，需要传入数据缓冲区的地址（用来存放结果数据）等信息，这样系统内核才可以自动帮我们把数据的读写工作完成，这里的读写工作全程由操作系统来做，并不需要像 Reactor 那样还需要应用进程主动发起 read/write 来读写数据，操作系统完成读写工作后，就会通知应用进程直接处理数据。&lt;/li&gt;
 &lt;/ul&gt;
 </description>
         </item>
         <item>
-        <title>操作系统的文件系统</title>
-        <link>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/</link>
+        <title>操作系统(五)操作系统的文件系统</title>
+        <link>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%BA%94%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/</link>
         <pubDate>Fri, 14 Mar 2025 17:35:09 +0800</pubDate>
         
-        <guid>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/</guid>
-        <description>&lt;h2 id=&#34;文件系统的概念&#34;&gt;文件系统的概念
+        <guid>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%BA%94%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/</guid>
+        <description>&lt;h2 id=&#34;-文件系统的概念&#34;&gt;🧠 文件系统的概念
 &lt;/h2&gt;&lt;p&gt;文件系统是操作系统中负责管理持久数据的子系统&lt;/p&gt;
 &lt;p&gt;文件系统的基本数据单位是文件，它的目的是对磁盘上的文件进行组织管理，那组织的方式不同，就会形成不同的文件系统。&lt;/p&gt;
 &lt;p&gt;对于Linux系统 &lt;strong&gt;一切皆文件&lt;/strong&gt;，除了普通的文件和目录，就连块设备、管道、socket 等，也都是统一交给文件系统管理的。&lt;/p&gt;
-&lt;h2 id=&#34;文件的结构&#34;&gt;文件的结构
+&lt;hr&gt;
+&lt;h2 id=&#34;-文件的结构&#34;&gt;🧩 文件的结构
 &lt;/h2&gt;&lt;p&gt;Linux 文件系统会为每个文件分配两个数据结构：索引节点（index node）和目录项（directory entry），它们主要用来记录文件的元信息和目录层次结构。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;索引节点：用来记录文件的元信息，比如文件大小、访问权限、创建时间、修改时间、 &lt;strong&gt;数据在磁盘的位置&lt;/strong&gt; 等等。索引节点是文件的 &lt;strong&gt;唯一&lt;/strong&gt; 标识，它们之间一一对应，也同样都会被存储在硬盘中，所以 &lt;strong&gt;索引节点同样占用磁盘空间&lt;/strong&gt; 。&lt;/li&gt;
@@ -577,7 +403,7 @@
 &lt;/ul&gt;
 &lt;p&gt;如果查询目录频繁从磁盘读，效率会很低，所以内核会把已经读过的目录用目录项这个数据结构缓存在内存，下次再次读到相同的目录时，只需从内存读就可以，大大提高了文件系统的效率。&lt;/p&gt;&lt;/div&gt;
 
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/%E7%9B%AE%E5%BD%95%E9%A1%B9%E5%92%8C%E7%B4%A2%E5%BC%95%E5%85%B3%E7%B3%BB%E5%9B%BE.png&#34;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%BA%94%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/%E7%9B%AE%E5%BD%95%E9%A1%B9%E5%92%8C%E7%B4%A2%E5%BC%95%E5%85%B3%E7%B3%BB%E5%9B%BE.png&#34;
 	width=&#34;1172&#34;
 	height=&#34;842&#34;
 	
@@ -591,19 +417,12 @@
 		data-flex-basis=&#34;334px&#34;
 	
 &gt;&lt;/p&gt;
-&lt;h2 id=&#34;虚拟文件系统&#34;&gt;虚拟文件系统
+&lt;h2 id=&#34;-虚拟文件系统&#34;&gt;🏗️ 虚拟文件系统
 &lt;/h2&gt;&lt;p&gt;操作系统 &lt;strong&gt;对用户提供一个统一的接口&lt;/strong&gt; ，于是在用户层与文件系统层引入了虚拟文件系统作为中间层&lt;/p&gt;
 &lt;p&gt;虚拟文件系统定义了一组所有文件系统都支持的数据结构和标准接口&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/%e6%93%8d%e4%bd%9c%e7%b3%bb%e7%bb%9f%e7%9a%84%e6%96%87%e4%bb%b6%e7%b3%bb%e7%bb%9f%5c%e8%99%9a%e6%8b%9f%e6%96%87%e4%bb%b6%e7%b3%bb%e7%bb%9f.png&#34;
-	
-	
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;虚拟文件系统&#34;
-	
-	
-&gt;&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;操作系统的文件系统/虚拟文件系统.png&#34; alt=&#34;虚拟文件系统架构图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
 &lt;ul&gt;
 &lt;li&gt;磁盘的文件系统：直接把数据存储在磁盘中&lt;/li&gt;
 &lt;li&gt;内存的文件系统：数据不是存储在硬盘的，而是占用内存空间，我们经常用到的 &lt;code&gt;/proc&lt;/code&gt; 和 &lt;code&gt;/sys&lt;/code&gt; 文件系统都属于这一类，读写这类文件，实际上是读写内核中相关的数据。&lt;/li&gt;
@@ -611,20 +430,9 @@
 &lt;/ul&gt;
 &lt;p&gt;文件系统首先要先挂载到某个目录才可以正常使用&lt;/p&gt;
 &lt;h2 id=&#34;linux系统的目录树&#34;&gt;Linux系统的目录树
-&lt;/h2&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/Linux%E7%9B%AE%E5%BD%95%E6%A0%91-DzjzZEII.png&#34;
-	width=&#34;823&#34;
-	height=&#34;315&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;Linux的目录结构&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;261&#34;
-		data-flex-basis=&#34;627px&#34;
-	
-&gt;&lt;/p&gt;
+&lt;/h2&gt;&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;Linux目录树-DzjzZEII.png&#34; alt=&#34;Linux目录结构示意图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
 &lt;p&gt;目录树由根目录（/）作为起始点，向下延伸，形成一系列的目录和子目录。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;/bin：&lt;/strong&gt; 存放二进制可执行文件(ls、cat、mkdir 等)，常用命令一般都在这里；&lt;/li&gt;
@@ -641,11 +449,11 @@
 &lt;li&gt;&lt;strong&gt;/lib 和/lib64：&lt;/strong&gt; 存放着和系统运行相关的库文件 ；&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;/tmp：&lt;/strong&gt; 用于存放各种临时文件，是公用的临时文件存储点；&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;/var：&lt;/strong&gt; 用于存放运行时需要改变数据的文件，也是某些大文件的溢出区，比方说各种服务的日志文件（系统启动日志等。）等；&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;/lost+found：&lt;/strong&gt; 这个目录平时是空的，系统非正常关机而留下“无家可归”的文件（windows 下叫什么.chk）就在这里。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;/lost+found：&lt;/strong&gt; 这个目录平时是空的，系统非正常关机而留下&amp;quot;无家可归&amp;quot;的文件（windows 下叫什么.chk）就在这里。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;软链接和硬链接&#34;&gt;软链接和硬链接
+&lt;h2 id=&#34;-软链接和硬链接&#34;&gt;🔗 软链接和硬链接
 &lt;/h2&gt;&lt;p&gt;在 Linux系统上，文件链接是一种特殊的文件类型，可以在文件系统中指向另一个文件。&lt;/p&gt;
-&lt;h3 id=&#34;硬链接&#34;&gt;硬链接
+&lt;h3 id=&#34;-硬链接&#34;&gt;💡 硬链接
 &lt;/h3&gt;&lt;p&gt;硬链接是为 &lt;strong&gt;同一个文件创建多个目录项&lt;/strong&gt; ，也就是指向同一个索引节点。由于多个目录项都是指向一个索引节点，那么 &lt;strong&gt;只有删除文件的所有硬链接以及源文件时，系统才会彻底删除该文件。&lt;/strong&gt; 硬链接具有一些限制，不能对目录以及不存在的文件创建硬链接，并且，硬链接也不能跨越文件系统。&lt;/p&gt;
 &lt;div
   class=&#34;notice tip&#34;
@@ -660,7 +468,7 @@
     &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;为什么硬链接不能跨域文件系统&lt;/p&gt;
 &lt;p&gt;硬链接是 &lt;strong&gt;多个目录项中的索引节点指向一个文件&lt;/strong&gt; ，也就是指向同一个索引节点。索引节点是不可能跨越文件系统的，每个文件系统都有各自的索引节点数据结构和列表，所以&lt;strong&gt;硬链接是不可用于跨文件系统的&lt;/strong&gt;。&lt;/p&gt;&lt;/div&gt;
 
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/%E7%A1%AC%E9%93%BE%E6%8E%A5-2.png&#34;
+&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%BA%94%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/%E7%A1%AC%E9%93%BE%E6%8E%A5-2.png&#34;
 	width=&#34;1154&#34;
 	height=&#34;624&#34;
 	
@@ -676,32 +484,20 @@
 &gt;&lt;/p&gt;
 &lt;h3 id=&#34;软链接&#34;&gt;软链接
 &lt;/h3&gt;&lt;p&gt;软链接本质上是一个特殊类型的文件，这个文件有 &lt;strong&gt;独立的索引节点&lt;/strong&gt; ，但是这个 &lt;strong&gt;文件的内容是另外一个文件的路径&lt;/strong&gt; ，类似于Windows系统的快捷方式，所以访问软链接的时候，实际上相当于访问到了另外一个文件，所以 &lt;strong&gt;软链接是可以跨文件系统的&lt;/strong&gt; ，即使&lt;strong&gt;目标文件被删除了，链接文件还是在的，只不过指向的文件找不到了而已。&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/%E8%BD%AF%E9%93%BE%E6%8E%A5.png&#34;
-	width=&#34;1232&#34;
-	height=&#34;642&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;软链接&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;191&#34;
-		data-flex-basis=&#34;460px&#34;
-	
-&gt;&lt;/p&gt;
-</description>
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;软链接.png&#34; alt=&#34;软链接示意图&#34; width=&#34;65%&#34;&gt;
+&lt;/div&gt;</description>
         </item>
         <item>
-        <title>操作系统的内存管理</title>
-        <link>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/</link>
+        <title>操作系统(二)操作系统的内存管理</title>
+        <link>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%BA%8C%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/</link>
         <pubDate>Fri, 14 Mar 2025 14:46:12 +0800</pubDate>
         
-        <guid>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/</guid>
+        <guid>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%BA%8C%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/</guid>
         <description>&lt;h2 id=&#34;-虚拟内存&#34;&gt;🧠 虚拟内存
 &lt;/h2&gt;&lt;h3 id=&#34;-虚拟内存的定义&#34;&gt;📖 虚拟内存的定义
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;虚拟内存&lt;/strong&gt; 是计算机系统内存管理非常重要的一个技术，本质上来说它只是逻辑存在的，是一个假想出来的内存空间，主要作用是作为进程访问主存（&lt;strong&gt;物理内存&lt;/strong&gt;）的桥梁并简化内存管理。每个程序在运行时认为自己拥有的内存空间就是虚拟内存，其大小可以远远大于物理内存的大小。&lt;/p&gt;
-&lt;h3 id=&#34;-虚拟内存的存在意义&#34;&gt;💡 虚拟内存的存在意义
+&lt;h3 id=&#34;-虚拟内存的存在意义&#34;&gt;🔑 虚拟内存的存在意义
 &lt;/h3&gt;&lt;p&gt;如果直接操作物理地址的话，存在以下的问题:&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;程序员负担过重&lt;/strong&gt;：需要精确知道每一个变量在内存中的具体位置，手动对物理内存进行布局&lt;/li&gt;
@@ -724,7 +520,7 @@
 &lt;li&gt;&lt;strong&gt;32 位虚拟地址格式&lt;/strong&gt;：页目录项（10 位）+ 页表项（10 位）+ 页内偏移（12 位），共 &lt;strong&gt;32 位&lt;/strong&gt;&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;虚拟内存地址中的&lt;strong&gt;全局页目录项&lt;/strong&gt;类比收货地址里的&lt;strong&gt;省&lt;/strong&gt;，&lt;strong&gt;上层页目录项&lt;/strong&gt;类比&lt;strong&gt;市&lt;/strong&gt;，&lt;strong&gt;中间层页目录项&lt;/strong&gt;类比&lt;strong&gt;区县&lt;/strong&gt;，&lt;strong&gt;页表项&lt;/strong&gt;类比&lt;strong&gt;街道小区&lt;/strong&gt;，&lt;strong&gt;页内偏移&lt;/strong&gt;类比&lt;strong&gt;楼栋和几层几号&lt;/strong&gt;。&lt;/p&gt;
-&lt;h3 id=&#34;-虚拟地址的原理&#34;&gt;🔄 虚拟地址的原理
+&lt;h3 id=&#34;-虚拟地址的原理&#34;&gt;⚙️ 虚拟地址的原理
 &lt;/h3&gt;&lt;p&gt;虚拟地址作为中间层把进程所使用的地址隔离开来（让操作系统为每个进程分配独立的一套 &lt;strong&gt;虚拟地址&lt;/strong&gt; ，进程之间的地址是隔离的，互不干涉。前提每个进程都不能访问物理地址。至于虚拟地址最终怎么映射到物理内存里，对进程来说是透明的，操作系统将决定虚拟地址和物理地址的映射关系。&lt;/p&gt;
 &lt;p&gt;程序要访问虚拟地址的时候，由操作系统转换成不同的物理地址，这样不同的进程运行的时候，写入的是不同的物理地址，这样就不会冲突了。&lt;/p&gt;
 &lt;div
@@ -746,7 +542,7 @@
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;72ab76ba697e470b8ceb14d5fc5688d9.png&#34; alt=&#34;虚拟内存的使用&#34; width=&#34;82%&#34;&gt;
 &lt;/div&gt;
-&lt;h3 id=&#34;-为什么使用虚拟地址&#34;&gt;💡 为什么使用虚拟地址
+&lt;h3 id=&#34;-为什么使用虚拟地址&#34;&gt;💭 为什么使用虚拟地址
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;程序的局部性原理&lt;/strong&gt;是虚拟内存的重要理论基础：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;时间局部性&lt;/strong&gt;：如果程序中的某条指令一旦执行，则不久之后该指令可能再次被执行；如果某块数据被访问，则不久之后该数据可能再次被访问&lt;/li&gt;
@@ -761,7 +557,7 @@
 &lt;li&gt;
 &lt;p&gt;&lt;strong&gt;内存扩展能力：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;虚拟内存允许程序运行在比实际物理内存大的地址空间上。即使物理内存不足，系统也可以通过交换（&lt;strong&gt;swapping&lt;/strong&gt;）将不常用的内存页移到磁盘中，使得多个程序能够同时运行。&lt;/li&gt;
+&lt;li&gt;.虚拟内存允许程序运行在比实际物理内存大的地址空间上。即使物理内存不足，系统也可以通过交换（&lt;strong&gt;swapping&lt;/strong&gt;）将不常用的内存页移到磁盘中，使得多个程序能够同时运行。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;li&gt;
@@ -795,7 +591,12 @@
 &lt;/ul&gt;
 &lt;hr&gt;
 &lt;h2 id=&#34;-物理地址和虚拟地址的映射管理方式&#34;&gt;🗺️ 物理地址和虚拟地址的映射管理方式
-&lt;/h2&gt;&lt;h3 id=&#34;-分段管理&#34;&gt;📐 分段管理
+&lt;/h2&gt;&lt;h3 id=&#34;-映射的时机&#34;&gt;⏰ 映射的时机
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;虚拟内存和物理内存之间的映射通常在进程创建、内存分配（如malloc或mmap）、页面错误（Page Fault）发生时建立&lt;/li&gt;
+&lt;li&gt;解除映射则发生在内存释放（如free或munmap）、进程终止、内存页被换出到磁盘或地址空间被回收时。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-分段管理&#34;&gt;📐 分段管理
 &lt;/h3&gt;&lt;p&gt;将程序视为若干个逻辑分段组成的，如可由代码分段、数据分段、栈段、堆段组成。不同的段是有不同的属性的，同时具有实际意义和逻辑信息。将程序以段的形式进行划分，&lt;strong&gt;连续&lt;/strong&gt; 的物理内存的形式管理/分配物理内存&lt;/p&gt;
 &lt;h4 id=&#34;-分段管理下的虚拟地址&#34;&gt;🏷️ 分段管理下的虚拟地址
 &lt;/h4&gt;&lt;p&gt;分段机制下的虚拟地址由两部分组成：&lt;strong&gt;段选择因子&lt;/strong&gt; 和 &lt;strong&gt;段内偏移量&lt;/strong&gt;。&lt;/p&gt;
@@ -811,7 +612,7 @@
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;a9ed979e2ed8414f9828767592aadc21.png&#34; alt=&#34;虚拟地址的结构&#34; width=&#34;82%&#34;&gt;
 &lt;/div&gt;
-&lt;h4 id=&#34;-分段管理下的地址映射&#34;&gt;🔃 分段管理下的地址映射
+&lt;h4 id=&#34;-分段管理下的地址映射&#34;&gt;🔁 分段管理下的地址映射
 &lt;/h4&gt;&lt;p&gt;虚拟地址是通过 &lt;strong&gt;段表&lt;/strong&gt; 与物理地址进行映射的。&lt;strong&gt;段表&lt;/strong&gt; 里面保存的是这个 &lt;strong&gt;段的基地址、段的界限和特权等级&lt;/strong&gt; 等。&lt;/p&gt;
 &lt;p&gt;分段机制会把程序的虚拟地址分成 4 个段，每个段在段表中有一个项，由&lt;strong&gt;MMU&lt;/strong&gt;进行地址翻译&lt;/p&gt;
 &lt;ul&gt;
@@ -833,9 +634,9 @@
 &lt;h3 id=&#34;-分页管理&#34;&gt;📄 分页管理
 &lt;/h3&gt;&lt;p&gt;分页管理是把整个虚拟和物理内存空间切成&lt;strong&gt;一段段连续且尺寸固定的内存空间&lt;/strong&gt;。其中在虚拟内存称为 &lt;strong&gt;页&lt;/strong&gt; ，在物理内存的称为 &lt;strong&gt;页框&lt;/strong&gt; 。&lt;/p&gt;
 &lt;p&gt;页和页框的大小相同，在&lt;strong&gt;Linux&lt;/strong&gt;系统中大小为&lt;strong&gt;4KB&lt;/strong&gt;。页表保存了页和页框之间的映射关系&lt;/p&gt;
-&lt;h4 id=&#34;-分页管理下的虚拟地址&#34;&gt;🏷️ 分页管理下的虚拟地址
-&lt;/h4&gt;&lt;p&gt;在分页机制下，虚拟地址分为两部分，&lt;strong&gt;页号&lt;/strong&gt; 和 &lt;strong&gt;页内偏移&lt;/strong&gt; 。页号作为页表的索引，&lt;strong&gt;页表&lt;/strong&gt; 包含物理页每页所在 &lt;strong&gt;物理内存的基地址&lt;/strong&gt; ，这个基地址与页内偏移的组合就形成了物理内存地址。地址翻译依然由&lt;strong&gt;MMU&lt;/strong&gt;完成&lt;/p&gt;
-&lt;h4 id=&#34;-分页管理下的地址映射&#34;&gt;🔃 分页管理下的地址映射
+&lt;h4 id=&#34;-分页管理下的虚拟地址&#34;&gt;📑 分页管理下的虚拟地址
+&lt;/h4&gt;&lt;p&gt;在分页机制下，虚拟地址分为两部分，&lt;strong&gt;页号&lt;/strong&gt; 和 &lt;strong&gt;页内偏移&lt;/strong&gt;。页号作为页表的索引，&lt;strong&gt;页表&lt;/strong&gt; 包含物理页每页所在 &lt;strong&gt;物理内存的基地址&lt;/strong&gt;，这个基地址与页内偏移的组合就形成了物理内存地址。地址翻译依然由 &lt;strong&gt;MMU&lt;/strong&gt; 完成。&lt;/p&gt;
+&lt;h4 id=&#34;-分页管理下的地址映射&#34;&gt;🔁 分页管理下的地址映射
 &lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;MMU&lt;/strong&gt; 首先解析得到虚拟地址中的虚拟页号&lt;/li&gt;
 &lt;li&gt;通过虚拟页号去该应用程序的页表中取出对应的物理页号（找到对应的页表项）&lt;/li&gt;
@@ -854,7 +655,7 @@
 &lt;li&gt;&lt;strong&gt;后台内存回收&lt;/strong&gt; ：在物理内存紧张的时候，会唤醒 &lt;strong&gt;kswapd&lt;/strong&gt; 内核线程来回收内存，这个回收内存的过程&lt;strong&gt;异步&lt;/strong&gt;的，不会阻塞进程的执行。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;直接内存回收&lt;/strong&gt; ：如果后台异步回收跟不上进程内存申请的速度，就会开始直接回收，这个回收内存的过程是&lt;strong&gt;同步&lt;/strong&gt;的，会阻塞进程的执行。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;-分页管理下的内存交换&#34;&gt;🔄 分页管理下的内存交换
+&lt;h4 id=&#34;-分页管理下的内存交换&#34;&gt;♻️ 分页管理下的内存交换
 &lt;/h4&gt;&lt;p&gt;当系统的物理内存不够用的时候，就需要将物理内存中的一部分空间释放出来，以供当前运行的程序使用。那些被释放的空间可能来自一些很长时间没有什么操作的程序，这些被释放的空间会被临时保存到磁盘，等到那些程序要运行时，再从磁盘中恢复保存的数据到内存中。&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;内存交换&lt;/strong&gt; 就是把一块磁盘空间或者本地文件，当成内存来使用，它包含换出和换入两个过程&lt;/p&gt;
 &lt;ul&gt;
@@ -875,7 +676,20 @@
   &lt;p&gt;当内存资源不足时，&lt;strong&gt;Linux&lt;/strong&gt; 把某些页的内容转移至磁盘上的一块空间上，以释放内存空间。磁盘上的那块空间叫做交换空间（&lt;strong&gt;swap space&lt;/strong&gt;），而这一过程被称为交换。物理内存和交换空间的总容量就是虚拟内存的可用容量。&lt;/p&gt;
   &lt;/div&gt;
 
-&lt;h4 id=&#34;-分页管理的优缺点&#34;&gt;⚖️ 分页管理的优缺点
+&lt;h4 id=&#34;-页表的分级&#34;&gt;📚 页表的分级
+&lt;/h4&gt;&lt;p&gt;在现代操作系统中，&lt;strong&gt;页表（Page Table）&lt;/strong&gt; 通常是多级分页的，目的是为了节省内存并提高虚拟地址的管理效率。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;2级页表&lt;/strong&gt;：常用于 32 位系统&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;4级页表&lt;/strong&gt;：常用于 64 位系统&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;5级页表&lt;/strong&gt;：支持超大地址空间&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;两级页表 相比于 一级页表&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;优势&lt;/strong&gt;：节省内存空间&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;劣势&lt;/strong&gt;：地址转换速度慢一些，需要多次内存访问才能完成一次虚拟地址到物理地址的转换&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h4 id=&#34;-分页管理的优缺点&#34;&gt;📋 分页管理的优缺点
 &lt;/h4&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;优点&lt;/strong&gt;
 &lt;ul&gt;
@@ -891,7 +705,7 @@
 &lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr&gt;
-&lt;h3 id=&#34;-页面置换算法&#34;&gt;🔄 页面置换算法
+&lt;h3 id=&#34;-页面置换算法&#34;&gt;🔁 页面置换算法
 &lt;/h3&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;先进先出置换算法&lt;/strong&gt; ：基本思路是，优先淘汰最早进入内存的页面。&lt;strong&gt;FIFO&lt;/strong&gt; 算法维护一个队列，新来的页面加入队尾，当发生页面置换时，队头的页面（即最早进入内存的页面）被移出。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;最少使用页面置换算法（LFU）&lt;/strong&gt; : 置换算法选择的是之前一段时间内使用最少的页面作为淘汰页。&lt;/li&gt;
@@ -1003,10 +817,10 @@
 &lt;p&gt;这主要是上面 &lt;strong&gt;Intel&lt;/strong&gt; 处理器发展历史导致的，因为 &lt;strong&gt;Intel X86 CPU&lt;/strong&gt; 一律对程序中使用的地址先进行段式映射，然后才能进行页式映射。既然 &lt;strong&gt;CPU&lt;/strong&gt; 的硬件结构是这样，&lt;strong&gt;Linux&lt;/strong&gt; 内核也只好服从 &lt;strong&gt;Intel&lt;/strong&gt; 的选择。&lt;/p&gt;
 &lt;p&gt;但是事实上，&lt;strong&gt;Linux&lt;/strong&gt; 内核所采取的办法是使段式映射的过程实际上不起什么作用。也就是说，「上有政策，下有对策」，若惹不起就躲着走。&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;Linux 系统中的每个段都是从 0 地址开始的整个 4GB 虚拟空间（32 位环境下），也就是所有的段的起始地址都是一样的。&lt;/strong&gt; 这意味着，&lt;strong&gt;Linux&lt;/strong&gt; 系统中的代码，包括操作系统本身的代码和应用程序代码，所面对的地址空间都是线性地址空间（虚拟地址），这种做法相当于屏蔽了处理器中的逻辑地址概念，段只被用于访问控制和内存保护。&lt;/p&gt;
-&lt;h3 id=&#34;-内核空间-vs-用户空间&#34;&gt;⚖️ 内核空间 vs 用户空间
+&lt;h3 id=&#34;-内核空间-vs-用户空间&#34;&gt;🧭 内核空间 vs 用户空间
 &lt;/h3&gt;&lt;p&gt;在 &lt;strong&gt;Linux&lt;/strong&gt; 操作系统中，虚拟地址空间的内部又被分为&lt;strong&gt;内核空间&lt;/strong&gt;和&lt;strong&gt;用户空间&lt;/strong&gt;两部分，不同位数的系统，地址空间的范围也不同。比如最常见的 32 位和 64 位系统：&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
-  &lt;img src=&#34;3a6cb4e3f27241d3b09b4766bb0b1124.png&#34; alt=&#34;内核空间与用户空间分布&#34; width=&#34;82%&#34;&gt;
+  &lt;img src=&#34;3a6cb4e3f27241d3b09b4766bb0b1124-20230309234553726.png&#34; alt=&#34;内核空间与用户空间分布&#34; width=&#34;82%&#34;&gt;
 &lt;/div&gt;
 &lt;p&gt;通过这里可以看出：&lt;/p&gt;
 &lt;ul&gt;
@@ -1019,24 +833,30 @@
 &lt;li&gt;只有进入&lt;strong&gt;内核态&lt;/strong&gt;后，才可以访问&lt;strong&gt;内核空间&lt;/strong&gt;的内存&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;虽然每个进程都各自有独立的虚拟内存，但是&lt;strong&gt;每个虚拟内存中的内核地址，其实关联的都是相同的物理内存&lt;/strong&gt;。这样，进程切换到内核态后，就可以很方便地访问内核空间内存。&lt;/p&gt;
-&lt;h3 id=&#34;-用户空间内存分布&#34;&gt;📋 用户空间内存分布
+&lt;h3 id=&#34;-用户空间内存分布&#34;&gt;📑 用户空间内存分布
 &lt;/h3&gt;&lt;p&gt;内核根据进程运行的过程中所需不同种类的数据而为其开辟了对应的地址空间。从程序运行流程来看，进程虚拟内存空间包含以下区域：&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;1. 代码段（Text Segment）&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;进程运行之前，程序代码被编译成二进制文件存放在磁盘中。进程运行时，这些二进制文件中的机器码需要被加载进内存中，用于存放这些机器码的虚拟内存空间叫做&lt;strong&gt;代码段&lt;/strong&gt;。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;2. 数据段（Data Segment）&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;在程序代码中定义的全局变量和静态变量，在程序编译之后也会存储在二进制文件中。程序运行之前，这些全局变量也需要被加载进内存中供程序访问。那些&lt;strong&gt;被我们指定了初始值的全局变量和静态变量&lt;/strong&gt;在虚拟内存空间中的存储区域叫做&lt;strong&gt;数据段&lt;/strong&gt;。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;3. BSS 段（BSS Segment）&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;那些&lt;strong&gt;没有指定初始值的全局变量和静态变量&lt;/strong&gt;在虚拟内存空间中的存储区域叫做&lt;strong&gt;BSS 段&lt;/strong&gt;。这些未初始化的全局变量被加载进内存之后会被初始化为 0 值。因为内核知道这些数据是没有初值的，所以在二进制文件中只会记录 BSS 段的大小，在加载进内存时会生成一段 0 填充的内存空间。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;4. 堆（Heap）&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;程序在运行期间往往需要动态的申请内存，在虚拟内存空间中也需要一块区域来存放这些动态申请的内存，这块区域就叫做&lt;strong&gt;堆&lt;/strong&gt;。注意这里的堆指的是&lt;strong&gt;操作系统堆&lt;/strong&gt;，并不是 &lt;strong&gt;JVM&lt;/strong&gt; 中的堆。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;5. 文件映射与匿名映射区（Memory Mapping Segment）&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;进程运行时所依赖的&lt;strong&gt;动态链接库&lt;/strong&gt;（如 C 程序中的 glibc）以 &lt;code&gt;.so&lt;/code&gt; 文件的形式存放在磁盘中，这些动态链接库也有自己的代码段、数据段、BSS 段，也需要一起被加载进内存中。&lt;/p&gt;
-&lt;p&gt;还有用于&lt;strong&gt;内存文件映射&lt;/strong&gt;的系统调用 &lt;code&gt;mmap&lt;/code&gt;，会将文件与内存进行映射，那么映射的这块内存（虚拟内存）也需要在虚拟地址空间中有一块区域存储。&lt;/p&gt;
-&lt;p&gt;这些动态链接库中的代码段、数据段、BSS 段，以及通过 &lt;code&gt;mmap&lt;/code&gt; 系统调用映射的共享内存区，在虚拟内存空间的存储区域叫做&lt;strong&gt;文件映射与匿名映射区&lt;/strong&gt;。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;6. 栈（Stack）&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;在程序运行的时候总该要调用各种函数，那么调用函数过程中使用的&lt;strong&gt;局部变量&lt;/strong&gt;和&lt;strong&gt;函数参数&lt;/strong&gt;也需要一块内存区域来保存。这一块区域在虚拟内存空间中叫做&lt;strong&gt;栈&lt;/strong&gt;。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;代码段（Text Segment）&lt;/strong&gt;:进程运行之前，程序代码被编译成二进制文件存放在磁盘中。进程运行时，这些二进制文件中的机器码需要被加载进内存中，用于存放这些机器码的虚拟内存空间叫做&lt;strong&gt;代码段&lt;/strong&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;数据段（Data Segment）&lt;/strong&gt;:在程序代码中定义的全局变量和静态变量，在程序编译之后也会存储在二进制文件中。程序运行之前，这些全局变量也需要被加载进内存中供程序访问。那些&lt;strong&gt;被我们指定了初始值的全局变量和静态变量&lt;/strong&gt;在虚拟内存空间中的存储区域叫做&lt;strong&gt;数据段&lt;/strong&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;BSS 段（BSS Segment）&lt;/strong&gt;:那些&lt;strong&gt;没有指定初始值的全局变量和静态变量&lt;/strong&gt;在虚拟内存空间中的存储区域叫做&lt;strong&gt;BSS 段&lt;/strong&gt;。这些未初始化的全局变量被加载进内存之后会被初始化为 0 值。因为内核知道这些数据是没有初值的，所以在二进制文件中只会记录 BSS 段的大小，在加载进内存时会生成一段 0 填充的内存空间。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;堆（Heap）&lt;/strong&gt;:程序在运行期间往往需要动态的申请内存，在虚拟内存空间中也需要一块区域来存放这些动态申请的内存，这块区域就叫做&lt;strong&gt;堆&lt;/strong&gt;。注意这里的堆指的是&lt;strong&gt;操作系统堆&lt;/strong&gt;，并不是 &lt;strong&gt;JVM&lt;/strong&gt; 中的堆。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;文件映射与匿名映射区（Memory Mapping Segment）&lt;/strong&gt;:进程运行时所依赖的&lt;strong&gt;动态链接库&lt;/strong&gt;（如 C 程序中的 glibc）以 &lt;code&gt;.so&lt;/code&gt; 文件的形式存放在磁盘中，这些动态链接库也有自己的代码段、数据段、BSS 段，也需要一起被加载进内存中。还有用于&lt;strong&gt;内存文件映射&lt;/strong&gt;的系统调用 &lt;code&gt;mmap&lt;/code&gt;，会将文件与内存进行映射，那么映射的这块内存（虚拟内存）也需要在虚拟地址空间中有一块区域存储。这些动态链接库中的代码段、数据段、BSS 段，以及通过 &lt;code&gt;mmap&lt;/code&gt; 系统调用映射的共享内存区，在虚拟内存空间的存储区域叫做&lt;strong&gt;文件映射与匿名映射区&lt;/strong&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;栈（Stack）&lt;/strong&gt;:在程序运行的时候总该要调用各种函数，那么调用函数过程中使用的&lt;strong&gt;局部变量&lt;/strong&gt;和&lt;strong&gt;函数参数&lt;/strong&gt;也需要一块内存区域来保存。这一块区域在虚拟内存空间中叫做&lt;strong&gt;栈&lt;/strong&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
 &lt;hr&gt;
-&lt;h3 id=&#34;-32-位机器上的虚拟内存空间分布&#34;&gt;📐 32 位机器上的虚拟内存空间分布
+&lt;h3 id=&#34;-32-位机器上的虚拟内存空间分布&#34;&gt;🖱️ 32 位机器上的虚拟内存空间分布
 &lt;/h3&gt;&lt;p&gt;在 &lt;strong&gt;32 位&lt;/strong&gt;机器上，指针的寻址范围为 2^32，所能表达的虚拟内存空间为 &lt;strong&gt;4 GB&lt;/strong&gt;。所以在 32 位机器上进程的虚拟内存地址范围为：&lt;code&gt;0x0000 0000 - 0xFFFF FFFF&lt;/code&gt;。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;用户态虚拟内存空间&lt;/strong&gt;：&lt;strong&gt;3 GB&lt;/strong&gt;，虚拟内存地址范围为：&lt;code&gt;0x0000 0000 - 0xC000 0000&lt;/code&gt;&lt;/li&gt;
@@ -1060,7 +880,7 @@
 &lt;li&gt;&lt;code&gt;RBP&lt;/code&gt; 寄存器中保存的是栈基地址&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;在栈空间的下边也有一段待分配区域用于扩展栈空间，在栈空间的上边就是内核空间了，进程虽然可以看到这段内核空间地址，但是就是不能访问。这就好比我们在饭店里虽然可以看到厨房在哪里，但是厨房门上写着「厨房重地，闲人免进」，我们就是进不去。&lt;/p&gt;
-&lt;h3 id=&#34;-64-位机器上的虚拟内存空间分布&#34;&gt;📐 64 位机器上的虚拟内存空间分布
+&lt;h3 id=&#34;-64-位机器上的虚拟内存空间分布&#34;&gt;🖥️ 64 位机器上的虚拟内存空间分布
 &lt;/h3&gt;&lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;4956918c43e186d49df7b9802f080de8.png&#34; alt=&#34;内核空间与用户空间分布&#34; width=&#34;82%&#34;&gt;
 &lt;/div&gt;
@@ -1090,7 +910,7 @@
 &lt;h2 id=&#34;-linux-内核如何管理虚拟内存&#34;&gt;🧩 Linux 内核如何管理虚拟内存
 &lt;/h2&gt;&lt;p&gt;经过上面的介绍，我们明白了在 Linux 系统中进程的虚拟内存空间是如何划分的。那么现在有一个问题，&lt;strong&gt;内核如何管理这些虚拟内存空间呢？&lt;/strong&gt;&lt;/p&gt;
 &lt;p&gt;比如：进程在运行的过程中，会不断地向内核申请虚拟内存，比如：通过 &lt;code&gt;malloc&lt;/code&gt; 申请堆内存，函数调用时使用的栈内存，通过 &lt;code&gt;mmap&lt;/code&gt; 系统调用映射文件等。那么内核是如何管理进程已经使用的虚拟内存和还未使用的虚拟内存呢？&lt;/p&gt;
-&lt;h3 id=&#34;-vma虚拟内存区域&#34;&gt;📊 VMA（虚拟内存区域）
+&lt;h3 id=&#34;-vma虚拟内存区域&#34;&gt;📂 VMA（虚拟内存区域）
 &lt;/h3&gt;&lt;p&gt;Linux 内核使用 &lt;strong&gt;VMA（Virtual Memory Area，虚拟内存区域）&lt;/strong&gt; 数据结构来管理进程的虚拟内存空间。VMA 是 &lt;code&gt;vm_area_struct&lt;/code&gt; 结构体的实例，它描述了进程虚拟内存空间中的一块连续区域。&lt;/p&gt;
 &lt;p&gt;每个 VMA 包含以下信息：&lt;/p&gt;
 &lt;ul&gt;
@@ -1131,7 +951,7 @@
 &lt;li&gt;&lt;strong&gt;内存统计&lt;/strong&gt;：记录进程使用的虚拟内存总量、物理内存总量等统计信息&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;上下文切换&lt;/strong&gt;：进程切换时，需要切换 &lt;code&gt;mm_struct&lt;/code&gt;&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;-vma-的操作&#34;&gt;🔍 VMA 的操作
+&lt;h3 id=&#34;-vma-的操作&#34;&gt;🛠️ VMA 的操作
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;1. 查找 VMA&lt;/strong&gt;&lt;/p&gt;
 &lt;p&gt;当进程访问某个虚拟地址时，内核需要快速找到该地址所属的 VMA。Linux 内核使用&lt;strong&gt;红黑树&lt;/strong&gt;来加速查找过程：&lt;/p&gt;
 &lt;ul&gt;
@@ -1231,7 +1051,7 @@
 &lt;li&gt;重新执行触发缺页异常的指令&lt;/li&gt;
 &lt;li&gt;这次访问可以成功完成&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;-缺页异常的类型&#34;&gt;📊 缺页异常的类型
+&lt;h3 id=&#34;-缺页异常的类型&#34;&gt;🔎 缺页异常的类型
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;1. 次要缺页（Minor Page Fault）&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;页面在物理内存中，但不在进程的页表中&lt;/li&gt;
@@ -1252,7 +1072,7 @@
 &lt;li&gt;&lt;strong&gt;页面置换算法&lt;/strong&gt;：算法越优，缺页率越低&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr&gt;
-&lt;h2 id=&#34;-内存映射mmap&#34;&gt;🗺️ 内存映射（mmap）
+&lt;h2 id=&#34;-内存映射mmap&#34;&gt;🗂️ 内存映射（mmap）
 &lt;/h2&gt;&lt;p&gt;&lt;strong&gt;内存映射（Memory Mapping）&lt;/strong&gt; 是 Linux 系统中非常重要的系统调用，它可以将文件或设备映射到进程的虚拟地址空间，也可以创建匿名映射用于进程间通信。&lt;/p&gt;
 &lt;h3 id=&#34;-mmap-系统调用&#34;&gt;📝 mmap 系统调用
 &lt;/h3&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
@@ -1284,7 +1104,7 @@
 &lt;li&gt;成功：返回映射区域的起始地址&lt;/li&gt;
 &lt;li&gt;失败：返回 &lt;code&gt;MAP_FAILED&lt;/code&gt;（即 &lt;code&gt;(void*) -1&lt;/code&gt;）&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;-mmap-的应用场景&#34;&gt;🔧 mmap 的应用场景
+&lt;h3 id=&#34;-mmap-的应用场景&#34;&gt;🛠️ mmap 的应用场景
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;1. 文件映射&lt;/strong&gt;&lt;/p&gt;
 &lt;p&gt;将文件内容映射到内存，可以直接通过指针访问文件内容，无需调用 &lt;code&gt;read()&lt;/code&gt; 和 &lt;code&gt;write()&lt;/code&gt;。&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
@@ -1349,7 +1169,7 @@
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;*&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;addr&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;mmap&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;NULL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;size&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;PROT_READ&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;|&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;PROT_WRITE&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;MAP_SHARED&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;fd&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
-&lt;/div&gt;&lt;h3 id=&#34;-munmap-系统调用&#34;&gt;🔄 munmap 系统调用
+&lt;/div&gt;&lt;h3 id=&#34;-munmap-系统调用&#34;&gt;↩️ munmap 系统调用
 &lt;/h3&gt;&lt;p&gt;当不再需要映射时，应该使用 &lt;code&gt;munmap()&lt;/code&gt; 释放映射区域：&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
@@ -1364,7 +1184,7 @@
 &lt;li&gt;释放后不能再访问该区域的内存&lt;/li&gt;
 &lt;li&gt;文件映射的修改会根据 &lt;code&gt;msync()&lt;/code&gt; 或 &lt;code&gt;munmap()&lt;/code&gt; 同步到磁盘&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;-mmap-与-brk-的区别&#34;&gt;📊 mmap 与 brk 的区别
+&lt;h3 id=&#34;-mmap-与-brk-的区别&#34;&gt;⚖️ mmap 与 brk 的区别
 &lt;/h3&gt;&lt;table&gt;
   &lt;thead&gt;
       &lt;tr&gt;
@@ -1404,7 +1224,7 @@
 &lt;hr&gt;
 &lt;h2 id=&#34;-动态内存分配malloc&#34;&gt;💰 动态内存分配（malloc）
 &lt;/h2&gt;&lt;p&gt;在用户程序中，我们通常使用 C 标准库的 &lt;code&gt;malloc()&lt;/code&gt; 函数来动态申请内存。&lt;code&gt;malloc()&lt;/code&gt; 内部封装了 Linux 的系统调用 &lt;code&gt;brk()&lt;/code&gt; 和 &lt;code&gt;mmap()&lt;/code&gt;。&lt;/p&gt;
-&lt;h3 id=&#34;-malloc-的实现原理&#34;&gt;🔧 malloc 的实现原理
+&lt;h3 id=&#34;-malloc-的实现原理&#34;&gt;🛠️ malloc 的实现原理
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;glibc 的内存分配策略：&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;小内存（≤ 128KB）&lt;/strong&gt;：使用 &lt;code&gt;brk()&lt;/code&gt; 系统调用，从堆中分配&lt;/li&gt;
@@ -1417,7 +1237,7 @@
 &lt;li&gt;提高分配效率&lt;/li&gt;
 &lt;li&gt;减少内存碎片&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;-内存分配的数据结构&#34;&gt;📊 内存分配的数据结构
+&lt;h3 id=&#34;-内存分配的数据结构&#34;&gt;📋 内存分配的数据结构
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;chunk&lt;/strong&gt;：&lt;code&gt;malloc()&lt;/code&gt; 管理的基本内存单元，包含：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;chunk_header&lt;/strong&gt;：记录 chunk 的大小和状态信息&lt;/li&gt;
@@ -1466,29 +1286,200 @@
 &lt;li&gt;解决方案：优化 chunk 大小分类&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr&gt;
-&lt;h2 id=&#34;-内存分配方式&#34;&gt;⚙️ 内存分配方式
-&lt;/h2&gt;&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;首次适应（First Fit）&lt;/strong&gt; ：找第一个足够大的空闲块分配给进程&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;最佳适应（Best Fit）&lt;/strong&gt; ：找最小但刚好满足需求的空闲块（碎片最小）&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;最差适应（Worst Fit）&lt;/strong&gt; ：找最大的空闲块（尝试保留大块空闲）&lt;/li&gt;
-&lt;/ul&gt;
-&lt;hr&gt;
-&lt;h2 id=&#34;-页表的分级&#34;&gt;🗂️ 页表的分级
-&lt;/h2&gt;&lt;p&gt;在现代操作系统中，&lt;strong&gt;页表（Page Table）&lt;/strong&gt; 通常是多级分页的，目的是为了节省内存并提高虚拟地址的管理效率。&lt;/p&gt;
+&lt;h2 id=&#34;-内存分配算法&#34;&gt;⚙️ 内存分配算法
+&lt;/h2&gt;&lt;p&gt;在动态内存分配中，当进程请求分配内存时，操作系统需要从空闲内存中选择合适的块来分配。常见的空闲块分配算法有三种：&lt;strong&gt;首次适应（First Fit）&lt;/strong&gt;、&lt;strong&gt;最佳适应（Best Fit）&lt;/strong&gt; 和 &lt;strong&gt;最差适应（Worst Fit）&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;-首次适应算法first-fit&#34;&gt;🎯 首次适应算法（First Fit）
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;算法思想：&lt;/strong&gt; 从空闲链表的起始位置开始遍历，找到第一个足够大的空闲块就分配给进程。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;工作流程：&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;从空闲链表的头部开始依次检查每个空闲块&lt;/li&gt;
+&lt;li&gt;如果当前空闲块的大小 &lt;code&gt;≥&lt;/code&gt; 请求的大小，则分配该块&lt;/li&gt;
+&lt;li&gt;如果空闲块剩余空间足够大，则分割成两块：一块分配给进程，一块保留为空闲块&lt;/li&gt;
+&lt;li&gt;如果第一个块不够，则继续检查下一个空闲块&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;示例：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;假设空闲链表包含以下空闲块（按地址顺序）：&lt;code&gt;[30KB] → [20KB] → [50KB] → [10KB]&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;进程 A 请求分配 &lt;code&gt;15KB&lt;/code&gt;：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;2级页表&lt;/strong&gt;：常用于 32 位系统&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;4级页表&lt;/strong&gt;：常用于 64 位系统&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;5级页表&lt;/strong&gt;：支持超大地址空间&lt;/li&gt;
+&lt;li&gt;检查第一个空闲块 &lt;code&gt;30KB ≥ 15KB&lt;/code&gt;，分配！&lt;/li&gt;
+&lt;li&gt;分配后剩余 &lt;code&gt;15KB&lt;/code&gt;，可以分割或全部分配&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;两级页表-vs-一级页表&#34;&gt;两级页表 vs 一级页表
-&lt;/h3&gt;&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;优势&lt;/strong&gt;：节省内存空间&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;劣势&lt;/strong&gt;：地址转换速度慢一些，需要多次内存访问才能完成一次虚拟地址到物理地址的转换&lt;/li&gt;
+&lt;p&gt;进程 B 请求分配 &lt;code&gt;25KB&lt;/code&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;检查第一个块 &lt;code&gt;15KB &amp;lt; 25KB&lt;/code&gt;，不够，检查下一个&lt;/li&gt;
+&lt;li&gt;检查第二个块 &lt;code&gt;20KB &amp;lt; 25KB&lt;/code&gt;，不够，检查下一个&lt;/li&gt;
+&lt;li&gt;检查第三个块 &lt;code&gt;50KB ≥ 25KB&lt;/code&gt;，分配！&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;分配速度快，只需找到第一个合适的块&lt;/li&gt;
+&lt;li&gt;倾向于在低地址区域保留大块空闲内存&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;容易产生小碎片（外部碎片）&lt;/li&gt;
+&lt;li&gt;频繁分配后，空闲链表前部会被小额空闲块占据&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr&gt;
+&lt;h3 id=&#34;-最佳适应算法best-fit&#34;&gt;🎲 最佳适应算法（Best Fit）
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;算法思想：&lt;/strong&gt; 找到最小但刚好满足需求的空闲块，使剩余的空闲块尽可能大。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;工作流程：&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;遍历整个空闲链表，记录所有满足大小要求的空闲块&lt;/li&gt;
+&lt;li&gt;从候选块中选择&lt;strong&gt;最小&lt;/strong&gt;的那个进行分配&lt;/li&gt;
+&lt;li&gt;如果有剩余空间，则分割成小块保留在链表中&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;示例：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;假设空闲链表包含：&lt;code&gt;[30KB] → [20KB] → [50KB] → [10KB]&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;进程 A 请求分配 &lt;code&gt;15KB&lt;/code&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;满足条件的空闲块：&lt;code&gt;[30KB]&lt;/code&gt;、&lt;code&gt;[20KB]&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;选择最小的：&lt;code&gt;[20KB]&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;分配后剩余 &lt;code&gt;5KB&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;进程 B 请求分配 &lt;code&gt;15KB&lt;/code&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;满足条件的空闲块：&lt;code&gt;[30KB]&lt;/code&gt;、&lt;code&gt;[10KB] + [5KB]&lt;/code&gt;（合并后为 &lt;code&gt;15KB&lt;/code&gt;）&lt;/li&gt;
+&lt;li&gt;选择最小的：&lt;code&gt;[15KB]&lt;/code&gt;（合并后的块）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;产生的外部碎片最小化&lt;/li&gt;
+&lt;li&gt;充分利用空闲内存，减少浪费&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;需要遍历整个空闲链表，分配速度慢&lt;/li&gt;
+&lt;li&gt;分割后会产生很多小碎片，难以再次利用&lt;/li&gt;
+&lt;li&gt;空闲链表需要按大小排序，或每次遍历时排序&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-最差适应算法worst-fit&#34;&gt;🎯 最差适应算法（Worst Fit）
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;算法思想：&lt;/strong&gt; 总是选择最大的空闲块进行分配，期望分配后剩余的空闲块仍然足够大。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;工作流程：&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;遍历整个空闲链表，找到最大的空闲块&lt;/li&gt;
+&lt;li&gt;分配请求大小的内存&lt;/li&gt;
+&lt;li&gt;将剩余部分重新放回空闲链表&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;示例：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;假设空闲链表包含：&lt;code&gt;[30KB] → [20KB] → [50KB] → [10KB]&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;进程 A 请求分配 &lt;code&gt;15KB&lt;/code&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;最大的空闲块是 &lt;code&gt;[50KB]&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;分配 &lt;code&gt;15KB&lt;/code&gt;，剩余 &lt;code&gt;35KB&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;进程 B 请求分配 &lt;code&gt;20KB&lt;/code&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;最大的空闲块是 &lt;code&gt;[35KB]&lt;/code&gt;（刚才分割后的）&lt;/li&gt;
+&lt;li&gt;分配 &lt;code&gt;20KB&lt;/code&gt;，剩余 &lt;code&gt;15KB&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;进程 C 请求分配 &lt;code&gt;25KB&lt;/code&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;最大的空闲块是 &lt;code&gt;[30KB]&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;分配 &lt;code&gt;25KB&lt;/code&gt;，剩余 &lt;code&gt;5KB&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;分配后剩余的空闲块相对较大&lt;/li&gt;
+&lt;li&gt;减少小碎片的产生&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;需要遍历整个空闲链表找最大块，速度慢&lt;/li&gt;
+&lt;li&gt;可能会分割大块，导致大块数量减少&lt;/li&gt;
+&lt;li&gt;后续大请求可能无法满足&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-三种算法对比&#34;&gt;📊 三种算法对比
+&lt;/h3&gt;&lt;table&gt;
+  &lt;thead&gt;
+      &lt;tr&gt;
+          &lt;th&gt;特性&lt;/th&gt;
+          &lt;th&gt;首次适应&lt;/th&gt;
+          &lt;th&gt;最佳适应&lt;/th&gt;
+          &lt;th&gt;最差适应&lt;/th&gt;
+      &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+      &lt;tr&gt;
+          &lt;td&gt;&lt;strong&gt;分配速度&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;快&lt;/td&gt;
+          &lt;td&gt;慢&lt;/td&gt;
+          &lt;td&gt;慢&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;&lt;strong&gt;碎片情况&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;中等外部碎片&lt;/td&gt;
+          &lt;td&gt;最小外部碎片&lt;/td&gt;
+          &lt;td&gt;减少大碎片&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;&lt;strong&gt;内存利用率&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;较好&lt;/td&gt;
+          &lt;td&gt;最好&lt;/td&gt;
+          &lt;td&gt;一般&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;&lt;strong&gt;实现复杂度&lt;/strong&gt;&lt;/td&gt;
+          &lt;td&gt;简单&lt;/td&gt;
+          &lt;td&gt;较复杂&lt;/td&gt;
+          &lt;td&gt;较复杂&lt;/td&gt;
+      &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;strong&gt;实际应用：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;First Fit&lt;/strong&gt; 是最常用的算法，实现简单且速度快&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Best Fit&lt;/strong&gt; 在内存紧张时能更好地利用空间，但分配速度慢&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Worst Fit&lt;/strong&gt; 较少使用，主要用于减少大碎片的产生&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-内存分配的实现方式&#34;&gt;🔧 内存分配的实现方式
+&lt;/h3&gt;&lt;p&gt;在实际的内存分配器（如 &lt;code&gt;malloc&lt;/code&gt;/&lt;code&gt;free&lt;/code&gt;）中，通常采用以下数据结构来管理空闲内存：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;1. 空闲链表（Free List）&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;+--------+    +--------+    +--------+
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;| block  | -&amp;gt; | block  | -&amp;gt; | block  |
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;|  30KB  |    |  20KB  |    |  50KB  |
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;+--------+    +--------+    +--------+
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;strong&gt;2. 边界标签（Boundary Tags）&lt;/strong&gt;
+每个内存块的头部和尾部都记录块的大小和状态，方便快速合并相邻空闲块：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;+--------+---------------------+--------+
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;| header |      user data      | footer |
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;| size=50|                     | size=50|
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;+--------+---------------------+--------+
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;strong&gt;3. 内存池（Memory Pool）&lt;/strong&gt;
+预先申请一大块内存，按固定大小分成多个 chunk，减少系统调用次数。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-选择建议&#34;&gt;💡 选择建议
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;小内存分配&lt;/strong&gt;：优先使用 &lt;strong&gt;First Fit&lt;/strong&gt;，速度快&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;大内存分配&lt;/strong&gt;：可以考虑 &lt;strong&gt;Best Fit&lt;/strong&gt;，减少碎片&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;通用场景&lt;/strong&gt;：&lt;strong&gt;First Fit&lt;/strong&gt; 是最佳选择，兼顾速度和利用率&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h2 id=&#34;-总结&#34;&gt;📝 总结
 &lt;/h2&gt;&lt;p&gt;本文全面介绍了 &lt;strong&gt;Linux 虚拟内存管理&lt;/strong&gt; 的核心概念和实现机制，主要内容包括：&lt;/p&gt;
-&lt;h3 id=&#34;-核心概念&#34;&gt;🎯 核心概念
+&lt;h3 id=&#34;-核心概念&#34;&gt;💡 核心概念
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;1. 虚拟内存的本质&lt;/strong&gt;&lt;/p&gt;
 &lt;p&gt;虚拟内存是计算机系统内存管理的重要技术，它是逻辑存在的假想内存空间，作为进程访问物理内存的桥梁。通过虚拟内存，每个进程都拥有独立的虚拟地址空间，实现了进程间的内存隔离。&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;2. 虚拟地址的生活类比&lt;/strong&gt;&lt;/p&gt;
@@ -1595,24 +1586,6 @@
 &lt;li&gt;&lt;strong&gt;malloc&lt;/strong&gt; 通过内存池管理减少系统调用&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr&gt;
-&lt;div
-  class=&#34;notice tip&#34;
-  
-&gt;
-  &lt;p class=&#34;notice-title&#34;&gt;
-    &lt;span class=&#34;icon-notice baseline&#34;&gt;
-      &lt;svg xmlns=&#34;http://www.w3.org/2000/svg&#34; viewBox=&#34;300.5 134 300 300&#34;&gt;
-  &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
-&lt;/svg&gt;
-
-    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;&lt;strong&gt;学习建议：&lt;/strong&gt; 虚拟内存是操作系统最核心、最复杂的子系统之一。建议结合实践加深理解：&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;使用 &lt;code&gt;cat /proc/&amp;lt;pid&amp;gt;/maps&lt;/code&gt; 查看进程的虚拟内存布局&lt;/li&gt;
-&lt;li&gt;使用 &lt;code&gt;strace&lt;/code&gt; 跟踪程序的 &lt;code&gt;mmap&lt;/code&gt;、&lt;code&gt;brk&lt;/code&gt; 系统调用&lt;/li&gt;
-&lt;li&gt;编写程序观察 &lt;code&gt;malloc&lt;/code&gt; 的内存分配行为&lt;/li&gt;
-&lt;li&gt;使用 &lt;code&gt;perf&lt;/code&gt; 等工具分析缺页异常&lt;/li&gt;
-&lt;/ol&gt;&lt;/div&gt;
-
 </description>
         </item>
         <item>
@@ -2306,11 +2279,11 @@
 </description>
         </item>
         <item>
-        <title>操作系统的结构和主要功能</title>
-        <link>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E7%BB%93%E6%9E%84%E5%92%8C%E4%B8%BB%E8%A6%81%E5%8A%9F%E8%83%BD/</link>
+        <title>操作系统(一)操作系统的结构和主要功能</title>
+        <link>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%B8%80%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E7%BB%93%E6%9E%84%E5%92%8C%E4%B8%BB%E8%A6%81%E5%8A%9F%E8%83%BD/</link>
         <pubDate>Wed, 12 Feb 2025 20:36:54 +0800</pubDate>
         
-        <guid>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E7%BB%93%E6%9E%84%E5%92%8C%E4%B8%BB%E8%A6%81%E5%8A%9F%E8%83%BD/</guid>
+        <guid>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E4%B8%80%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E7%BB%93%E6%9E%84%E5%92%8C%E4%B8%BB%E8%A6%81%E5%8A%9F%E8%83%BD/</guid>
         <description>&lt;h2 id=&#34;-操作系统的主要功能&#34;&gt;🧠 操作系统的主要功能
 &lt;/h2&gt;&lt;p&gt;&lt;strong&gt;操作系统&lt;/strong&gt;是为了管理计算机硬件和软件资源，提供用户与计算机交互的接口，并为应用程序的运行提供一个高效、安全和稳定的环境。&lt;/p&gt;
 &lt;h3 id=&#34;-设计目的&#34;&gt;📋 设计目的
@@ -2489,14 +2462,14 @@
   &lt;img src=&#34;systemcall.png&#34; alt=&#34;内核态和用户态的切换&#34; width=&#34;82%&#34;&gt;
 &lt;/div&gt;
 &lt;p&gt;内核程序执行在内核态，用户程序执行在用户态。当应用程序使用系统调用时，会产生一个中断。发生中断后，CPU 会中断当前在执行的用户程序，转而跳转到中断处理程序，也就是开始执行内核程序。内核处理完后，主动触发中断，把 CPU 执行权限交回给用户程序，回到用户态继续工作。&lt;/p&gt;
-&lt;p&gt;什么时候会出现上下文切换&lt;/p&gt;
+&lt;p&gt;上下文切换会出现的情况：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;系统调用&lt;/strong&gt;：用户态进程&lt;strong&gt;主动&lt;/strong&gt;要求切换到内核态的一种方式，主要是为了使用内核态才能做的事情比如读取磁盘资源。系统调用的机制其核心还是使用了操作系统为用户特别开放的一个中断来实现。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;中断&lt;/strong&gt;：当外围设备完成用户请求的操作后，会向 CPU 发出相应的中断信号，这时 CPU 会暂停执行下一条即将要执行的指令转而去执行与中断信号对应的处理程序，如果先前执行的指令是用户态下的程序，那么这个转换的过程自然也就发生了由用户态到内核态的切换。比如硬盘读写操作完成，系统会切换到硬盘读写的中断处理程序中执行后续操作等。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;异常&lt;/strong&gt;：当 CPU 在执行运行在用户态下的程序时，发生了某些事先不可知的异常，这时会触发由当前运行进程切换到处理此异常的内核相关程序中，也就转到了内核态，比如缺页异常。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;在用户态和内核态之间切换时，操作系统会执行&lt;strong&gt;上下文切换&lt;/strong&gt;，包括保存当前进程的寄存器、状态和堆栈等信息，并加载内核态的状态以处理系统调用。上下文切换的成本较高，所以优化系统性能时，需要减少不必要的系统调用和态切换。&lt;/p&gt;
-&lt;p&gt;内核态和用户态的切换过程&lt;/p&gt;
+&lt;p&gt;内核态和用户态的切换过程如下&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;保存用户态的上下文信息&lt;/strong&gt;：CPU 会将当前用户态进程使用的通用寄存器、程序计数器（PC）、栈指针（SP）、标志寄存器等内容保存起来。这些寄存器中存储着用户态程序当前的执行状态和相关数据，以便内核态处理完任务后能恢复到正确的用户态执行位置。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;进行模式与权限的切换&lt;/strong&gt;：通过修改 CPU 的特定标志位或寄存器，将处理器的运行模式从用户态切换到内核态，使 CPU 能够执行特权指令，访问所有的内存空间和硬件资源。内核会检查此次切换的合法性和权限，比如检查系统调用的参数是否正确、进程是否具有相应的权限来执行此操作等，以确保系统的安全性和稳定性。&lt;/li&gt;
@@ -2519,28 +2492,24 @@
 &lt;hr&gt;
 &lt;h2 id=&#34;-系统调用&#34;&gt;📞 系统调用
 &lt;/h2&gt;&lt;p&gt;系统调用提供了调用操作系统提供的内核态级别的子功能。凡是与系统态级别的资源有关的操作（如文件管理、进程控制、内存管理等），都必须通过系统调用方式向操作系统提出服务请求，并由操作系统代为完成。&lt;/p&gt;
-&lt;p&gt;系统调用过程&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;用户态的程序发起系统调用，因为系统调用中涉及一些特权指令（只能由操作系统内核态执行的指令），用户态程序权限不足，因此会中断执行，也就是 Trap（Trap 是一种中断）。&lt;/li&gt;
-&lt;li&gt;发生中断后，当前 CPU 执行的程序会中断，跳转到中断处理程序。内核程序开始执行，也就是开始处理系统调用。&lt;/li&gt;
-&lt;li&gt;内核处理完成后，主动触发 Trap，这样会再次发生中断，切换回用户态工作。&lt;/li&gt;
-&lt;/ul&gt;
 &lt;h3 id=&#34;-系统调用的详细步骤&#34;&gt;🔧 系统调用的详细步骤
 &lt;/h3&gt;&lt;p&gt;系统调用是用户程序请求内核服务的一种方式，是从用户态切换到内核态的受控入口。&lt;/p&gt;
 &lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;用户态发起系统调用&lt;/strong&gt;：用户态的程序发起系统调用，因为系统调用中涉及一些特权指令（只能由操作系统内核态执行的指令），用户态程序权限不足，因此会中断执行，也就是 Trap（Trap 是一种中断）。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;用户调用库函数&lt;/strong&gt;：实际上不是直接调用内核，而是调用了 &lt;strong&gt;glibc&lt;/strong&gt; 提供的封装函数。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;glibc 调用 syscall 汇编指令&lt;/strong&gt;：&lt;strong&gt;glibc&lt;/strong&gt; 中的 &lt;code&gt;read()&lt;/code&gt; 等函数最终会调用底层的 &lt;code&gt;syscall&lt;/code&gt; 汇编指令。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;内核查找系统调用表&lt;/strong&gt;：&lt;strong&gt;Linux&lt;/strong&gt; 内核维护了一个&lt;strong&gt;系统调用号（syscall number）&lt;/strong&gt; 与函数指针的映射表。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;执行内核函数&lt;/strong&gt;：内核函数在内核态中运行，可以操作硬件、管理内存、调度进程等。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;返回用户态&lt;/strong&gt;：内核函数执行完成后，主动触发 Trap，这样会再次发生中断，会返回用户态，继续执行用户程序。&lt;/li&gt;
 &lt;/ul&gt;
 </description>
         </item>
         <item>
-        <title>操作系统的硬件结构</title>
-        <link>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E7%A1%AC%E4%BB%B6%E7%BB%93%E6%9E%84/</link>
+        <title>操作系统(四)操作系统的硬件结构</title>
+        <link>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%9B%9B%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E7%A1%AC%E4%BB%B6%E7%BB%93%E6%9E%84/</link>
         <pubDate>Wed, 12 Feb 2025 18:42:06 +0800</pubDate>
         
-        <guid>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E7%A1%AC%E4%BB%B6%E7%BB%93%E6%9E%84/</guid>
+        <guid>https://Tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%9B%9B%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84%E7%A1%AC%E4%BB%B6%E7%BB%93%E6%9E%84/</guid>
         <description>&lt;h2 id=&#34;-冯诺依曼体系&#34;&gt;🧠 冯诺依曼体系
 &lt;/h2&gt;&lt;p&gt;现代计算机模型是基于&lt;strong&gt;冯诺依曼计算机模型&lt;/strong&gt;。&lt;/p&gt;
 &lt;p&gt;计算机在运行时，先从内存中取出第一条指令，通过控制器的译码，按指令的要求，从存储器中取出数据进行指定的运算和逻辑操作等加工，然后再按地址把结果送到内存中去，接下来，再取出第二条指令，在控制器的指挥下完成规定操作，依此进行下去。直至遇到停止指令。&lt;/p&gt;
@@ -2584,7 +2553,7 @@
 &lt;/ul&gt;
 &lt;p&gt;CPU 的位宽最好不要小于线路位宽。&lt;/p&gt;&lt;/div&gt;
 
-&lt;h3 id=&#34;-32-位与-64-位系统的区别&#34;&gt;🔌 32 位与 64 位系统的区别
+&lt;h3 id=&#34;-32-位与-64-位系统的区别&#34;&gt;⚡ 32 位与 64 位系统的区别
 &lt;/h3&gt;&lt;h4 id=&#34;-数据传输方式串行与并行&#34;&gt;🔁 数据传输方式：串行与并行
 &lt;/h4&gt;&lt;p&gt;数据通过线路传输是通过操作电压实现的，低电压表示 0，高电压表示 1。如果只有一条线路，每次只能传递 1 bit 的数据（0 或 1），这种方式称为&lt;strong&gt;串行传输&lt;/strong&gt;，下一个 bit 必须等待上一个 bit 传输完成才能进行传输。&lt;/p&gt;
 &lt;p&gt;为了提高传输效率，可以增加线路数量，实现&lt;strong&gt;并行传输&lt;/strong&gt;。线路的位宽最好一次就能访问到所有的内存地址，避免低效率的串行传输。&lt;/p&gt;
@@ -2646,7 +2615,7 @@
 &lt;li&gt;&lt;strong&gt;时间局部性&lt;/strong&gt;：如果一个信息项正在被访问，那么在近期它很可能还会被再次访问。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;空间局部性(Spatial Locality)&lt;/strong&gt;：如果一个存储器的位置被引用，那么将来他附近的位置也会被引用。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;-总线&#34;&gt;🔌 总线
+&lt;h3 id=&#34;-总线&#34;&gt;🔗 总线
 &lt;/h3&gt;&lt;p&gt;总线是用于 CPU 和内存以及其他设备之间的通信，总线可分为 3 种：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;地址总线&lt;/strong&gt;：用于指定 CPU 将要操作的内存地址。&lt;/li&gt;
@@ -2663,7 +2632,7 @@
 &lt;h2 id=&#34;-存储器的层次结构&#34;&gt;📊 存储器的层次结构
 &lt;/h2&gt;&lt;h3 id=&#34;-寄存器&#34;&gt;📦 寄存器
 &lt;/h3&gt;&lt;p&gt;寄存器是最靠近 CPU 的控制单元和逻辑计算单元的存储器。寄存器的访问速度非常快，一般要求在半个 CPU 时钟周期内完成读写。&lt;/p&gt;
-&lt;h3 id=&#34;-cpu-多级缓存&#34;&gt;🗄️ CPU 多级缓存
+&lt;h3 id=&#34;-cpu-多级缓存&#34;&gt;📊 CPU 多级缓存
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;CPU 缓存&lt;/strong&gt;是高速缓冲存储器，是位于 CPU 与主内存间的一种容量较小但速度很高的存储器。&lt;/p&gt;
 &lt;p&gt;由于 CPU 的速度远高于主内存，CPU 直接从内存中存取数据要等待一定时间周期，Cache 中保存着 CPU 刚用过或循环使用的一部分数据，当 CPU 再次使用该部分数据时可从 Cache 中直接调用，减少 CPU 的等待时间，提高了系统的效率。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
@@ -2682,7 +2651,7 @@
 &lt;hr&gt;
 &lt;h3 id=&#34;-内存-1&#34;&gt;💾 内存
 &lt;/h3&gt;&lt;p&gt;内存通常使用 &lt;strong&gt;DRAM&lt;/strong&gt;（&lt;strong&gt;Dynamic Random Access Memory，动态随机存取存储器&lt;/strong&gt;）。DRAM 的数据会被存储在电容里，电容会不断漏电，所以需要「定时刷新」电容，才能保证数据不会被丢失，这就是 DRAM 之所以被称为「动态」存储器的原因，只有不断刷新，数据才能被存储起来。因此断电后内存中的数据全部丢失。&lt;/p&gt;
-&lt;h3 id=&#34;-磁盘&#34;&gt;💿 磁盘
+&lt;h3 id=&#34;-磁盘&#34;&gt;💽 磁盘
 &lt;/h3&gt;&lt;p&gt;&lt;strong&gt;SSD&lt;/strong&gt; 就是固体硬盘，结构和内存类似，但是它相比内存的优点是断电后数据还是存在的，而内存、寄存器、高速缓存断电后数据都会丢失。&lt;/p&gt;
 &lt;h3 id=&#34;-存储器的层次关系&#34;&gt;📐 存储器的层次关系
 &lt;/h3&gt;&lt;p&gt;存储空间越大的存储器设备，其访问速度越慢，所需成本也相对越少。&lt;/p&gt;
@@ -2697,7 +2666,7 @@
 ---
 &lt;h2 id=&#34;-cpu&#34;&gt;💻 CPU
 &lt;/h2&gt;&lt;h3 id=&#34;-cpu-cache&#34;&gt;🗄️ CPU Cache
-&lt;/h3&gt;&lt;h4 id=&#34;1-cpu-cache-的性能优势&#34;&gt;1️⃣ CPU Cache 的性能优势
+&lt;/h3&gt;&lt;h4 id=&#34;-cpu-cache-的性能优势&#34;&gt;💡 CPU Cache 的性能优势
 &lt;/h4&gt;&lt;p&gt;&lt;strong&gt;为什么需要 CPU Cache？&lt;/strong&gt;&lt;/p&gt;
 &lt;p&gt;根据摩尔定律，CPU 的访问速度每 18 个月就会翻倍（年增长约 60%），而内存的速度平均每年只增长 7% 左右。这导致 CPU 与内存的访问性能差距不断拉大：&lt;/p&gt;
 &lt;ul&gt;
@@ -2771,7 +2740,7 @@
 &lt;p&gt;📌 &lt;strong&gt;存储器速度快慢排序&lt;/strong&gt;：寄存器 &amp;gt; L1 &amp;gt; L2 &amp;gt; L3 &amp;gt; 内存&lt;/p&gt;
 &lt;p&gt;📌 &lt;strong&gt;关键数据&lt;/strong&gt;：CPU 从 L1 Cache 读取数据的速度，相比从内存读取的速度，&lt;strong&gt;快 100 多倍&lt;/strong&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
-&lt;h4 id=&#34;2-cpu-cache-的数据结构&#34;&gt;2️⃣ CPU Cache 的数据结构
+&lt;h4 id=&#34;-cpu-cache-的数据结构&#34;&gt;🏗️ CPU Cache 的数据结构
 &lt;/h4&gt;&lt;p&gt;&lt;strong&gt;Cache Line（缓存块）&lt;/strong&gt;&lt;/p&gt;
 &lt;p&gt;CPU Cache 是由很多个 &lt;strong&gt;Cache Line&lt;/strong&gt; 组成的，Cache Line 是 CPU 从内存读取数据的基本单位。Cache Line 由以下部分组成：&lt;/p&gt;
 &lt;ul&gt;
@@ -2793,7 +2762,7 @@
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
 &lt;/div&gt;&lt;p&gt;这意味着：当 CPU 访问 &lt;code&gt;array[0]&lt;/code&gt; 时，如果数据不在 Cache 中，会一次性连续加载 &lt;code&gt;array[0]~array[15]&lt;/code&gt;（共 64 字节）到 CPU Cache 中。&lt;/p&gt;
-&lt;h4 id=&#34;3-直接映射-cachedirect-mapped-cache的工作原理&#34;&gt;3️⃣ 直接映射 Cache（Direct Mapped Cache）的工作原理
+&lt;h4 id=&#34;-直接映射-cachedirect-mapped-cache的工作原理&#34;&gt;⚙️ 直接映射 Cache（Direct Mapped Cache）的工作原理
 &lt;/h4&gt;&lt;p&gt;CPU 访问内存数据时，是一小块一小块数据读取的，具体这一小块数据的大小，取决于 coherency_line_size 的值，一般 64 字节。在内存中，这一块的数据我们称为内存块（Block），读取的时候我们要拿到数据所在内存块的地址。
 内存地址映射到 CPU Cache 的一种简单策略是&lt;strong&gt;直接映射&lt;/strong&gt;，使用&lt;strong&gt;取模运算&lt;/strong&gt;：&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
@@ -2833,7 +2802,7 @@
 &lt;li&gt;对比&lt;strong&gt;Tag&lt;/strong&gt;，如果匹配则命中缓存，否则访问内存重新加载&lt;/li&gt;
 &lt;li&gt;根据&lt;strong&gt;偏移量&lt;/strong&gt;，从 Cache Line 中读取所需的数据&lt;/li&gt;
 &lt;/ol&gt;
-&lt;h4 id=&#34;4-cpu-缓存一致性&#34;&gt;4️⃣ CPU 缓存一致性
+&lt;h4 id=&#34;-cpu-缓存一致性&#34;&gt;🔐 CPU 缓存一致性
 &lt;/h4&gt;&lt;p&gt;CPU 缓存是由很多个 &lt;strong&gt;Cache Line&lt;/strong&gt; 组成的，&lt;strong&gt;Cache Line&lt;/strong&gt; 是 CPU 从内存读取数据的基本单位，而 Cache Line 是由各种标志（&lt;strong&gt;Tag&lt;/strong&gt;）+ 数据块（&lt;strong&gt;Data Block&lt;/strong&gt;）组成。&lt;/p&gt;
 &lt;h5 id=&#34;-数据写入策略写直达与写回&#34;&gt;📝 数据写入策略：写直达与写回
 &lt;/h5&gt;&lt;p&gt;CPU 在读写数据的时候，都是在 CPU Cache 读写数据的，原因是 Cache 离 CPU 很近，读写性能相比内存高出很多。对于 Cache 里没有缓存 CPU 所需要读取的数据的这种情况，CPU 则会从内存读取数据，并将数据缓存到 Cache 里面，最后 CPU 再从 Cache 读取数据。&lt;/p&gt;
@@ -2983,7 +2952,7 @@
 &lt;/ul&gt;
 &lt;p&gt;基于总线嗅探机制的 MESI 协议，就满足上面了这两点，因此它是保障缓存一致性的协议。&lt;/p&gt;
 &lt;p&gt;MESI 协议，是已修改、独占、共享、已失效这四个状态的英文缩写的组合。整个 MESI 状态的变更，则是根据来自本地 CPU 核心的请求，或者来自其他 CPU 核心通过总线传输过来的请求，从而构成一个流动的状态机。另外，对于在「已修改」或者「独占」状态的 Cache Line，修改更新其数据不需要发送广播给其他 CPU 核心。&lt;/p&gt;
-&lt;h4 id=&#34;5-如何写出-cpu-缓存友好的代码&#34;&gt;5️⃣ 如何写出 CPU 缓存友好的代码
+&lt;h4 id=&#34;-如何写出-cpu-缓存友好的代码&#34;&gt;🧪 如何写出 CPU 缓存友好的代码
 &lt;/h4&gt;&lt;p&gt;&lt;strong&gt;核心原则&lt;/strong&gt;：缓存命中率越高，代码性能越好。要分开优化&lt;strong&gt;数据缓存命中率&lt;/strong&gt;和&lt;strong&gt;指令缓存命中率&lt;/strong&gt;。&lt;/p&gt;
 &lt;h5 id=&#34;-提升数据缓存命中率&#34;&gt;📊 提升数据缓存命中率
 &lt;/h5&gt;&lt;p&gt;&lt;strong&gt;案例：二维数组遍历&lt;/strong&gt;&lt;/p&gt;
@@ -3128,7 +3097,7 @@
 &lt;/div&gt;&lt;blockquote&gt;
 &lt;p&gt;✅ &lt;strong&gt;优化建议&lt;/strong&gt;：对于计算密集型线程，考虑绑定到固定 CPU 核心，提高 L1/L2 Cache 命中率。&lt;/p&gt;
 &lt;/blockquote&gt;
-&lt;h4 id=&#34;6-小结&#34;&gt;6️⃣ 小结
+&lt;h4 id=&#34;-小结&#34;&gt;🔖 小结
 &lt;/h4&gt;&lt;p&gt;&lt;strong&gt;CPU Cache 优化的核心思想&lt;/strong&gt;：&lt;/p&gt;
 &lt;ol&gt;
 &lt;li&gt;&lt;strong&gt;理解 Cache 机制&lt;/strong&gt;：CPU 批量加载数据（Cache Line），利用空间局部性&lt;/li&gt;
@@ -3143,7 +3112,7 @@
 &lt;li&gt;内存访问延迟：&lt;strong&gt;200~300 时钟周期&lt;/strong&gt;&lt;/li&gt;
 &lt;li&gt;L1 Cache 访问延迟：&lt;strong&gt;2~4 时钟周期&lt;/strong&gt;&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;-程序执行的基本过程和具体案例以a--1--2为例&#34;&gt;🔄 程序执行的基本过程和具体案例(以a = 1 + 2为例)
+&lt;h3 id=&#34;-程序执行的基本过程和具体案例以a--1--2为例&#34;&gt;⚙️ 程序执行的基本过程和具体案例(以a = 1 + 2为例)
 &lt;/h3&gt;&lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;CPU执行程序.png&#34; alt=&#34;CPU执行程序&#34; width=&#34;82%&#34;&gt;
 &lt;/div&gt;
@@ -3197,7 +3166,7 @@
 &lt;/ul&gt;
 &lt;p&gt;拼在一起就是一条 32 位的 MIPS 加法指令，用 16 进制表示为：&lt;code&gt;0x00011020&lt;/code&gt;&lt;/p&gt;
 &lt;p&gt;编译器在编译程序时构造指令，这个过程叫&lt;strong&gt;指令的编码&lt;/strong&gt;。CPU 执行程序时解析指令，这个过程叫&lt;strong&gt;指令的解码&lt;/strong&gt;。&lt;/p&gt;
-&lt;h4 id=&#34;-cpu-流水线技术&#34;&gt;🔄 CPU 流水线技术
+&lt;h4 id=&#34;-cpu-流水线技术&#34;&gt;⚡ CPU 流水线技术
 &lt;/h4&gt;&lt;p&gt;现代大多数 CPU 都使用&lt;strong&gt;流水线&lt;/strong&gt;（&lt;strong&gt;Pipeline&lt;/strong&gt;）的方式来执行指令，把一个任务拆分成多个小任务。一条指令通常分为 4 个阶段，称为&lt;strong&gt;4 级流水线&lt;/strong&gt;：&lt;/p&gt;
 &lt;ol&gt;
 &lt;li&gt;&lt;strong&gt;Fetch&lt;/strong&gt;（&lt;strong&gt;取得指令&lt;/strong&gt;）：CPU 通过程序计数器读取对应内存地址的指令&lt;/li&gt;
