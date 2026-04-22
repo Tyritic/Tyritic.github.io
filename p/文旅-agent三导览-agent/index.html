@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="文旅 Agent系列第三篇，详解导览 Agent 的设计与实现">
+<title>文旅 Agent（三）导览 Agent</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/%E6%96%87%E6%97%85-agent%E4%B8%89%E5%AF%BC%E8%A7%88-agent/'>
+
+<link rel="stylesheet" href="/scss/style.min.cbd512f1ab381ec2ee22f919961cc92c7cd9fe892ef96c066f8877ab9872f162.css"><meta property='og:title' content="文旅 Agent（三）导览 Agent">
+<meta property='og:description' content="文旅 Agent系列第三篇，详解导览 Agent 的设计与实现">
+<meta property='og:url' content='https://Tyritic.github.io/p/%E6%96%87%E6%97%85-agent%E4%B8%89%E5%AF%BC%E8%A7%88-agent/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='' /><meta property='article:published_time' content='2026-03-28T08:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-04-22T02:54:44&#43;00:00'/>
+<meta name="twitter:title" content="文旅 Agent（三）导览 Agent">
+<meta name="twitter:description" content="文旅 Agent系列第三篇，详解导览 Agent 的设计与实现">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_691afbb6233f07b9.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#-导览agent简介">💬 导览Agent简介</a>
+      <ol>
+        <li><a href="#-核心定位">🎯 核心定位</a></li>
+        <li><a href="#-与知识库的关系">🔗 与知识库的关系</a></li>
+      </ol>
+    </li>
+    <li><a href="#-agent的系统架构">🏗️ Agent的系统架构</a></li>
+    <li><a href="#-记忆层">🧠 记忆层</a>
+      <ol>
+        <li><a href="#-工作记忆">💾 工作记忆</a></li>
+        <li><a href="#-总体思路异构记忆存储">🗄️ 总体思路：异构记忆存储</a></li>
+        <li><a href="#-短期记忆">⏳ 短期记忆</a></li>
+        <li><a href="#-长期记忆">📚 长期记忆</a></li>
+        <li><a href="#-记忆检索">🔍 记忆检索</a></li>
+        <li><a href="#-记忆落盘">📥 记忆落盘</a>
+          <ol>
+            <li><a href="#-异步记忆更新">⚡ 异步记忆更新</a></li>
+            <li><a href="#-一致性兜底">🛡️ 一致性兜底</a></li>
+          </ol>
+        </li>
+        <li><a href="#-agent编排层">📋 Agent编排层</a></li>
+        <li><a href="#-总控层">🧭 总控层</a></li>
+        <li><a href="#-执行层">⚙️ 执行层</a></li>
+      </ol>
+    </li>
+    <li><a href="#-工具层">🔧 工具层</a></li>
+    <li><a href="#-agent的编排流程">🔄 Agent的编排流程</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/%E4%B8%AA%E4%BA%BA%E9%A1%B9%E7%9B%AE/" style="background-color: #2a9d8f; color: #fff;">
+                个人项目
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/%E6%96%87%E6%97%85-agent%E4%B8%89%E5%AF%BC%E8%A7%88-agent/">文旅 Agent（三）导览 Agent</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            文旅 Agent系列第三篇，详解导览 Agent 的设计与实现
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-03-28</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 17 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：8241 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="-导览agent简介">💬 导览Agent简介
+</h2><p>导览Agent不是一个泛化的问答机器人，而是一个面向文化展品与场馆参观场景设计的智能导览 Agent。用户拍摄展品或提出导览问题后，系统会围绕当前展品、展厅和参观意图，联动本地知识库、多轮对话记忆与工具调用能力，完成信息理解、知识检索、讲解生成与推荐补充的完整链路。</p>
+<p>它要解决的核心问题，不是“把某一个问题答出来”，而是承接游客在真实参观过程中的连续需求：既能解释展品背景，也能衔接同主题内容、场馆服务信息和后续参观建议。换句话说，它更像一个能够理解上下文、持续推进导览任务的文旅智能助手，而不是只做单轮问答的聊天入口。</p>
+<p>从系统能力上看，导览Agent本质上是 LLM + RAG + Memory + Tools + Planning 的工程化组合：LLM 负责理解与生成，知识库负责提供可靠内容底座，记忆模块负责维持多轮上下文，工具模块负责补充场馆与外部信息，规划模块负责把模糊需求拆成可执行步骤。这样系统不仅知道“有什么”，还知道“现在应该查什么、调用什么、先讲什么、再补什么”。</p>
+<h3 id="-核心定位">🎯 核心定位
+</h3><p>导览Agent的核心定位，不只是文旅知识的一站式问答入口，更是面向参观过程的智能导览中枢。它位于用户需求与底层知识、记忆和工具能力之间，负责把“游客的自然语言问题”转换成“可执行的检索、推理、调用与生成流程”，最终输出连续、可信且贴合场景的导览结果。</p>
+<p>具体来说，它承担三层角色：</p>
+<ul>
+<li>展品讲解入口：围绕单件展品完成背景解释、细节补充与同主题延展，把静态图文说明升级为可追问、可延展的连续讲解。</li>
+<li>场馆咨询入口：承接开放时间、展厅分布、参观规则、活动安排等高频咨询，降低游客查找分散信息的成本。</li>
+<li>导览决策入口：结合用户兴趣、时间预算、当前展厅和对话状态，进一步提供路线、活动与内容推荐，让 Agent 从“回答问题”升级为“辅助参观决策”。</li>
+</ul>
+<h3 id="-与知识库的关系">🔗 与知识库的关系
+</h3><p>如果说导览Agent是面向游客的智能导览中枢，那么知识库就是它完成讲解、问答与推荐任务的内容执行底座。两者并不是简单的“上层调用下层”，而是深度耦合、共同完成一次导览任务的关系：Agent负责理解用户意图、组织执行流程和生成最终回答，知识库负责提供可检索、可引用、可扩展的文旅内容依据。</p>
+<p>在这套架构里，知识库不是一个被动存放资料的静态仓库，而是导览Agent运行时持续参与决策的核心模块。用户每一次提问，不论是展品背景讲解、展厅内容追问，还是活动与路线推荐，背后都需要知识库参与内容召回、上下文补充与答案约束，帮助系统把生成结果尽可能建立在真实文旅资料之上，而不是仅依赖模型自由发挥。</p>
+<p>从职责划分上看：</p>
+<ul>
+<li>知识库：负责完成文旅资料的解析、分片、向量化、索引构建与检索召回，为系统提供结构化、可搜索的知识底座</li>
+<li>导览Agent：负责接收用户问题，结合会话状态、记忆信息与工具能力，决定检索什么、何时检索、如何组织结果，并最终生成连续、贴合场景的导览回答</li>
+</ul>
+<p>知识库既是“基础知识源”，又是“执行时按需查询的内容底座”。因此知识库有两个使用入口：</p>
+<ul>
+<li>作为主链路默认能力接入：知识库检索直接嵌入导览Agent的核心问答链路，作为回答生成前的基础步骤。这样系统在处理展品、展厅、活动等问题时，默认先从知识库中获取可靠依据，再进入后续推理与生成流程，保证回答尽量建立在文旅资料之上。</li>
+<li>作为执行阶段的工具化能力调用：当任务进入某个具体步骤时，Agent 可以按展品名、展厅名、活动主题或服务规则发起更精准的定向查询，用来补充讲解细节、校验信息边界或支撑推荐决策。这样知识库不仅服务“先查后答”，也服务“边执行边补充”。</li>
+</ul>
+<hr>
+<h2 id="-agent的系统架构">🏗️ Agent的系统架构
+</h2><p>导览Agent并不是一个单独的对话模块，而是一条围绕“用户输入—任务规划—知识检索—工具执行—答案生成—记忆更新”展开的完整链路。对于这个项目来说，更合适的拆法不是简单分成调度层、工具层和记忆层，而是拆成接入层、Agent 编排层、检索层、工具层、记忆层、异步事件层与底层存储层。</p>
+<ul>
+<li>接入层:接入层负责承接游客的拍照识别触发与文本问答请求，对外提供统一的交互入口。结合项目中的 Hertz 与 SSE，这一层更适合承担 HTTP 请求接入、参数校验、会话建立和流式结果返回等职责：用户拍摄展品或输入问题后，请求先在这里完成标准化，再进入后续 Agent 主链路。对于导览场景来说，这一层解决的是“怎么把用户请求稳定接进来，并把连续讲解自然返回出去”的问题。</li>
+<li>Agent 编排层:编排层是整个系统的总控中枢，负责把游客的自然语言需求转换成可执行任务。这一层的核心职责不是直接生成答案，而是先判断当前问题属于单轮问答、连续讲解还是多步骤导览任务，再决定是否要查知识库、调用工具、读取记忆或进入重规划。也就是说，这一层真正负责的是“先做什么、后做什么、结果不够时怎么调整”。通过 <code>Plan-Execute-Replan</code> 模式和 <code>ReAct</code> 架构，利用 LLM 生成计划，协调检索、记忆和工具调用，最终组织出更贴合上下文的回答</li>
+<li>检索层:。检索层负责把文旅资料转化为模型可调用的知识能力，是回答质量的主要来源。根据简历中的项目描述，知识库已经支持 Markdown、PDF、DOCX 等多格式文档解析，并完成结构化切分、向量化与索引构建；在查询阶段采用“粗召回 + 精排”的两阶段架构：先用 BM25 + 向量检索 做初步召回，再用 RRF 融合排序，最后通过 Cross-Encoder 做 ReRank。这意味着检索层在系统里不是附属模块，而是直接参与回答生成的主链路。</li>
+<li>工具层:工具层负责补齐“知识库之外但任务执行必须要有”的能力边界。除了知识库召回本身，导览Agent还需要围绕场馆信息查询、导览推荐和外部补充查询提供工具化能力</li>
+<li>记忆层:记忆层负责把“这一次对话”与“这个用户过去的状态”接起来，是导览Agent能够进行多轮讲解和个性化推荐的关键。按照简历里的设计，这一层不是单一存储，而是 Redis + MySQL + Milvus 的异构组合：Redis 负责承接当前会话中的短期上下文和状态，MySQL 保存强事实、确定性标签等高准确数据，Milvus 负责长期偏好、历史主题和模糊语义经验的召回。</li>
+<li>异步事件层:异步事件层负责把高时延、非必须同步完成的操作从主链路中剥离出去，保证对话响应速度。使用 Kafka 驱动记忆异步更新，这意味着主链路在生成回答后，可以先把用户输入、模型输出和状态变更事件投递到消息队列，再由后台消费者完成长期记忆抽取、分类、落盘与清理。这样系统的回答速度和记忆更新速度被解耦，能够更稳地兼顾 RT 与功能完整性。</li>
+<li>底层存储层:底层存储层是整个 Agent 架构的运行基础，由 MySQL、Redis、Milvus 和 Kafka 共同构成。它们并不是孤立的中间件集合，而是围绕“强事实存储、短期状态缓存、语义召回、异步事件驱动”四类职责分工协作：MySQL 保证结构化数据的确定性，Redis 保证主链路的低时延访问，Milvus 保证语义检索与长期经验召回，Kafka 保证写路径与更新路径的解耦。导览Agent之所以能在复杂多轮场景下保持可用，本质上依赖的就是这套后端底座协同。</li>
+</ul>
+<h2 id="-记忆层">🧠 记忆层
+</h2><h3 id="-工作记忆">💾 工作记忆
+</h3><p>导览Agent支持工作记忆，能够记住用户最近的交互，包括问题、回答、工具调用等。这使得Agent能够根据用户 previous 的问题，生成更准确、更相关的回答。</p>
+<p>Agent 的工作记忆，最直接的载体就是 LLM 的 <strong>Context Window（上下文窗口）</strong>。每次调用 LLM 时，我们把之前的对话历史、系统提示词、工具调用记录等信息拼接成一个 prompt 发给模型，模型就是基于这些“短期记忆”来理解当前状态并做出决策的。</p>
+<p>所以记忆层要解决的，本质上是三个问题：</p>
+<ul>
+<li>当前会话怎么记：保证多轮问答中，用户刚刚说过的实体、约束和目标不会丢</li>
+<li>跨会话偏好怎么记：把真正值得长期保留的兴趣、习惯和事实沉淀下来</li>
+<li>读写链路怎么解耦：不能为了更新记忆阻塞主链路，也不能因为异步更新导致状态读旧</li>
+</ul>
+<h3 id="-总体思路异构记忆存储">🗄️ 总体思路：异构记忆存储
+</h3><p>记忆层不是单一数据库，而是一套 Redis + MySQL + Milvus 的异构存储体系。不同类型的记忆由不同组件承载，按数据确定性和访问方式划分职责，而不是全部混进一个向量库里。</p>
+<ul>
+<li>Redis：负责会话级短期记忆，保存最近几轮完整对话、当前 Session 状态和临时兜底数据，强调低延迟与高频读取</li>
+<li>MySQL：负责强事实和确定性状态，比如明确的用户画像标签、已确认约束、不可容错的结构化信息，强调准确性和一致性</li>
+<li>Milvus：负责长期偏好、历史主题和模糊语义经验等非结构化内容，提供语义召回能力，用来补充跨轮次的长期记忆</li>
+</ul>
+<h3 id="-短期记忆">⏳ 短期记忆
+</h3><p>短期记忆的职责，是保证当前这场对话在主链路里始终连贯。这里并不追求“记住所有内容”，而是优先保住对当前任务真正重要的信息。
+具体的工程实践如下：在 <code>Redis</code> 里维护两层结构化存储，从根源上解决核心信息丢失的问题：</p>
+<ul>
+<li>
+<p><strong>高频对话流缓存</strong>：固定保留最近 5-10 轮的完整原始对话，带 Session 级别的 TTL 过期时间，直接塞进 messages 数组，保证对话的上下文连贯性，这一层只负责“连贯”，不负责“核心记忆”</p>
+</li>
+<li>
+<p><strong>Session 级动态状态机 State</strong>：后台用轻量小模型，实时增量抽取当前会话里的关键实体、核心约束、用户身份、待办事项和偏好信息，结构化后钉死在 System Prompt 里。只要 Session 不断，这个 State 就会全程跟着对话走，永远不会被滑动窗口截断，优先级远高于普通对话内容</p>
+</li>
+</ul>
+<p>相比单纯依赖上下文窗口，这种方式的关键优势在于：即便轮次很多、历史消息被裁剪，系统仍然能保住“当前最重要的状态”，不会因为滑动窗口截断而丢掉核心条件。相比单纯依赖上下文窗口，这种方式的关键优势在于：即便轮次很多、历史消息被裁剪，系统仍然能保住“当前最重要的状态”，不会因为滑动窗口截断而丢掉核心条件。</p>
+<h3 id="-长期记忆">📚 长期记忆
+</h3><p>如果说短期记忆解决的是“当前对话怎么记”的问题，那长期记忆解决的就是“<strong>跨对话怎么记、怎么用</strong>”的问题。长期记忆方案，不能纯靠向量库，而是一套异构混合存储架构。不同类型的记忆，用不同的存储承载，严格划分优先级，从根源上规避幻觉风险：</p>
+<ul>
+<li>
+<p><strong>强事实结构化数据</strong>：用户基础信息、确定性标签等零容错数据，用关系型数据库存储。召回优先级最高，必须 100% 准确，结果不可被推翻</p>
+</li>
+<li>
+<p><strong>半结构化长文本</strong>：历史对话总结、过往导览偏好、长文本需求、关键字强相关内容，用 <code>BM25</code> 做精确召回，召回优先级高</p>
+</li>
+<li>
+<p><strong>非结构化模糊语义数据</strong>：比如讲解风格偏好、兴趣主题、隐性内容倾向等无法结构化的内容，仅做语义补充，用向量数据库存储。召回优先级最低，允许有一定误差</p>
+</li>
+</ul>
+<h3 id="-记忆检索">🔍 记忆检索
+</h3><ul>
+<li>
+<p><strong>查短期缓存（Redis）</strong>：根据 SessionID，优先去 <code>Redis</code> 捞取最近 5 轮的完整对话记录，以及当前 Session 的动态状态机 State。这一步保证核心信息不丢失，对话上下文连贯</p>
+</li>
+<li>
+<p><strong>查强事实标签（MySQL）</strong>：根据 UserID，并发去 <code>MySQL</code> 查询用户的确定性画像标签，比如 <code>interest_theme=青铜器</code>、<code>visit_mode=亲子</code>、<code>time_budget=2小时</code>。这部分数据零容错，必须 100% 准确，优先级最高</p>
+</li>
+<li>
+<p><strong>查经验与补充知识（Milvus 混合检索）</strong>：对用户输入做意图识别，如果涉及长期偏好、历史主题或补充经验查询，就在 <code>Milvus</code> 中同时发起 <code>BM25</code> 与向量检索，两路结果返回后做 <code>Rerank</code> 重排和截断，只保留高相关度内容</p>
+</li>
+<li>
+<p><strong>Prompt 组装与大模型调用</strong>：把 <code>MySQL</code> 的强事实标签、<code>Milvus</code> 的混合检索结果按优先级塞进 System Prompt 里，把 <code>Redis</code> 里的短期对话塞进 messages 数组，统一格式化后，再传给 LLM 做推理生成</p>
+</li>
+</ul>
+<p>在主链路上，大模型只是一个“没有感情的计算 CPU”，真正的记忆提取、过滤、排序工作，全是由 <code>Redis</code>、<code>MySQL</code>、<code>Milvus</code> 这些成熟组件并发完成的，这也是控制 RT、降低幻觉的核心。</p>
+<h3 id="-记忆落盘">📥 记忆落盘
+</h3><h4 id="-异步记忆更新">⚡ 异步记忆更新
+</h4><p>记忆更新并不放在主线程同步完成，而是通过 Kafka 驱动异步落盘，把对话响应和记忆沉淀彻底解耦。主链路在拿到用户输入和模型输出后，不会等待记忆更新完成，而是先返回结果，再把需要处理的事件丢到消息队列中，由后台消费者做后续分类、抽取和写入。</p>
+<ul>
+<li>
+<p><strong>关键事件投递（MQ）</strong>：主链路拿到用户的输入和 LLM 的输出后，直接打包丢进 <code>Kafka</code>，主线程立刻给用户返回结果，不做任何额外的耗时操作</p>
+</li>
+<li>
+<p><strong>路由与意图分类</strong>：后台消费者线程拉取 MQ 消息，通过一个低成本的轻量小模型做判断：这句话里有没有包含需要长期记住的新事实、有没有状态变更？如果没有，直接丢弃；如果有，就解析成标准的结构化 JSON 指令</p>
+</li>
+<li>
+<p><strong>异构路由更新落盘</strong>：根据解析后的指令，给不同类型的记忆路由到对应的存储做更新：</p>
+<ul>
+<li>MySQL 更新：针对强事实状态变更，直接执行 <code>UPDATE</code> 操作</li>
+<li>Milvus 更新：如果是长文本的历史偏好总结、讲解偏好或语义经验，重新做 Embedding 后存入 <code>Milvus</code></li>
+</ul>
+</li>
+<li>
+<p><strong>短期记忆清理</strong>：长期记忆落盘成功后，通过 ACK 机制，清理 <code>Redis</code> 中不必要的临时数据，释放缓存空间</p>
+</li>
+</ul>
+<h4 id="-一致性兜底">🛡️ 一致性兜底
+</h4><p>如果在异步更新的过程中，MQ 消息积压了，导致用户下一次提问时，大模型取到了旧的长期记忆，给出了错误的回复，本质上就是分布式系统里经典的“数据一致性”问题：</p>
+<ul>
+<li>
+<p><strong>核心兜底：会话内状态永久优先</strong>：同一个 Session 内，用户新提交的状态变更，会直接写入 Session 级 State，优先级永久高于长期记忆的旧数据。哪怕长期记忆还没更新，主链路也会优先读取 Session 内的最新状态</p>
+</li>
+<li>
+<p><strong>双写缓存临时兜底</strong>：触发状态变更时，除了丢 MQ 异步更新 <code>MySQL</code>，同时会把新状态写入 <code>Redis</code> 临时缓存，设置 5 分钟短 TTL。主链路读取时优先读 <code>Redis</code> 临时状态，待 MQ 消费 ACK 后再清理临时缓存</p>
+</li>
+<li>
+<p><strong>关键数据同步更新，非关键数据异步更新</strong>：预约场次、票务状态、已确认的时间约束这类零容错数据，直接同步更新 <code>MySQL</code>，不经过 MQ 异步，保证更新成功后再返回；非核心偏好走异步更新，兼顾一致性与性能</p>
+</li>
+<li>
+<p><strong>版本号乐观锁 + 重试补偿机制</strong>：给用户记忆数据加上版本号，每次更新必须匹配版本号才能成功；消费失败的消息进入重试队列，同时给数据加上“待更新”标记，主链路读到标记时触发补偿查询</p>
+</li>
+</ul>
+<h3 id="-agent编排层">📋 Agent编排层
+</h3><p>编排层是整个系统的总控中枢，负责把游客的自然语言需求转换成可执行任务。它的职责不是直接生成答案，而是先判断当前问题属于单轮问答、连续讲解还是多步骤导览任务，再决定是否要查知识库、调用工具、读取记忆或进入重规划。这也是导览Agent区别于普通对话系统的关键：系统不是每次都直接“问一句、答一句”，而是会先组织执行流程，再决定回答如何产生。</p>
+<p>其中 <code>Plan-Execute-Replan</code> 放在总控层，负责“做什么”；<code>ReAct</code> 放在执行层，负责“怎么做”。</p>
+<h3 id="-总控层">🧭 总控层
+</h3><p>项目中采用 Plan-Execute-Replan 模式来组织复杂任务，它解决的是“做什么”的问题。</p>
+<ul>
+<li>
+<p><strong>Planner（规划器）</strong>：任务拆解，把用户目标拆成可执行的步骤清单，确保每个步骤清晰、有序。理解复杂目标的内在逻辑，生成结构化计划</p>
+</li>
+<li>
+<p><strong>Executor（执行器）</strong>：步骤行动，严格执行计划中的当前第一步，调用工具完成具体任务，返回执行结果。它不负责整体规划，只专注做好眼前事</p>
+</li>
+<li>
+<p><strong>Replanner（重规划器）</strong>：进度监理，评估 Executor 的执行结果，判断是否需要调整计划。若步骤完成且结果有效，就推进到下一步；若结果缺失或错误，就修改计划；若所有步骤完成，就终止任务并返回最终结果</p>
+</li>
+</ul>
+<p>这套机制非常适合文旅导览场景，因为导览问题天然具有开放性、多跳性和上下文依赖性。系统需要先理解目标，再动态决定下一步，而不是无脑把所有知识一次性拼进回答里。</p>
+<ul>
+<li>
+<p><strong>结构化规划解决开放式咨询</strong>：<code>Planner</code> 把用户模糊目标拆成明确步骤，减少“回答看起来流畅但没有真正解决问题”的情况</p>
+</li>
+<li>
+<p><strong>动态调整应对信息不足</strong>：<code>Replanner</code> 能根据检索结果和工具反馈及时修正计划，避免在错误路径上持续推理</p>
+</li>
+<li>
+<p><strong>多工具协同整合信息源</strong>：<code>Executor</code> 统一调度知识库、场馆信息和联网检索等工具，把分散信息组织成一条可执行链路</p>
+</li>
+</ul>
+<p>在文旅场景下：</p>
+<ul>
+<li>
+<p><strong>计划生成（Planner）</strong>：基于用户问题、当前会话状态和召回的文旅资料，生成可执行的多步骤讲解或咨询计划，替代一次性拍脑袋式回答</p>
+<ul>
+<li>输入：用户问题 + 会话状态 + 召回的展品/场馆资料</li>
+<li>输出：结构化计划（JSON 格式），包含步骤描述、工具调用参数、预期结果</li>
+</ul>
+</li>
+<li>
+<p><strong>执行计划（Executor）</strong>：通过集成知识库检索、场馆信息查询和联网检索工具，执行计划中的步骤，完成内容查询、信息补充和答案组织</p>
+<ul>
+<li>输入：结构化计划（JSON 格式）</li>
+<li>输出：执行结果（JSON 格式），包含工具调用结果、预期结果对比</li>
+</ul>
+</li>
+<li>
+<p><strong>动态重规划（Replanner）</strong>：根据 Executor 的执行结果，判断是否需要调整计划</p>
+<ul>
+<li>成功条件：当前步骤结果符合预期，比如已召回展品背景资料，并补齐相关展厅或活动信息，执行下一步</li>
+<li>调整条件：结果不符合预期，比如检索结果过少、用户问题发生偏移，触发计划修正，如扩大关键词范围、切换到场馆资料或活动信息查询</li>
+<li>终止条件：达到目标，比如已完成展品讲解和补充推荐，或无法继续，如需要外部系统提供更多实时信息</li>
+</ul>
+</li>
+</ul>
+<p>此模式通过规划、执行、调整的闭环，让对话Agent不只是“会回答”，而是能像讲解员一样在复杂文旅咨询中持续组织信息、解释信息和补充信息。</p>
+<h3 id="-执行层">⚙️ 执行层
+</h3><p>在执行层，<code>ReAct</code> 架构负责“怎么做”，协调检索层和LLM层，生成最终回答。</p>
+<p>ReAct 的核心思想非常朴素：<strong>想一步、做一步、看一步，根据每一步的反馈来调整下一步的计划</strong>。ReAct 就是把这个“交替进行推理和行动”的过程形式化了。</p>
+<p>在文旅场景下，ReAct 的核心优势是让Agent能边推理、边检索、边调整。例如用户先问“这件展品是什么朝代的”，接着追问“那同一展厅还有哪些值得一起看”，ReAct 可以先调用知识库检索展品资料，再根据结果决定是否补充查询展厅信息和推荐内容，而不是一次性把所有信息硬拼进回答里。</p>
+<h2 id="-工具层">🔧 工具层
+</h2><p>设计 tool 的关键，是思考对话Agent在文旅场景下到底需要哪些能力。当前工具集合主要围绕文旅问答与导览链路组织，部分工具也可以通过 <code>MCP</code> 方式接入：</p>
+<ul>
+<li>
+<p><strong>知识库召回工具</strong>：从 <code>Milvus</code> 中召回与展品、场馆、活动最相关的文档片段，作为对话回答的核心依据</p>
+</li>
+<li>
+<p><strong>场馆信息查询工具</strong>：查询开放时间、展厅分布、服务说明、活动安排等结构化信息，为问答和推荐补充实时上下文</p>
+</li>
+<li>
+<p><strong>导览规划工具</strong>：结合用户兴趣、时间约束和当前对话状态，生成更贴合场景的展厅、活动或内容推荐</p>
+</li>
+<li>
+<p><strong>联网查询工具</strong>：在知识库之外仍需补充公开信息时，接入外部搜索能力，避免回答停留在封闭知识范围内</p>
+</li>
+</ul>
+<hr>
+<h2 id="-agent的编排流程">🔄 Agent的编排流程
+</h2><p>导览 Agent 的编排核心，不是让大模型一上来直接回答，而是让它先充当任务总控：先理解用户意图，再决定要不要查知识库、读记忆、调工具，最后再组织答案输出。你的项目本身就是围绕“本地知识库 + 多轮记忆 + 工具调用”来做个性化讲解、旅行咨询与内容推荐的，所以编排目标并不是生成一段看起来合理的话，而是把游客的模糊需求稳定地拆成一条可执行链路。
+具体来说，这套编排采用的是 Plan-Execute-Replan + ReAct 的组合：Plan-Execute-Replan 放在总控层，负责“这件事要怎么拆”；ReAct 放在执行层，负责“当前这一步到底怎么做”。在你的简历里，这一点已经写得很明确：系统会先把游客的模糊需求拆成景点知识检索、工具调用和结果生成等可执行步骤，再根据中间结果动态调整计划，而不是一轮 Prompt 直接硬答。
+一轮典型请求进入系统后，第一步不是直接生成，而是先做任务识别和上下文装配。系统会结合当前问题、会话状态和已有记忆，判断这次请求到底属于单轮问答、连续讲解，还是需要多步骤完成的导览任务。与此同时，主链路会优先读取短期上下文和用户状态：短期对话与 Session 状态由 Redis 承载，强事实和确定性约束由 MySQL 提供，长期偏好和模糊语义经验由 Milvus 补充。这样大模型拿到的不是一堆原始历史消息，而是已经按优先级整理好的任务上下文。
+在此基础上，Planner 负责生成计划。如果用户的问题比较简单，比如只问某件展品的背景信息，计划可能只包含“检索资料 → 组织讲解 → 返回结果”这几步；如果用户的问题更开放，比如“这个展厅还值得看什么”“有没有适合带小朋友重点看的”，Planner 就会把目标拆成多步，例如先查当前展品或展厅资料，再结合场馆信息和用户偏好补充推荐，必要时继续追加说明。这种编排方式特别适合文旅场景，因为用户需求天然口语化、上下文强，而且中间结果会直接影响下一步怎么走。
+到了执行阶段，Executor 并不是机械跑计划，而是配合 ReAct 做“边推理、边行动、边观察”的循环。也就是说，执行器会先根据当前步骤决定要调用哪类能力：如果需要事实依据，就走知识库检索；如果需要结构化信息，就调场馆信息工具；如果需要个性化推荐，就结合用户状态和工具结果继续推进。
+在执行过程中，如果某一步结果不理想，系统不会硬着头皮继续往下走，而是交给 Replanner 做动态重规划。例如第一轮检索结果太少、召回内容和当前问题不匹配，或者用户在对话中临时改变了关注点，Replanner 就会根据中间结果调整计划：扩大关键词范围、切换检索对象、补调场馆信息工具，甚至直接改写后续步骤。
+这个 Agent 的编排本质上可以概括成一句话：先用 Planner 把游客问题拆成步骤，再由 Executor 结合 RAG、工具和记忆逐步执行，执行中通过 ReAct 感知反馈，必要时交给 Replanner 动态改写路径，回答完成后再异步更新记忆。 这套方式让系统不只是“能回答”，而是真正具备了在复杂文旅场景中持续推进任务的能力。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026-04-22 02:54 UTC
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/%E6%96%87%E6%97%85agent%E4%BA%8C%E7%9F%A5%E8%AF%86%E5%BA%93%E7%AE%A1%E7%90%86/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">文旅Agent（二）知识库管理</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%BA%8C%E7%BB%84%E4%BB%B6%E6%A8%A1%E5%9E%8B/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">分布式批处理计算平台（二）组件模型</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/%E5%88%86%E5%B8%83%E5%BC%8F%E6%89%B9%E5%A4%84%E7%90%86%E8%AE%A1%E7%AE%97%E5%B9%B3%E5%8F%B0%E4%B8%80%E9%A1%B9%E7%9B%AE%E8%B5%B7%E6%AD%A5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">分布式批处理计算平台（一）项目起步</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/%E8%AF%86%E7%89%A9%E6%8E%A2%E8%B6%A3%E4%B8%89%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E6%A8%A1%E5%9D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">识物探趣（三）用户管理模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/%E8%AF%86%E7%89%A9%E6%8E%A2%E8%B6%A3%E4%BA%8C%E9%A1%B9%E7%9B%AE%E6%9E%B6%E6%9E%84%E5%92%8C%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">识物探趣（二）项目架构和技术选型</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2026 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.93ec85291de2934df13aa4307b756a6eb93dd4ff935a9810e787a938c351043f.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
