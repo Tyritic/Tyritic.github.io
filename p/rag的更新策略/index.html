@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="系统梳理RAG系统中知识库更新的核心问题，涵盖更新触发机制、更新模式对比、索引层面的更新策略以及一致性保证等关键环节。">
+<title>RAG的更新策略</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/rag%E7%9A%84%E6%9B%B4%E6%96%B0%E7%AD%96%E7%95%A5/'>
+
+<link rel="stylesheet" href="/scss/style.min.cbd512f1ab381ec2ee22f919961cc92c7cd9fe892ef96c066f8877ab9872f162.css"><meta property='og:title' content="RAG的更新策略">
+<meta property='og:description' content="系统梳理RAG系统中知识库更新的核心问题，涵盖更新触发机制、更新模式对比、索引层面的更新策略以及一致性保证等关键环节。">
+<meta property='og:url' content='https://Tyritic.github.io/p/rag%E7%9A%84%E6%9B%B4%E6%96%B0%E7%AD%96%E7%95%A5/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='RAG' /><meta property='article:published_time' content='2026-05-09T10:50:00&#43;08:00'/><meta property='article:modified_time' content='2026-05-09T09:22:51&#43;00:00'/>
+<meta name="twitter:title" content="RAG的更新策略">
+<meta name="twitter:description" content="系统梳理RAG系统中知识库更新的核心问题，涵盖更新触发机制、更新模式对比、索引层面的更新策略以及一致性保证等关键环节。">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_691afbb6233f07b9.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#-rag-更新策略的本质问题">🔄 RAG 更新策略的本质问题</a></li>
+    <li><a href="#-更新机制">⚙️ 更新机制</a>
+      <ol>
+        <li><a href="#-定时全量扫描">⏰ 定时全量扫描</a></li>
+        <li><a href="#-增量更新">🛠️ 增量更新</a>
+          <ol>
+            <li><a href="#-变更检测机制">🔍 变更检测机制</a></li>
+            <li><a href="#-更新粒度控制">🎯 更新粒度控制</a></li>
+          </ol>
+        </li>
+      </ol>
+    </li>
+    <li><a href="#工程上的经验是除非你的文档量特别大或者单文档特别长否则文档级更新就够用了chunk-级更新带来的复杂度往往不值得如果真的遇到性能瓶颈优先考虑的应该是优化-embedding-的批处理效率而不是把更新粒度做到-chunk-级">工程上的经验是：除非你的文档量特别大或者单文档特别长，否则文档级更新就够用了。chunk 级更新带来的复杂度往往不值得。如果真的遇到性能瓶颈，优先考虑的应该是优化 Embedding 的批处理效率，而不是把更新粒度做到 chunk 级。</a></li>
+    <li><a href="#-在线服务的平滑切换">🚀 在线服务的平滑切换</a></li>
+    <li><a href="#-更新后的质量验证">✅ 更新后的质量验证</a></li>
+    <li><a href="#-embedding-模型升级的特殊处理">🤖 Embedding 模型升级的特殊处理</a></li>
+    <li><a href="#-过期数据和生命周期管理">🗑️ 过期数据和生命周期管理</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/agent/" style="background-color: #2a9d8f; color: #fff;">
+                Agent
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/rag%E7%9A%84%E6%9B%B4%E6%96%B0%E7%AD%96%E7%95%A5/">RAG的更新策略</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            系统梳理RAG系统中知识库更新的核心问题，涵盖更新触发机制、更新模式对比、索引层面的更新策略以及一致性保证等关键环节。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-05-09</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 8 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：3558 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="-rag-更新策略的本质问题">🔄 RAG 更新策略的本质问题
+</h2><p>要理解知识库更新策略，得先搞清楚一个根本问题：RAG 的知识库到底是什么？它不是一个简单的文件夹，而是一条加工链的产物。原始文档经过文档解析、文本清洗、分块（Chunking）、Embedding 向量化，最终存入向量数据库——这中间每一个环节都有自己的逻辑和参数。所以当我们说更新知识库时，其实是在说：当源头的文档发生变化时，如何让这条加工链的终端产物也跟着正确地变化。<strong>真正的生产环境中，知识库是一个动态活体</strong>：产品规格会调整、公司政策会变化、技术文档会迭代。如果 RAG 系统里的向量索引和源文档不同步，检索回来的内容就是过时的、甚至错误的。</p>
+<p>这比没有 RAG 更危险。想象一下，用户问的是&quot;最新版本的政策&quot;，系统返回的是三个月前的旧版本。用户以为得到了准确答案，实际上是被误导了。这就是 RAG 系统的 <strong>时效性陷阱</strong>——它看起来在&quot;工作&quot;，但输出的其实是错误信息。</p>
+<div align="center">
+  <img src="微信图片_2026-05-09_105228_747.png" alt="RAG系统知识库更新的流程" width="82%" />
+</div>
+<p>RAG 更新策略要解决的核心问题有三个：<strong>何时更新</strong>（触发机制）、<strong>更新什么</strong>（粒度控制）、<strong>如何保证一致</strong>（质量和安全）。</p>
+<div align="center">
+  <img src="微信图片_2026-05-09_110944_327.png" alt="RAG系统知识库更新的策略" width="82%" />
+</div>
+<hr>
+<h2 id="-更新机制">⚙️ 更新机制
+</h2><h3 id="-定时全量扫描">⏰ 定时全量扫描
+</h3><p>最直接的思路是定时全量重建——比如每天凌晨把所有文档重新跑一遍加工链，生成新的向量索引，然后整体替换旧索引。这种方式实现最简单，不需要追踪哪些文档变了，每次都是全量覆盖。对于文档量不大（比如几千篇以内）、更新频率要求不高（天级别就够）的场景，全量重建完全够用，而且由于每次都是从零构建，不存在增量更新可能引入的脏数据问题。</p>
+<p>但全量重建的问题也很明显：当文档量上去之后，成本和耗时都不可接受。假设你有 50 万篇文档，每篇文档分块后产生 10 个 chunk，就是 500 万个 chunk 需要重新 Embedding。即使用 batch 调用，Embedding 的 API 费用和计算时间也相当可观。更关键的是，其中可能 99% 的文档根本没有变化，重新处理它们纯粹是浪费。</p>
+<h3 id="-增量更新">🛠️ 增量更新
+</h3><p>实际项目中更常见的方案是增量更新。核心思路是：只处理那些真正发生了变化的文档。</p>
+<h4 id="-变更检测机制">🔍 变更检测机制
+</h4><p>增量更新需要一套变更检测机制来回答哪些文档变了这个问题。常见的做法有几种：</p>
+<ul>
+<li>基于文件哈希的检测:对每个源文档计算内容哈希（比如 MD5 或 SHA256），存到一张元数据表里。每次更新时重新计算哈希，和上一次比较——哈希变了就说明内容变了，需要重新处理；哈希没变就跳过。这种方式不依赖任何外部系统，适用面最广。</li>
+<li>基于事件驱动的检测:如果你的文档源头是一个 CMS 系统或者 Wiki 平台，通常可以通过 Webhook 或者消息队列拿到文档创建/修改/删除的事件通知。收到通知后立即触发对应文档的更新处理，做到分钟级甚至秒级的准实时更新。这种方式延迟最低，但需要源头系统支持事件推送，而且要处理好事件的幂等性和顺序性问题。</li>
+<li>基于时间戳的检测:记录每个文档的最后修改时间，每次更新时只处理上次更新之后有修改的文档。实现简单，但依赖源系统提供准确的修改时间，而且无法检测到内容没变但文件被重新保存了这种假变更（虽然这种情况下重新处理一次也没什么大问题）。</li>
+</ul>
+<div align="center">
+  <img src="微信图片_2026-05-09_105838_061.png" alt="增量更新的变更检测机制" width="82%" />
+</div>
+<p>实际项目中，这三种方式经常混合使用。比如用事件驱动做准实时的增量更新，同时每周做一次基于哈希的全量校验，确保没有遗漏。</p>
+<h4 id="-更新粒度控制">🎯 更新粒度控制
+</h4><p>检测到文档变化之后，下一个问题是：更新的粒度应该是文档级还是chunk 级？</p>
+<ul>
+<li>文档级更新是最直觉的做法——某个文档变了，就把这个文档对应的所有旧 chunk 删掉，重新分块、重新 Embedding、重新写入。这种方式实现简单，不容易出现残留的脏数据，但如果一篇很长的文档只改了一个段落，其他所有 chunk 的重新处理都是浪费。</li>
+<li>chunk 级更新更精细。思路是对新版文档分块后，逐个和旧版的 chunk 做内容比对（同样可以用哈希），只对真正发生变化的 chunk 做重新 Embedding 和写入，未变化的 chunk 保持不动。这种方式在文档很长、修改范围很小的场景下能显著节省处理成本，但实现复杂度高很多——你需要维护文档和 chunk 之间的映射关系，还需要处理分块边界变化导致的&quot;级联影响&quot;问题（比如在文档中间插入了一段话，可能导致后续所有 chunk 的边界都发生偏移）。</li>
+</ul>
+<div align="center">
+  <img src="微信图片_2026-05-09_110235_864.png" alt="增量更新的更新粒度控制" width="82%" />
+</div>
+<h2 id="工程上的经验是除非你的文档量特别大或者单文档特别长否则文档级更新就够用了chunk-级更新带来的复杂度往往不值得如果真的遇到性能瓶颈优先考虑的应该是优化-embedding-的批处理效率而不是把更新粒度做到-chunk-级">工程上的经验是：除非你的文档量特别大或者单文档特别长，否则文档级更新就够用了。chunk 级更新带来的复杂度往往不值得。如果真的遇到性能瓶颈，优先考虑的应该是优化 Embedding 的批处理效率，而不是把更新粒度做到 chunk 级。
+</h2><h2 id="-在线服务的平滑切换">🚀 在线服务的平滑切换
+</h2><p>知识库更新还有一个容易被忽略但在生产环境中至关重要的问题：更新过程中，线上服务怎么办？如果你在更新的时候直接操作线上的向量数据库——删旧 chunk、写新 chunk——那么在这个过程中，用户的查询可能会命中不完整的数据：旧的已经删了，新的还没写完。这在体验上是不可接受的。
+常见的解决方案如下</p>
+<ul>
+<li>双索引切换（也叫蓝绿部署思路）。维护两套向量索引，一套是线上正在服务的活跃索引，另一套是用于构建新版本的备用索引。更新时在备用索引上完成所有写入操作，经过质量验证后，通过一个原子操作将流量切换到新索引，旧索引随后释放。整个切换过程对用户完全无感知。</li>
+<li>利用向量数据库自身的版本或别名机制。比如 Elasticsearch 的 alias 功能、Milvus 的 collection alias——你可以创建一个新的 collection 完成数据写入，然后把 alias 指向新 collection，一步完成切换。原理和双索引切换一样，只是利用了数据库的原生能力来实现。</li>
+</ul>
+<p>对于增量更新场景，如果你用的向量数据库支持原子的 upsert 操作（删旧写新在同一个事务里），也可以直接在线上索引做增量更新，不需要双索引。但这要求你对更新过程的正确性有足够信心，因为没有了&quot;旧版本兜底&quot;的退路。</p>
+<div align="center">
+  <img src="微信图片_2026-05-09_110505_703.png" alt="增量更新的平滑切换" width="82%" />
+</div>
+<p>这里还有一个细节值得注意：更新过程的并发控制。如果多个数据源同时触发更新，或者定时任务和事件驱动的更新同时在跑，就可能出现竞态条件——两个更新进程同时在修改同一个文档的 chunk，导致最终数据状态不确定。常见的做法是引入一个分布式锁或者任务队列，确保同一个文档的更新操作是串行的。在 pipeline 层面，可以用 Celery 这类任务队列来调度更新任务，通过文档 ID 做分区路由，保证同一个文档的更新请求不会被并行执行。</p>
+<h2 id="-更新后的质量验证">✅ 更新后的质量验证
+</h2><p>新索引构建完了，不能直接切换上线。验证是整个更新流程中最容易被跳过、但最不应该跳过的环节。质量验证的核心是确认两件事：数据完整性和检索效果。
+数据完整性检查比较直接：新索引中的文档数量和 chunk 数量是否和预期一致？有没有丢失文档？有没有出现空向量或者异常向量？元数据字段是否完整？这些可以通过简单的统计对比来自动化验证。
+检索效果验证更复杂，也更关键。做法是维护一套基准测试集（Benchmark）——一批预设的查询和对应的&quot;期望命中文档&quot;，每次更新完成后跑一遍这套测试集，检查 Top-K 的召回率、命中率有没有出现明显的下降。如果指标波动超出阈值，就阻断切换流程，人工介入排查。</p>
+<p>更进一步的做法是加入语义一致性检测。抽取一批核心查询，分别在新旧索引上做检索，对比两边返回结果的相似度。如果差异过大（比如某些本该排前面的文档突然消失了），就需要检查是不是分块策略变化或者 Embedding 模型更新导致了检索漂移。</p>
+<div align="center">
+  <img src="微信图片_2026-05-09_110731_480.png" alt="增量更新后的质量验证" width="82%" />
+</div>
+<h2 id="-embedding-模型升级的特殊处理">🤖 Embedding 模型升级的特殊处理
+</h2><p>日常的知识库更新，只要 Embedding 模型没变，新旧 chunk 的向量处于同一个语义空间，可以自由混合检索。但如果你要把 Embedding 模型从 v1 换成 v2（比如从 text-embedding-ada-002 升级到 text-embedding-3-large），那所有旧向量和新向量就不在同一个语义空间了——用新模型生成的 query 向量去检索旧模型生成的文档向量，结果基本是垃圾。
+这意味着 Embedding 模型升级必须做全量重建，把所有文档用新模型重新 Embedding 一遍。这个过程的成本和时间不可避免，但可以通过前面说的双索引切换来做到无缝过渡——在备用索引上用新模型全量构建，验证完毕后切换，旧索引保留一段时间以备回滚。
+工程上一个好的实践是：在元数据中记录每个 chunk 使用的 Embedding 模型版本和参数。这样当模型升级时，你能清楚地知道哪些数据需要重新处理，也方便出问题时做版本溯源。</p>
+<hr>
+<h2 id="-过期数据和生命周期管理">🗑️ 过期数据和生命周期管理
+</h2><p>最后还有一个维度经常被忽视：数据的主动清理。知识库更新不只是&quot;加新的&quot;，还包括&quot;删旧的&quot;。过期的产品文档、撤回的政策、废弃的 API 文档——如果不主动清理，这些过时信息会持续干扰检索结果，导致 RAG 给出错误的回答。
+在做法上，可以为每个文档或 chunk 设置有效期元数据，由源系统在文档发布时指定，也可以设置默认的存活时间（TTL）。更新流程中加一步过期检查，自动清理超过有效期的数据。对于无法自动判断是否过期的内容，可以定期生成&quot;疑似过期文档&quot;报告，交给业务团队人工确认
+同样重要的是文档去重。随着知识库持续积累，同一份内容可能以不同格式、不同版本被多次导入。重复文档不仅浪费存储，还会在检索时占据多个 Top-K 位置，挤掉其他有价值的结果。可以在写入前做内容去重（基于文本哈希或语义相似度），也可以定期对库内数据做一次去重扫描。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/rag/">RAG</a>
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026-05-09 09:22 UTC
+        </span>
+    </section></footer>
+
+
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI&#43;WdtXRGWt2kTvGFasHpSy3SV"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG&#43;vnGctmUb0ZY0l8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"integrity="sha384-&#43;VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4&#43;/RRE05"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+        renderMathInElement(document.body, {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ],
+            ignoredClasses: ["gist"]
+        });})
+</script>
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/rag%E7%9A%84%E4%BC%98%E5%8C%96%E7%AD%96%E7%95%A5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">RAG的优化策略</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/rag%E7%9A%84%E5%87%A0%E5%A4%A7%E8%8C%83%E5%BC%8F/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">RAG的几大范式</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/rag%E7%9A%84%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB%E5%92%8C%E6%8E%92%E6%9F%A5%E7%AD%96%E7%95%A5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">RAG的评估体系和排查策略</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/rag%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E5%92%8C%E6%B5%81%E7%A8%8B/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">RAG的基本概念和流程</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">大模型应用的高可用性</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2026 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.93ec85291de2934df13aa4307b756a6eb93dd4ff935a9810e787a938c351043f.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

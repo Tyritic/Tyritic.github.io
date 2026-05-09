@@ -7,7 +7,7 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>Tyritic</copyright>
-        <lastBuildDate>Thu, 23 Apr 2026 08:00:22 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E6%99%BA%E8%83%BD%E4%BD%93/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Sat, 09 May 2026 09:22:51 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E6%99%BA%E8%83%BD%E4%BD%93/index.xml" rel="self" type="application/rss+xml" /><item>
         <title>Agent的Skills</title>
         <link>https://Tyritic.github.io/p/agent%E7%9A%84skills/</link>
         <pubDate>Fri, 27 Mar 2026 10:20:00 +0800</pubDate>
@@ -872,10 +872,13 @@
 &lt;h2 id=&#34;-人类记忆的类比&#34;&gt;🧬 人类记忆的类比
 &lt;/h2&gt;&lt;p&gt;Agent 的记忆系统设计，其实是从认知科学中借鉴过来的。人类的记忆大致分为两类：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;工作记忆（Working Memory）&lt;/strong&gt;：容量有限，持续时间短。对于你在思考中需要临时存储的信息，比如你正在解决的问题、你正在考虑的选项等，工作记忆就是你正在使用的记忆。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;短期记忆（Short-term Memory）&lt;/strong&gt;：容量有限，持续时间短。比如你听到一个手机号码，能暂时记住但过一会儿就忘了。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;长期记忆（Long-term Memory）&lt;/strong&gt;：容量几乎无限，能持续很长时间。比如你的名字、骑自行车的技能、上周开会的内容。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;工作记忆（Working Memory）&lt;/strong&gt;：当前对话的上下文，也就是对话历史。容量有限，持续时间短。对于你在思考中需要临时存储的信息，比如你正在解决的问题、你正在考虑的选项等，工作记忆就是你正在使用的记忆。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;短期记忆（Short-term Memory）&lt;/strong&gt;：用来存储当前会话或近几次会话中提取出的结构化信息。本质上是一些结构化 slot，存进一个轻量的 key-value 存储里。这些信息不依赖原始对话文本，所以不占上下文窗口，但又随时可以按需检索注入到 prompt 中。容量有限，持续时间短。比如你听到一个手机号码，能暂时记住但过一会儿就忘了。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;长期记忆（Long-term Memory）&lt;/strong&gt;：用来存储跨会话的持久化信息。实现上通常是把关键信息 embedding 之后存进向量数据库，下次对话开始时，根据当前话题做语义检索，把相关的历史记忆注入到 system prompt 里。容量几乎无限，能持续很长时间。比如你的名字、骑自行车的技能、上周开会的内容。&lt;/li&gt;
 &lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;三层记忆.png&#34; alt=&#34;三层记忆&#34; width=&#34;80%&#34;&gt;
+&lt;/div&gt;
 &lt;p&gt;把这个类比映射到 Agent 身上就非常自然了：&lt;/p&gt;
 &lt;table&gt;
   &lt;thead&gt;
@@ -887,9 +890,14 @@
   &lt;/thead&gt;
   &lt;tbody&gt;
       &lt;tr&gt;
-          &lt;td&gt;短期记忆&lt;/td&gt;
+          &lt;td&gt;工作记忆&lt;/td&gt;
           &lt;td&gt;当前对话的上下文信息&lt;/td&gt;
           &lt;td&gt;上下文窗口有限怎么办？&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+          &lt;td&gt;短期记忆&lt;/td&gt;
+          &lt;td&gt;当前会话或近几次会话中提取出的结构化信息&lt;/td&gt;
+          &lt;td&gt;信息提取的准确性&lt;/td&gt;
       &lt;/tr&gt;
       &lt;tr&gt;
           &lt;td&gt;长期记忆&lt;/td&gt;
@@ -902,8 +910,10 @@
   &lt;img src=&#34;人类记忆的类比.png&#34; alt=&#34;人类记忆的类比&#34; width=&#34;80%&#34;&gt;
 &lt;/div&gt;
 &lt;hr&gt;
-&lt;h2 id=&#34;-多轮对话的实现&#34;&gt;💡 多轮对话的实现
-&lt;/h2&gt;&lt;p&gt;所有大模型API都是&amp;quot;无状态&amp;quot;的——说白了，模型本身没有记忆，也不记你上一轮说了啥，每次请求都是独立的。目前行业内通用的解决方案是维护一个叫 messages 的对话数组，里面只存两种角色的内容：&lt;/p&gt;
+&lt;h2 id=&#34;-工作记忆上下文窗口的管理&#34;&gt;📋 工作记忆：上下文窗口的管理
+&lt;/h2&gt;&lt;p&gt;Agent 的工作记忆，最直接的载体就是 LLM 的 &lt;strong&gt;Context Window（上下文窗口）&lt;/strong&gt;。每次调用 LLM 时，我们把之前的对话历史、系统提示词、工具调用记录等信息拼接成一个 prompt 发给模型，模型就是基于这些&amp;quot;工作记忆&amp;quot;来理解当前状态并做出决策的。&lt;/p&gt;
+&lt;h3 id=&#34;-多轮对话的实现&#34;&gt;💡 多轮对话的实现
+&lt;/h3&gt;&lt;p&gt;所有大模型API都是&amp;quot;无状态&amp;quot;的——说白了，模型本身没有记忆，也不记你上一轮说了啥，每次请求都是独立的。目前行业内通用的解决方案是维护一个叫 messages 的对话数组，里面只存两种角色的内容：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;user&lt;/strong&gt;：用户问的问题&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;assistant&lt;/strong&gt;：模型答的内容&lt;/li&gt;
@@ -933,10 +943,7 @@
 &lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;#34;role&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;user&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;nt&#34;&gt;&amp;#34;content&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;s2&#34;&gt;&amp;#34;这本书适合零基础吗？&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;}]&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
-&lt;/div&gt;&lt;hr&gt;
-&lt;h2 id=&#34;-工作记忆上下文窗口的管理&#34;&gt;📋 工作记忆：上下文窗口的管理
-&lt;/h2&gt;&lt;p&gt;Agent 的工作记忆，最直接的载体就是 LLM 的 &lt;strong&gt;Context Window（上下文窗口）&lt;/strong&gt;。每次调用 LLM 时，我们把之前的对话历史、系统提示词、工具调用记录等信息拼接成一个 prompt 发给模型，模型就是基于这些&amp;quot;工作记忆&amp;quot;来理解当前状态并做出决策的。&lt;/p&gt;
-&lt;h3 id=&#34;-上下文窗口的核心挑战&#34;&gt;⚠️ 上下文窗口的核心挑战
+&lt;/div&gt;&lt;h3 id=&#34;-上下文窗口的核心挑战&#34;&gt;⚠️ 上下文窗口的核心挑战
 &lt;/h3&gt;&lt;p&gt;Context Window 的容量是有限的。即使现在的模型已经支持 128K 甚至更长的上下文，在实际 Agent 场景中，上下文很容易就被撑满：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;一个复杂任务可能需要十几轮工具调用&lt;/li&gt;
@@ -946,27 +953,28 @@
 &lt;p&gt;而且即使窗口足够大，研究表明模型在处理超长上下文时会出现 &lt;strong&gt;&amp;ldquo;Lost in the Middle&amp;quot;现象&lt;/strong&gt;——对上下文中间位置的信息关注度明显下降。&lt;/p&gt;
 &lt;p&gt;所以工作记忆的核心挑战是：&lt;strong&gt;如何在有限的上下文窗口里，尽可能保留最有用的信息？&lt;/strong&gt;&lt;/p&gt;
 &lt;hr&gt;
-&lt;h3 id=&#34;-滑动窗口sliding-window&#34;&gt;🔧 滑动窗口（Sliding Window）
-&lt;/h3&gt;&lt;p&gt;滑动窗口是最简单粗暴的方案。给messages数组设个长度上限，当对话历史超过窗口限制时，直接截断最早的消息，只保留最近的 N 轮对话。&lt;/p&gt;
+&lt;h3 id=&#34;-具体实现&#34;&gt;🛠️ 具体实现
+&lt;/h3&gt;&lt;h4 id=&#34;-滑动窗口sliding-window&#34;&gt;🔧 滑动窗口（Sliding Window）
+&lt;/h4&gt;&lt;p&gt;滑动窗口是最简单粗暴的方案。给messages数组设个长度上限，当对话历史超过窗口限制时，直接截断最早的消息，只保留最近的 N 轮对话。&lt;/p&gt;
 &lt;p&gt;目前也有一种动态滑动窗口：不固定对话轮数，按token数动态调整，只保留最近的对话内容，保证注入的token数不超过窗口上限的70%，预留空间给系统提示、工具返回结果、当前query。&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;优点：&lt;/strong&gt; 实现简单&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;缺点：&lt;/strong&gt; 信息丢失严重——可能用户在第一轮告诉了 Agent 一个关键信息，到了第十轮就被截掉了，Agent 完全&amp;quot;忘&amp;quot;了这件事&lt;/p&gt;
 &lt;hr&gt;
-&lt;h3 id=&#34;-对话摘要conversation-summary&#34;&gt;📝 对话摘要（Conversation Summary）
-&lt;/h3&gt;&lt;p&gt;对话摘要是一种更优雅的方案。当对话历史变长时，不是直接截断，而是用 LLM 把较早的对话内容压缩成一段摘要，然后用这段摘要+最近对话替代原始的冗长历史。&lt;/p&gt;
+&lt;h4 id=&#34;-对话摘要conversation-summary&#34;&gt;📝 对话摘要（Conversation Summary）
+&lt;/h4&gt;&lt;p&gt;对话摘要是一种更优雅的方案。当对话历史变长时，不是直接截断，而是用 LLM 把较早的对话内容压缩成一段摘要，然后用这段摘要+最近对话替代原始的冗长历史。&lt;/p&gt;
 &lt;p&gt;这种方式既控制了 token 用量，又保留了关键信息。&lt;strong&gt;LangChain&lt;/strong&gt; 中的 &lt;code&gt;ConversationSummaryMemory&lt;/code&gt; 和 &lt;code&gt;ConversationSummaryBufferMemory&lt;/code&gt; 就是这种策略的实现：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;优点&lt;/strong&gt;：只对更早的对话做摘要压缩，保留核心信息，兼顾了近期对话的完整性和历史信息的保留，Token消耗骤减&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;缺点&lt;/strong&gt;：需要额外的 LLM 调用来做摘要压缩，可能增加推理时间&lt;/li&gt;
 &lt;/ul&gt;
 &lt;hr&gt;
-&lt;h3 id=&#34;-token-buffertoken-缓冲区&#34;&gt;📐 Token Buffer（Token 缓冲区）
-&lt;/h3&gt;&lt;p&gt;Token Buffer 则是按 token 数量来精确控制。设置一个 token 上限，比如 4000 token，当历史消息的总 token 数超过这个值时，从最早的消息开始逐条丢弃，直到总量回到阈值以内。&lt;/p&gt;
+&lt;h4 id=&#34;-token-buffertoken-缓冲区&#34;&gt;📐 Token Buffer（Token 缓冲区）
+&lt;/h4&gt;&lt;p&gt;Token Buffer 则是按 token 数量来精确控制。设置一个 token 上限，比如 4000 token，当历史消息的总 token 数超过这个值时，从最早的消息开始逐条丢弃，直到总量回到阈值以内。&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;优点&lt;/strong&gt;：比简单的轮次截断更精确&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;缺点&lt;/strong&gt;：本质上还是&amp;quot;先进先出&amp;quot;的淘汰策略，可能丢失重要信息&lt;/p&gt;
 &lt;hr&gt;
-&lt;h3 id=&#34;-基于重要度的选择性保留&#34;&gt;📌 基于重要度的选择性保留
-&lt;/h3&gt;&lt;p&gt;还有一种更精细的做法——不是简单地按时间顺序淘汰，而是评估每条历史消息的&amp;quot;重要程度&amp;rdquo;。&lt;/p&gt;
+&lt;h4 id=&#34;-基于重要度的选择性保留&#34;&gt;📌 基于重要度的选择性保留
+&lt;/h4&gt;&lt;p&gt;还有一种更精细的做法——不是简单地按时间顺序淘汰，而是评估每条历史消息的&amp;quot;重要程度&amp;rdquo;。&lt;/p&gt;
 &lt;p&gt;比如：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;包含用户需求的消息&lt;/strong&gt;比闲聊更重要&lt;/li&gt;
@@ -976,11 +984,36 @@
 &lt;p&gt;&lt;strong&gt;优先保留重要的、淘汰次要的。&lt;/strong&gt;&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;优点&lt;/strong&gt;：效果最好，最大化利用有限的上下文窗口&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;缺点&lt;/strong&gt;：实现最复杂，通常需要额外的 LLM 调用来做重要度评估&lt;/p&gt;
-&lt;h3 id=&#34;-map-reduce-模式分块处理与并行计算&#34;&gt;🔄 Map-Reduce 模式：分块处理与并行计算
-&lt;/h3&gt;&lt;p&gt;针对超长文档、超长上下文的处理，采用Map-Reduce模式，先把长文档分块，让大模型并行处理每个分块，得到多个中间答案，最后再用一次 LLM 把中间答案合并成最终答案，完美适配长文档总结、全文检索的场景。&lt;/p&gt;
+&lt;h4 id=&#34;-map-reduce-模式分块处理与并行计算&#34;&gt;🔄 Map-Reduce 模式：分块处理与并行计算
+&lt;/h4&gt;&lt;p&gt;针对超长文档、超长上下文的处理，采用Map-Reduce模式，先把长文档分块，让大模型并行处理每个分块，得到多个中间答案，最后再用一次 LLM 把中间答案合并成最终答案，完美适配长文档总结、全文检索的场景。&lt;/p&gt;
+&lt;p&gt;实际工程中，最常用的是&amp;quot;摘要 + 滑动窗口&amp;quot;的混合方案：远期历史做摘要，近期历史保留原文，再加上一个 system prompt 持续携带任务背景信息。这样既控制了 token 用量，又保证了近期上下文的完整性和远期关键信息的不丢失。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-08_104911_320.png&#34; alt=&#34;工业级异构存储架构&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;-上下文窗口的优化策略&#34;&gt;🚀 上下文窗口的优化策略
+&lt;/h3&gt;&lt;p&gt;前面几个设计点最终都会汇聚到一个绕不开的硬约束上：LLM 的上下文窗口是有限的。即使是 128K 甚至更大窗口的模型，在高频长对话场景下也会被撑满。而且窗口大不代表效果好——研究表明，当输入内容超过一定长度后，LLM 对中间位置信息的理解质量会显著下降。面对这个约束，工程上的策略可以分为三个层次来思考。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;减少输入量。除了前面提到的对话历史压缩和摘要之外，还有一些细节值得关注。比如工具调用的返回结果往往很长（一个 API 返回了一大坨 JSON），但真正有用的可能只是其中几个字段——可以在工具返回结果后做一次裁剪，只保留和当前任务相关的字段。再比如 system prompt 里的工具定义，如果 Agent 有 20 个工具，每个工具的描述占 200 token，光工具定义就占了 4000 token。可以根据当前对话的主题做动态工具筛选，只把可能用到的工具定义送进去。&lt;/li&gt;
+&lt;li&gt;分层存储，按需加载。不是所有信息都需要同时待在上下文窗口里。可以把信息分成&amp;quot;必须常驻&amp;quot;（system prompt、当前任务状态）、&amp;ldquo;近期需要&amp;rdquo;（最近几轮对话）、&amp;ldquo;按需检索&amp;rdquo;（长期记忆、历史对话摘要）三个层级。常驻信息始终在 prompt 里，近期信息用滑动窗口管理，按需信息存在外部存储里，只在 LLM 需要时通过检索注入。&lt;/li&gt;
+&lt;li&gt;多 Agent 分工。当一个对话涉及多个子任务时（比如用户先问了技术问题，又让帮忙写一封邮件），可以用一个主 Agent 做对话管理和意图路由，具体的子任务分发给专门的子 Agent 处理。每个子 Agent 只接收和自己任务相关的上下文，这样每个 Agent 的上下文压力都大大降低。这也是为什么很多生产级 Agent 框架（如 AutoGen、CrewAI）都采用了多 Agent 协作的架构。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-08_110235_540.png&#34; alt=&#34;上下文窗口的工程策略&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
 &lt;hr&gt;
 &lt;h2 id=&#34;-短期记忆承载会话的完整历史&#34;&gt;⏰ 短期记忆：承载会话的完整历史
 &lt;/h2&gt;&lt;p&gt;这一层的作用时在工作记忆的上下文窗口不够用时，提供快速的补充检索。&lt;/p&gt;
+&lt;h3 id=&#34;-对话状态追踪&#34;&gt;📝 对话状态追踪
+&lt;/h3&gt;&lt;p&gt;多轮对话不是一轮一轮独立的问答拼接，它有连贯的上下文语境和正在推进的任务状态。Agent 必须随时知道&amp;quot;当前聊到了什么阶段&amp;quot;、&amp;ldquo;还差哪些信息没收集到&amp;rdquo;、&amp;ldquo;用户的核心意图有没有发生变化&amp;rdquo;。这就是对话状态追踪（Dialogue State Tracking, DST）要解决的问题。&lt;/p&gt;
+&lt;p&gt;传统的任务型对话系统里，DST 的做法比较明确：预先定义好一组 slot（比如订机票场景的出发地、目的地、日期、舱位），每轮对话后更新 slot 的填充状态，所有 slot 填满了就触发对应的 action。但 LLM 时代的多轮对话 Agent 面对的场景要复杂得多——用户的意图可能是开放式的，可能中途切换话题，可能一句话里包含多个意图，也可能隐含的意图需要推理才能发现。在 LLM-based 的 Agent 中，对话状态追踪通常不再用传统的 slot-filling 范式，而是让 LLM 自己来理解和维护对话状态。具体的实现方式有两种路线。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;隐式状态追踪：不显式维护任何状态对象，完全依赖 LLM 从对话历史中&amp;quot;读出&amp;quot;当前状态。每轮对话时把完整历史送进去，LLM 自己判断现在该做什么。这种方式实现最简单，但问题是当对话变长后，LLM 对远处上下文的注意力会衰减（lost in the middle 问题），可能遗漏早期的关键信息。&lt;/li&gt;
+&lt;li&gt;显式状态追踪：在每轮对话后，让 LLM 输出一个结构化的状态对象（JSON 格式），记录当前的任务进度、已收集的信息、待确认的事项等。这个状态对象在下一轮对话时作为 system prompt 的一部分注入，相当于给 LLM 一个&amp;quot;备忘录&amp;quot;。这种方式的好处是状态清晰可控、不容易遗漏信息，代价是每轮都要多做一次状态更新的 LLM 调用。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;隐式追踪与显式追踪.png&#34; alt=&#34;隐式追踪与显式追踪&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;p&gt;实践中，推荐的做法是显式状态 + 轻量更新：维护一个结构化的 dialogue state，但不是每轮都重新生成整个状态，而是让 LLM 只输出&amp;quot;相对于上一轮状态的增量变更&amp;quot;（delta update），这样既保持了状态的准确性，又控制了额外的 token 开销。&lt;/p&gt;
 &lt;h3 id=&#34;-工业级异构存储&#34;&gt;🏭 工业级异构存储
 &lt;/h3&gt;&lt;p&gt;在真实的工业级落地里，短期记忆绝对不能靠 “傻瓜式截断”。落地标准，是在 Redis 里维护两层结构化存储，从根源上解决核心信息丢失的问题：&lt;/p&gt;
 &lt;ul&gt;
@@ -1109,7 +1142,7 @@
 &lt;/ul&gt;
 &lt;p&gt;在主链路上，大模型只是一个 “没有感情的计算 CPU”，真正的记忆提取、过滤、排序工作，全是由 Redis、MySQL、ES 这些成熟的存储组件并发完成的，这也是控制 RT、降低幻觉的核心。&lt;/p&gt;
 &lt;h3 id=&#34;-旁路异步记忆剥离与落盘&#34;&gt;📤 旁路异步&amp;quot;记忆剥离与落盘&amp;quot;
-&lt;/h3&gt;&lt;h4 id=&#34;异步记忆更新&#34;&gt;异步记忆更新
+&lt;/h3&gt;&lt;h4 id=&#34;-异步记忆更新&#34;&gt;🔓 异步记忆更新
 &lt;/h4&gt;&lt;p&gt;采用完全异步的事件驱动架构，主线程只负责核心对话链路，记忆更新全走旁路，不影响主接口响应。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;关键事件投递（MQ）：主链路拿到用户的输入和 LLM 的输出后，直接打包丢进 RocketMQ/Kafka，主线程立刻给用户返回结果，不做任何额外的耗时操作。&lt;/li&gt;

@@ -7,12 +7,12 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>Tyritic</copyright>
-        <lastBuildDate>Thu, 23 Apr 2026 08:00:22 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E9%9D%9E%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/index.xml" rel="self" type="application/rss+xml" /><item>
-        <title>Redis的缓存设计</title>
-        <link>https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1/</link>
+        <lastBuildDate>Sat, 09 May 2026 09:22:51 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/%E9%9D%9E%E5%85%B3%E7%B3%BB%E5%9E%8B%E6%95%B0%E6%8D%AE%E5%BA%93/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>Redis(八)Redis的缓存设计</title>
+        <link>https://Tyritic.github.io/p/redis%E5%85%ABredis%E7%9A%84%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1/</link>
         <pubDate>Sat, 01 Mar 2025 19:56:40 +0800</pubDate>
         
-        <guid>https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1/</guid>
+        <guid>https://Tyritic.github.io/p/redis%E5%85%ABredis%E7%9A%84%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1/</guid>
         <description>&lt;h2 id=&#34;-redis的缓存&#34;&gt;💾 Redis的缓存
 &lt;/h2&gt;&lt;p&gt;Redis最常见的用途就是作为缓存系统。通过将热门数据存储在内存中，可以极大地提高访问速度，减轻数据库负载，这对于需要快速响应时间的应用程序非常重要。&lt;/p&gt;
 &lt;p&gt;用户的数据一般都是存储于数据库，数据库的数据是落在磁盘上的，磁盘的读写速度很慢了。当用户的请求，都访问数据库的话，请求数量一上来，数据库很容易就崩溃的了，所以为了避免用户直接访问数据库，会用 Redis 作为缓存层。&lt;/p&gt;
@@ -20,9 +20,83 @@
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;37e4378d2edcb5e217b00e5f12973efd-20230309232858764.png&#34; alt=&#34;缓存系统设计&#34; width=&#34;82%&#34;&gt;
 &lt;/div&gt;
+&lt;h2 id=&#34;-bigkey问题&#34;&gt;⚠️ BigKey问题
+&lt;/h2&gt;&lt;p&gt;Redis 中的 &lt;strong&gt;Big Key&lt;/strong&gt; 是指一个内存空间占用比较大的键（Key）&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;工作线程阻塞&lt;/strong&gt; ：由于 Redis 单线程执行命令，操作大 Key 时耗时较长，从而导致 Redis 出现其它命令阻塞的问题。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;网络阻塞&lt;/strong&gt; ：大 Key 对资源的占用巨大，在你进行网络 I/O 传输的时候，导致你获取过程中产生的网络流量较大，从而产生网络传输时间延长甚至网络传输发现阻塞的现象&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;客户端超时&lt;/strong&gt; ：因为操作大 Key 时耗时较长，可能导致客户端等待超时。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;阻塞线程&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;当 AOF 写回策略配置了 Always 策略，如果写入是一个大 Key，主线程在执行 fsync() 函数的时候，阻塞的时间会比较久，因为当写入的数据量很大的时候，数据同步到硬盘这个过程是很耗时的。&lt;/li&gt;
+&lt;li&gt;创建子进程的途中，由于要复制父进程的页表等数据结构，阻塞的时间跟页表的大小有关，页表越大，阻塞的时间也越长；&lt;/li&gt;
+&lt;li&gt;创建完子进程后，如果父进程修改了共享数据中的大 Key，就会发生写时复制，这期间会拷贝物理内存，由于大 Key 占用的物理内存会很大，那么在复制物理内存这一过程，就会比较耗时，所以有可能会阻塞父进程。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;对性能的影响&#34;&gt;对性能的影响
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;工作线程阻塞&lt;/strong&gt; ：由于 Redis 单线程执行命令，操作大 Key 时耗时较长，从而导致 Redis 出现其它命令阻塞的问题。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;AOF阻塞&lt;/strong&gt; ：当使用 Always 策略的时候：如果写入是一个大 Key，主线程在执行 fsync() 函数的时候，阻塞的时间会比较久，因为当写入的数据量很大的时候，数据同步到硬盘这个过程是很耗时的。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;客户端超时&lt;/strong&gt; ：因为操作大 Key 时耗时较长，可能导致客户端等待超时。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;内存占用失衡&lt;/strong&gt; ：单个大 Key 可能占用数百 MB 甚至 GB 级内存，比如一个存储全量商品分类信息的 String Key 占 1GB，在集群环境中，若几个类似的大 Key 集中在某个节点，会导致该节点内存使用率骤升，触发内存淘汰机制（如 LRU），甚至被迫清空部分正常数据，影响服务稳定性。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;集群数据倾斜&lt;/strong&gt; ：在 Redis 集群中，数据按槽位分布，若某个大 Key 所在的槽位包含集群 80% 的内存（比如一个存储千万级用户 ID 的 ZSet），会导致承载该槽位的节点负载极高，而其他节点几乎空闲，造成资源浪费和负载不均，甚至拖垮整个集群。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-对持久化的影响&#34;&gt;📊 对持久化的影响
+&lt;/h3&gt;&lt;h4 id=&#34;-对aof的影响&#34;&gt;⚠️ 对AOF的影响
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;对写回策略的影响&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当使用 Always 策略的时候：如果写入是一个大 Key，主线程在执行 &lt;code&gt;fsync()&lt;/code&gt; 函数的时候，阻塞的时间会比较久，因为当写入的数据量很大的时候，数据同步到硬盘这个过程是很耗时的。&lt;/li&gt;
+&lt;li&gt;当使用 Everysec 策略的时候，由于是异步执行 &lt;code&gt;fsync()&lt;/code&gt; 函数，所以大 Key 持久化的过程（数据同步磁盘）不会影响主线程。&lt;/li&gt;
+&lt;li&gt;当使用 No 策略的时候，由于永不执行 &lt;code&gt;fsync()&lt;/code&gt; 函数，所以大 Key 持久化的过程不会影响主线程。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;对AOF重写的影响&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当 AOF 日志写入了很多的大 Key，AOF 日志文件的大小会很大，那么很快就会触发 &lt;strong&gt;AOF 重写机制&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;创建子进程的途中，由于要复制父进程的页表等数据结构，阻塞的时间跟页表的大小有关，页表越大，阻塞的时间也越长；&lt;/li&gt;
+&lt;li&gt;创建完子进程后，如果父进程修改了共享数据中的大 Key，就会发生写时复制，这期间会拷贝物理内存，由于大 Key 占用的物理内存会很大，那么在复制物理内存这一过程，就会比较耗时，所以有可能会阻塞父进程。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-对rdb的影响&#34;&gt;⚠️ 对RDB的影响
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;创建子进程的途中，由于要复制父进程的页表等数据结构，阻塞的时间跟页表的大小有关，页表越大，阻塞的时间也越长；&lt;/li&gt;
+&lt;li&gt;创建完子进程后，如果父进程修改了共享数据中的大 Key，就会发生写时复制，这期间会拷贝物理内存，由于大 Key 占用的物理内存会很大，那么在复制物理内存这一过程，就会比较耗时，所以有可能会阻塞父进程。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-解决方案&#34;&gt;✅ 解决方案
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;对要存储的数据进行压缩，压缩之后再进行存储&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;大化小，即把大对象拆分成小对象，即将一个大 Key 拆分成若干个小 Key，降低单个 Key 的内存大小。比如一个几万元素的Hash拆成多个小Hash，保证每个key的数据量在合理范围内。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;采用 Redis 集群方式进行 Redis 的部署，然后将大 Key 拆分散落到不同的服务器上面，加快响应速度&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;定期清理过期数据，避免在Hash这类结构中不断追加数据却不清理失效的数据，导致内存占用过大。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-09_171649_240.png&#34; alt=&#34;Redis大Key解决方案&#34; width=&#34;82%&#34;&gt;
+&lt;/div&gt;
+&lt;h2 id=&#34;hotkey问题&#34;&gt;HotKey问题
+&lt;/h2&gt;&lt;h3 id=&#34;问题描述&#34;&gt;问题描述
+&lt;/h3&gt;&lt;p&gt;热key就是被高频访问的key。比如Redis整体QPS是1万，其中某个key占了7000；或者一个上千成员的大Hash被频繁HGETALL；或者一个几万成员的Zset被频繁ZRANGE。这些操作会导致请求集中在单个节点上，造成该节点负载过高。&lt;/p&gt;
+&lt;h3 id=&#34;解决方案&#34;&gt;解决方案
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;在集群中复制热key。把热key foo复制成foo2、foo3、foo4等内容完全一样的key，分散到不同的分片上，请求也随机分散到这些副本上，降低单分片压力。&lt;/li&gt;
+&lt;li&gt;使用读写分离架构。如果热key主要是读请求，可以加从节点分担读压力。但这种方案会增加架构复杂度，需要加Proxy做负载均衡，从节点增多后故障率也会上升，运维成本更高。&lt;/li&gt;
+&lt;li&gt;本地缓存+分布式缓存多级缓存架构，减少对Redis的直接访问：在本地或其他缓存系统中存储热key的数据副本，减轻Redis的压力&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h2 id=&#34;-缓存雪崩&#34;&gt;❄️ 缓存雪崩
 &lt;/h2&gt;&lt;h3 id=&#34;-定义&#34;&gt;📖 定义
-&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;缓存雪崩&lt;/strong&gt;：指大量缓存数据在同一时间过期（失效）或者 Redis 故障宕机，如果此时有大量的用户请求，都无法在 Redis 中处理，导致全部请求同时访问数据库，从而造成数据库瞬间负载激增，严重的会造成数据库宕机，从而形成一系列连锁反应，造成整个系统崩溃。&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;缓存雪崩指大量缓存数据在同一时间过期（失效）或者 Redis 故障宕机，如果此时有大量的用户请求，都无法在 Redis 中处理，导致全部请求同时访问数据库，从而造成数据库瞬间负载激增，严重的会造成数据库宕机，从而形成一系列连锁反应，造成整个系统崩溃。&lt;/p&gt;
 &lt;p&gt;通常为了保证缓存中的数据与数据库中的数据一致性，会给 Redis 里的数据设置过期时间，当缓存数据过期后，用户访问的数据如果不在缓存里，业务系统需要重新生成缓存，因此就会访问数据库，并将数据更新到 Redis 里，这样后续请求都可以直接命中缓存。&lt;/p&gt;
 &lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;e2b8d2eb5536aa71664772457792ec40-20230309232851699.png&#34; alt=&#34;缓存雪崩工作流程&#34; width=&#34;82%&#34;&gt;
@@ -314,14 +388,60 @@
 &lt;li&gt;&lt;strong&gt;消息队列重试机制&lt;/strong&gt;：引入消息队列后，删除缓存的操作由消费者执行。如果删除失败，消息会重新入队并重试。如果重试超过一定次数仍未成功，则向业务层发送报错信息。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;订阅 Binlog 保证数据库更新成功&lt;/strong&gt;：通过订阅 MySQL binlog 日志，拿到具体要操作的数据，然后再执行缓存删除。Canal 中间件正是基于这个原理实现的，binlog 日志采集发送到 MQ 队列后，通过 ACK 机制确认处理，保证数据缓存一致性。&lt;/li&gt;
 &lt;/ul&gt;
+&lt;h2 id=&#34;分布式锁设计&#34;&gt;分布式锁设计
+&lt;/h2&gt;&lt;h3 id=&#34;分布式锁实现原理&#34;&gt;分布式锁实现原理
+&lt;/h3&gt;&lt;p&gt;分布式锁用于分布式环境下控制某个共享资源同一时刻只能被一个应用使用。
+实现原理是使用Redis SET命令的NX参数。当有多个线程进入时，我们就利用该方法，第一个线程进入时，redis 没有这个key 了，返回了1，如果结果是1，则表示他抢到了锁，那么他去执行业务，然后再删除锁，退出锁逻辑，没有抢到锁的，等待一定时间后重试即可。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;加锁: SET lock_key uniqueValue EX expire_time NX
+&lt;ul&gt;
+&lt;li&gt;expire_time：锁需要有过期机制。假设某个客户端加了锁之后宕机了，锁没有设置过期机制，会使得其他客户端都无法抢到锁&lt;/li&gt;
+&lt;li&gt;uniqueValue：唯一标识，防止被别的线程给释放了&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;解锁: 通过Lua脚本先判断lock_key的值是不是自己的unique_value，是的话才del删除，保证原子性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-09_170051_342.png&#34; alt=&#34;分布式锁设计&#34; width=&#34;82%&#34;&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;误删除问题的解决&#34;&gt;误删除问题的解决
+&lt;/h3&gt;&lt;p&gt;只用setnx实现分布式锁有以下问题&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;持有锁的线程执行业务逻辑的时间超过了锁的过期时间，导致他的锁自动释放，这时其他线程，线程2来尝试获得锁，就拿到了这把锁，然后线程2在持有锁执行过程中，线程1反应过来，继续执行，而线程1执行过程中，走到了删除锁逻辑，此时就会把本应该属于线程2的锁进行删除
+&lt;ul&gt;
+&lt;li&gt;解决方法：在释放锁的时候检查锁的所有者再进行删除&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;线程1现在持有锁之后，在执行业务逻辑过程中，他正准备删除锁，而且准备执行检查锁的拥有者的逻辑中，但是此时他的锁到期了，那么此时线程2进来获取锁，但是线程1他会接着往后执行，当他卡顿结束后，他直接就会执行删除锁那行代码，相当于判断锁的拥有者并没有起到作用，这就是删锁时的原子性问题，之所以有这个问题，是因为线程1的检查锁的拥有人和删锁，实际上并不是原子性的
+&lt;ul&gt;
+&lt;li&gt;解决方法：利用lua脚本实现检查锁和删除锁的原子性，确保在释放锁的时候检查锁的所有者再进行删除&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;在分布式锁实现时，Setnx并不一定是可靠的，主要是由于主从复制不一致的情况可能发生。当一个客户端在主节点上成功执行Setnx命令获取锁时，但还没来得及同步到从节点上，此时主节点发生故障，从节点会被晋升为主节点，而此时之前获取锁的客户端在新的主节点上并没有获取到锁，导致出现锁失效的情况。
+&lt;ul&gt;
+&lt;li&gt;解决方案
+&lt;ul&gt;
+&lt;li&gt;采用Redlock算法来保证分布式锁的可靠性。Redlock算法是由Redis的作者提出的一种分布式锁算法，通过在多个独立的Redis实例上获取锁，并且在释放锁时要求大部分实例都成功释放才算释放成功&lt;/li&gt;
+&lt;li&gt;主从延迟释放：加锁时先在主节点执行，休眠100ms(确保从节点同步)后再返回成功;解锁时先删主节点再删从节点&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;过期时间问题的解决&#34;&gt;过期时间问题的解决
+&lt;/h3&gt;&lt;p&gt;Redis实现分布式锁加了过期时间，业务代码还没执行完，锁就过期了怎么办？&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;看门狗机制：看门狗（watchdog）主要用来避免 Redis 中的锁在超时后业务逻辑还未执行完毕，锁却被自动释放的情况。它通过判断锁是否持有锁并定期刷新锁的过期时间来实现自动续期。&lt;/li&gt;
+&lt;li&gt;唯一标识：每个锁设置一个唯一值（比如 UUID），释放锁或续期时验证身份&lt;/li&gt;
+&lt;/ul&gt;
 </description>
         </item>
         <item>
-        <title>Redis的缓存淘汰策略和过期删除策略</title>
-        <link>https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5%E5%92%8C%E8%BF%87%E6%9C%9F%E5%88%A0%E9%99%A4%E7%AD%96%E7%95%A5/</link>
+        <title>Redis(十一)Redis的缓存淘汰策略和过期删除策略</title>
+        <link>https://Tyritic.github.io/p/redis%E5%8D%81%E4%B8%80redis%E7%9A%84%E7%BC%93%E5%AD%98%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5%E5%92%8C%E8%BF%87%E6%9C%9F%E5%88%A0%E9%99%A4%E7%AD%96%E7%95%A5/</link>
         <pubDate>Sat, 01 Mar 2025 17:51:38 +0800</pubDate>
         
-        <guid>https://Tyritic.github.io/p/redis%E7%9A%84%E7%BC%93%E5%AD%98%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5%E5%92%8C%E8%BF%87%E6%9C%9F%E5%88%A0%E9%99%A4%E7%AD%96%E7%95%A5/</guid>
+        <guid>https://Tyritic.github.io/p/redis%E5%8D%81%E4%B8%80redis%E7%9A%84%E7%BC%93%E5%AD%98%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5%E5%92%8C%E8%BF%87%E6%9C%9F%E5%88%A0%E9%99%A4%E7%AD%96%E7%95%A5/</guid>
         <description>&lt;h2 id=&#34;-过期删除策略&#34;&gt;⏰ 过期删除策略
 &lt;/h2&gt;&lt;p&gt;Redis 数据过期主要有两种删除策略，分别为 &lt;strong&gt;定期删除、惰性删除&lt;/strong&gt; 两种：&lt;/p&gt;
 &lt;ul&gt;
@@ -411,56 +531,33 @@
         <pubDate>Sat, 01 Mar 2025 16:36:44 +0800</pubDate>
         
         <guid>https://Tyritic.github.io/p/redis%E4%B9%9Dredis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96%E7%AD%96%E7%95%A5/</guid>
-        <description>&lt;h2 id=&#34;-主要的持久化机制&#34;&gt;🧠 主要的持久化机制
-&lt;/h2&gt;&lt;p&gt;Redis 提供两种主要的持久化机制：&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;RDB（Redis Database）快照&lt;/strong&gt;：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;RDB 是通过生成某一时刻的数据快照来实现持久化的，可以在特定时间间隔内保存数据的快照。&lt;/li&gt;
-&lt;li&gt;适合灾难恢复和备份，能生成紧凑的二进制文件，但可能会在崩溃时丢失最后一次快照之后的数据。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;strong&gt;AOF（Append Only File）日志&lt;/strong&gt;：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;AOF 通过将每个写操作追加到日志文件中实现持久化，支持将所有写操作记录下来以便恢复。&lt;/li&gt;
-&lt;li&gt;数据恢复更为精确，但文件体积较大，重写时可能会消耗更多资源。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2 id=&#34;-aof持久化机制&#34;&gt;📝 AOF持久化机制
-&lt;/h2&gt;&lt;p&gt;AOF 持久化机制是指 &lt;strong&gt;将 Redis 写命令以追加的形式写入到磁盘中的 AOF 文件&lt;/strong&gt; ，AOF 文件记录了 Redis 在内存中的操作过程，只要在 Redis 重启后重新执行 AOF 文件中的写命令即可将数据恢复到内存中。&lt;/p&gt;
+        <description>&lt;h2 id=&#34;-aofappend-only-file日志&#34;&gt;📝 AOF（Append Only File）日志
+&lt;/h2&gt;&lt;p&gt;AOF 持久化机制是指 &lt;strong&gt;将 Redis 写命令以追加的形式写入到磁盘中的 AOF 日志文件&lt;/strong&gt; ，AOF 文件记录了 Redis 在内存中的操作过程，只要在 Redis 重启后重新执行 AOF 文件中的写命令即可将数据恢复到内存中。数据恢复更为精确，但文件体积较大，重写时可能会消耗更多资源。&lt;/p&gt;
 &lt;h3 id=&#34;-执行流程&#34;&gt;🔄 执行流程
 &lt;/h3&gt;&lt;div align=&#34;center&#34;&gt;
   &lt;img src=&#34;6f0ab40396b7fc2c15e6f4487d3a0ad7.png&#34; alt=&#34;AOF持久化执行流程图&#34; width=&#34;85%&#34;&gt;
 &lt;/div&gt;
-&lt;p&gt;实际上Redis先执行写操作命令后，才将该命令记录到 AOF 日志里&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;当 AOF 持久化机制被启用时，Redis 服务器会将接收到的所有写命令追加到 AOF 缓冲区的末尾。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;根据写回策略将缓冲区中的命令刷新到磁盘的 AOF 文件中，此时数据并没有写入到硬盘，而是拷贝到了内核缓冲区 page cache，等待内核将数据写入硬盘；&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;随着 AOF 文件的不断增长，Redis 会启用重写机制来生成一个更小的 AOF 文件&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;当 Redis 服务器重启时，会读取 AOF 文件中的所有命令并重新执行它们，以恢复重启前的内存状态。&lt;/p&gt;
-&lt;/li&gt;
+&lt;li&gt;Redis先执行写操作命令后，才将该命令记录到 AOF 日志里&lt;/li&gt;
+&lt;li&gt;当 AOF 持久化机制被启用时，Redis 服务器会将接收到的所有写命令追加到 AOF 缓冲区的末尾。这个缓冲区本质上是一个sds（简单动态字符串）结构，它就像一个临时的记事本，先把所有修改操作记录下来，等待后续处理。&lt;/li&gt;
+&lt;li&gt;根据写回策略将缓冲区中的命令刷新到磁盘的 AOF 文件中，此时数据并没有写入到硬盘，而是拷贝到了内核缓冲区 page cache，等待内核将数据写入硬盘；&lt;/li&gt;
+&lt;li&gt;随着 AOF 文件的不断增长，Redis 会启用重写机制来生成一个更小的 AOF 文件&lt;/li&gt;
+&lt;li&gt;当 Redis 服务器重启时，会读取 AOF 文件中的所有命令并重新执行它们，以恢复重启前的内存状态。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;-优缺点&#34;&gt;📊 优缺点
-&lt;/h4&gt;&lt;ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-09_163324_906.png&#34; alt=&#34;AOF持久化执行流程图&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;-优缺点&#34;&gt;📊 优缺点
+&lt;/h3&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;优点&lt;/strong&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;避免额外的检查开销。&lt;/strong&gt;
-&lt;ul&gt;
-&lt;li&gt;因为如果先将写操作命令记录到 AOF 日志里，再执行该命令的话，如果当前的命令语法有问题，那么如果不进行命令语法检查，该错误的命令记录到 AOF 日志里后，Redis 在使用日志恢复数据时，就可能会出错。&lt;/li&gt;
-&lt;li&gt;而如果先执行写操作命令再记录日志的话，只有在该命令执行成功后，才将命令记录到 AOF 日志里，这样就不用额外的检查开销，保证记录在 AOF 日志里的命令都是可执行并且正确的。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;避免额外的检查开销。&lt;/strong&gt;:因为如果先将写操作命令记录到 AOF 日志里，再执行该命令的话，如果当前的命令语法有问题，那么如果不进行命令语法检查，该错误的命令记录到 AOF 日志里后，Redis 在使用日志恢复数据时，就可能会出错。而如果先执行写操作命令再记录日志的话，只有在该命令执行成功后，才将命令记录到 AOF 日志里，这样就不用额外的检查开销，保证记录在 AOF 日志里的命令都是可执行并且正确的。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;不会阻塞当前写操作命令的执行&lt;/strong&gt; ：因为当写操作命令执行成功后，才会将命令记录到 AOF 日志。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;缺点&lt;/strong&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;丢失的风险&lt;/strong&gt; ：执行写操作命令和记录日志是两个过程，那当 Redis 在还没来得及将命令写入到硬盘时，服务器发生宕机了，这个数据就会有丢失风险。&lt;/li&gt;
-&lt;li&gt;由于写操作命令执行成功后才记录到 AOF 日志，所以不会阻塞当前写操作命令的执行，但是 &lt;strong&gt;可能会给下一个命令带来阻塞风险&lt;/strong&gt; 。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;丢失的风险&lt;/strong&gt; ：执行写操作命令和记录日志是两个过程，那当 Redis 在还没来得及将命令写入到硬盘时，服务器发生宕机了，这个数据就会有丢失风险。由于写操作命令执行成功后才记录到 AOF 日志，所以不会阻塞当前写操作命令的执行，但是 &lt;strong&gt;可能会给下一个命令带来阻塞风险&lt;/strong&gt; 。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;恢复速度慢&lt;/strong&gt; ：因为记录了每一个写操作，所以 AOF 文件通常比 RDB 文件更大，消耗更多的磁盘空间。并且，频繁的磁盘 IO 操作可能会对 Redis 的写入性能造成一定影响。而且，当 AOF 文件体积过大时，AOF 会进行重写操作，如果 AOF 没有开启重写或者重写频率较低，恢复过程可能较慢，因为它需要重放所有的操作命令。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;/li&gt;
@@ -471,31 +568,37 @@
 &lt;li&gt;&lt;strong&gt;Everysec&lt;/strong&gt; ：每次写操作命令执行完后，先将命令写入到 AOF 文件的内核缓冲区，然后每隔一秒将缓冲区里的内容写回到硬盘；&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;No&lt;/strong&gt; ：不由 Redis 控制写回硬盘的时机，转交给操作系统控制写回的时机，也就是每次写操作命令执行完后，先将命令写入到 AOF 文件的内核缓冲区，再由操作系统决定何时将缓冲区内容写回硬盘。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;-三种写回策略的缺点&#34;&gt;⚠️ 三种写回策略的缺点
-&lt;/h4&gt;&lt;ul&gt;
+&lt;p&gt;三种写回策略的缺点如下&lt;/p&gt;
+&lt;ul&gt;
 &lt;li&gt;Always 策略：可以最大程度保证数据不丢失，但是由于它每执行一条写操作命令就同步将 AOF 内容写回硬盘，所以是不可避免会影响主进程的性能；&lt;/li&gt;
 &lt;li&gt;No 策略：是交由操作系统来决定何时将 AOF 日志内容写回硬盘，相比于 Always 策略性能较好，但是操作系统写回硬盘的时机是不可预知的，如果 AOF 日志内容没有写回硬盘，一旦服务器宕机，就会丢失不定数量的数据。&lt;/li&gt;
 &lt;li&gt;Everysec 策略：是折中的一种方式，避免了 Always 策略的性能开销，也比 No 策略更能避免数据丢失，当然如果上一秒的写操作命令日志没有写回到硬盘，发生了宕机，这一秒内的数据自然也会丢失。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3 id=&#34;-重写机制&#34;&gt;🔄 重写机制
-&lt;/h3&gt;&lt;p&gt;Redis 为了避免 AOF 文件越写越大，提供了 &lt;strong&gt;AOF 重写机制&lt;/strong&gt;，当 AOF 文件的大小超过所设定的阈值后，Redis 就会启用 AOF 重写机制，来压缩 AOF 文件。&lt;/p&gt;
-&lt;p&gt;AOF 重写机制是在重写时，读取当前数据库中的所有键值对，然后将每一个键值对用一条命令记录到新的 AOF 文件，等到全部记录完后，就将新的 AOF 文件替换掉现有的 AOF 文件。&lt;/p&gt;
-&lt;h4 id=&#34;-后台重写机制&#34;&gt;🔧 后台重写机制
-&lt;/h4&gt;&lt;ul&gt;
-&lt;li&gt;主进程在通过 &lt;strong&gt;&lt;code&gt;fork&lt;/code&gt;&lt;/strong&gt; 系统调用生成 &lt;strong&gt;&lt;code&gt;bgrewriteaof&lt;/code&gt;&lt;/strong&gt; 子进程时，操作系统会把主进程的&lt;strong&gt;页表&lt;/strong&gt;复制一份给子进程，这个页表记录着虚拟地址和物理地址映射关系，而不会复制物理内存，也就是说，两者的虚拟空间不同，但其对应的物理空间是同一个。&lt;/li&gt;
-&lt;li&gt;当父进程或者子进程在向这个内存发起写操作时，CPU 就会触发&lt;strong&gt;写保护中断&lt;/strong&gt;，这个写保护中断是由于违反权限导致的，然后操作系统会在&lt;strong&gt;写保护中断处理函数&lt;/strong&gt;里进行&lt;strong&gt;物理内存的复制&lt;/strong&gt;，并重新设置其内存映射关系，将父子进程的内存读写权限设置为&lt;strong&gt;可读写&lt;/strong&gt;，最后才会对内存进行写操作。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;重写 AOF 日志过程中，如果主进程修改了已经存在 key-value，此时这个 key-value 数据在子进程的内存数据就跟主进程的内存数据不一致了。为了解决这个问题，Redis 设置了一个 &lt;strong&gt;AOF 重写缓冲区&lt;/strong&gt;，这个缓冲区在创建 bgrewriteaof 子进程之后开始使用。&lt;/p&gt;
-&lt;p&gt;在重写 AOF 期间，当 Redis 执行完一个写命令之后，它会 &lt;strong&gt;同时将这个写命令写入到 AOF 缓冲区和 AOF 重写缓冲区&lt;/strong&gt; 。&lt;/p&gt;
-&lt;p&gt;当子进程完成 AOF 重写工作后，会向主进程发送一条信号，信号是进程间通讯的一种方式，且是异步的。&lt;/p&gt;
-&lt;p&gt;主进程收到该信号后，会调用一个信号处理函数，该函数主要做以下工作：&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;Redis 为了避免 AOF 文件越写越大，提供了 &lt;strong&gt;AOF 重写机制&lt;/strong&gt;，当 AOF 文件的大小超过所设定的阈值后，Redis 就会启用 AOF 重写机制，来压缩 AOF 文件。AOF 重写机制是在重写时，读取当前数据库中的所有键值对，然后将每一个键值对用一条命令记录到新的 AOF 文件，等到全部记录完后，就将新的 AOF 文件替换掉现有的 AOF 文件。&lt;/p&gt;
+&lt;h4 id=&#34;-重写过程&#34;&gt;🔧 重写过程
+&lt;/h4&gt;&lt;p&gt;Redis 的 AOF 重写（AOF Rewrite）是异步的，确切来说由后台子进程 BGREWRITEAOF 负责执行，不会阻塞主线程处理命令。主线程一边执行命令，一边将这些命令写入“重写缓冲区”（rewrite buffer）中。在重写过程中，Redis不但将新的操作记录在原有的AOF缓冲区，而且还会记录在AOF重写缓冲区。一旦新AOF文件创建完毕，Redis 就会将重写缓冲区内容，追加到新的AOF文件，再用新AOF文件替换原来的AOF文件。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;将 AOF 重写缓冲区中的所有内容追加到新的 AOF 的文件中，使得新旧两个 AOF 文件所保存的数据库状态一致；&lt;/li&gt;
-&lt;li&gt;新的 AOF 的文件进行改名，覆盖现有的 AOF 文件。&lt;/li&gt;
+&lt;li&gt;Redis 主进程通过 &lt;strong&gt;&lt;code&gt;fork&lt;/code&gt;&lt;/strong&gt; 系统调用生成出一个后台子进程（&lt;strong&gt;&lt;code&gt;bgrewriteaof&lt;/code&gt;&lt;/strong&gt; 子进程）。采用写时复制（Copy-On-Write） 技术：操作系统会把主进程的&lt;strong&gt;页表&lt;/strong&gt;复制一份给子进程，这个页表记录着虚拟地址和物理地址映射关系，而不会复制物理内存，也就是说，两者的虚拟空间不同，但其对应的物理空间是同一个。&lt;/li&gt;
+&lt;li&gt;当父进程或者子进程在向这个内存发起写操作时，CPU 就会触发&lt;strong&gt;写保护中断&lt;/strong&gt;，这个写保护中断是由于违反权限导致的，然后操作系统会在&lt;strong&gt;写保护中断处理函数&lt;/strong&gt;里进行&lt;strong&gt;物理内存的复制&lt;/strong&gt;，并重新设置其内存映射关系，将父子进程的内存读写权限设置为&lt;strong&gt;可读写&lt;/strong&gt;，最后才会对内存进行写操作。&lt;/li&gt;
+&lt;li&gt;主进程继续接收命令（临时日志）在重写期间。主进程仍在接收客户端请求，正常写入 Redis。新的写命令会被追加到AOF缓存区，同时写入一个 AOF 重写缓冲区（rewrite buffer）。&lt;/li&gt;
+&lt;li&gt;子进程写完新 AOF 文件后（不含 rewrite buffer 的命令）：它会给主线程发信号说：“我重写完成了”。&lt;/li&gt;
+&lt;li&gt;主线程会把 rewrite buffer 中积累的新写命令追加写入新的 AOF 文件尾部：这样，新 AOF 文件 = “重写快照” + “重写期间产生的增量命令”。&lt;/li&gt;
+&lt;li&gt;Redis 原子地替换旧 AOF 文件：使用 rename() 系统调用是原子操作，保证不会出现中间状态。&lt;/li&gt;
 &lt;/ul&gt;
+&lt;h4 id=&#34;-优化策略&#34;&gt;🔧 优化策略
+&lt;/h4&gt;&lt;p&gt;重写期间主进程需要fork子进程，在数据量大的场景下fork操作可能造成短暂阻塞。重写过程中新写入的命令需要同时写入旧AOF文件和新AOF缓冲区，导致双倍写入开销。最重要的是，如果重写中途发生崩溃，可能面临数据丢失风险。&lt;/p&gt;
+&lt;p&gt;Redis 7.0通过MP-AOF机制巧妙解决了这些问题：将AOF拆分为BASE和INCR文件，重写时子进程专心生成BASE文件，主进程则实时记录增量命令到INCR文件，通过manifest文件实现原子切换。这种设计不仅避免了阻塞，还确保了任何时刻都有一组完整的AOF文件可用，大幅提升了可靠性和性能。&lt;/p&gt;
+&lt;p&gt;MP-AOF 的核心思想是将数据持久化工作分解到两个相互配合的文件中：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;BASE AOF 文件相当于数据快照，包含了某个时间点前所有操作的最终状态&lt;/li&gt;
+&lt;li&gt;INCR AOF 文件则负责记录 BASE 文件生成期间新增的操作命令&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这种双文件架构带来了革命性的改进：当需要执行 AOF 重写时，Redis 不再需要暂停服务。主进程可以继续处理请求并将新命令写入 INCR AOF 文件，而子进程则基于 fork 时的数据快照生成新的 BASE 文件。这两个文件通过一个智能的 manifest 清单文件进行管理，这个清单文件就像一位称职的图书管理员，始终记录着当前有效的 BASE 和 INCR 文件版本。&lt;/p&gt;
+&lt;p&gt;整个工作流程堪称精妙：当新的 BASE 文件生成完成后，Redis 只需简单地更新 manifest 文件中的指针，就能实现无缝切换。之前的旧文件会被标记为 HISTORY 状态，由后台线程负责清理。这种设计不仅确保了数据安全，还大幅提升了系统可用性 - 即使在重写过程中发生崩溃，系统也能通过检查 manifest 文件快速恢复到最近的一致状态&lt;/p&gt;
 &lt;hr&gt;
-&lt;h2 id=&#34;-rdb持久化机制&#34;&gt;🗃️ RDB持久化机制
-&lt;/h2&gt;&lt;p&gt;RDB 持久化通过创建快照来获取内存某个时间点上的副本，利用快照可以进行方便地进行主从复制。&lt;/p&gt;
+&lt;h2 id=&#34;-rdbredis-database快照&#34;&gt;🗃️ RDB（Redis Database）快照
+&lt;/h2&gt;&lt;p&gt;RDB 持久化通过创建某一时刻的数据快照来获取内存某个时间点上的副本，利用快照可以进行方便地进行主从复制。适合灾难恢复和备份，能生成紧凑的二进制文件，但可能会在崩溃时丢失最后一次快照之后的数据。&lt;/p&gt;
 &lt;p&gt;redis.conf 文件可以配置在 x 秒内如果至少有 y 个 key 发生变化就会触发命令进行持久化操作。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;优点&lt;/strong&gt;
@@ -574,54 +677,6 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;-bigkey问题&#34;&gt;⚠️ BigKey问题
-&lt;/h2&gt;&lt;p&gt;Redis 中的 &lt;strong&gt;Big Key&lt;/strong&gt; 是指一个内存空间占用比较大的键（Key）&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;工作线程阻塞&lt;/strong&gt; ：由于 Redis 单线程执行命令，操作大 Key 时耗时较长，从而导致 Redis 出现其它命令阻塞的问题。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;网络阻塞&lt;/strong&gt; ：大 Key 对资源的占用巨大，在你进行网络 I/O 传输的时候，导致你获取过程中产生的网络流量较大，从而产生网络传输时间延长甚至网络传输发现阻塞的现象&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;客户端超时&lt;/strong&gt; ：因为操作大 Key 时耗时较长，可能导致客户端等待超时。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;阻塞线程&lt;/strong&gt;
-&lt;ul&gt;
-&lt;li&gt;当 AOF 写回策略配置了 Always 策略，如果写入是一个大 Key，主线程在执行 fsync() 函数的时候，阻塞的时间会比较久，因为当写入的数据量很大的时候，数据同步到硬盘这个过程是很耗时的。&lt;/li&gt;
-&lt;li&gt;创建子进程的途中，由于要复制父进程的页表等数据结构，阻塞的时间跟页表的大小有关，页表越大，阻塞的时间也越长；&lt;/li&gt;
-&lt;li&gt;创建完子进程后，如果父进程修改了共享数据中的大 Key，就会发生写时复制，这期间会拷贝物理内存，由于大 Key 占用的物理内存会很大，那么在复制物理内存这一过程，就会比较耗时，所以有可能会阻塞父进程。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&#34;-对持久化的影响&#34;&gt;📊 对持久化的影响
-&lt;/h3&gt;&lt;h4 id=&#34;-对aof的影响&#34;&gt;⚠️ 对AOF的影响
-&lt;/h4&gt;&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;对写回策略的影响&lt;/strong&gt;
-&lt;ul&gt;
-&lt;li&gt;当使用 Always 策略的时候：如果写入是一个大 Key，主线程在执行 &lt;code&gt;fsync()&lt;/code&gt; 函数的时候，阻塞的时间会比较久，因为当写入的数据量很大的时候，数据同步到硬盘这个过程是很耗时的。&lt;/li&gt;
-&lt;li&gt;当使用 Everysec 策略的时候，由于是异步执行 &lt;code&gt;fsync()&lt;/code&gt; 函数，所以大 Key 持久化的过程（数据同步磁盘）不会影响主线程。&lt;/li&gt;
-&lt;li&gt;当使用 No 策略的时候，由于永不执行 &lt;code&gt;fsync()&lt;/code&gt; 函数，所以大 Key 持久化的过程不会影响主线程。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h5 id=&#34;-对aof重写的影响&#34;&gt;🔧 对AOF重写的影响
-&lt;/h5&gt;&lt;ul&gt;
-&lt;li&gt;当 AOF 日志写入了很多的大 Key，AOF 日志文件的大小会很大，那么很快就会触发 &lt;strong&gt;AOF 重写机制&lt;/strong&gt;。&lt;/li&gt;
-&lt;li&gt;创建子进程的途中，由于要复制父进程的页表等数据结构，阻塞的时间跟页表的大小有关，页表越大，阻塞的时间也越长；&lt;/li&gt;
-&lt;li&gt;创建完子进程后，如果父进程修改了共享数据中的大 Key，就会发生写时复制，这期间会拷贝物理内存，由于大 Key 占用的物理内存会很大，那么在复制物理内存这一过程，就会比较耗时，所以有可能会阻塞父进程。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h5 id=&#34;-对rdb的影响&#34;&gt;⚠️ 对RDB的影响
-&lt;/h5&gt;&lt;ul&gt;
-&lt;li&gt;创建子进程的途中，由于要复制父进程的页表等数据结构，阻塞的时间跟页表的大小有关，页表越大，阻塞的时间也越长；&lt;/li&gt;
-&lt;li&gt;创建完子进程后，如果父进程修改了共享数据中的大 Key，就会发生写时复制，这期间会拷贝物理内存，由于大 Key 占用的物理内存会很大，那么在复制物理内存这一过程，就会比较耗时，所以有可能会阻塞父进程。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&#34;-解决方案&#34;&gt;✅ 解决方案
-&lt;/h3&gt;&lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;对要存储的数据进行压缩，压缩之后再进行存储&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;大化小，即把大对象拆分成小对象，即将一个大 Key 拆分成若干个小 Key，降低单个 Key 的内存大小&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;采用 Redis 集群方式进行 Redis 的部署，然后将大 Key 拆分散落到不同的服务器上面，加快响应速度&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
 </description>
         </item>
         <item>
@@ -658,6 +713,9 @@
 &lt;/ul&gt;
 &lt;p&gt;随着数据规模的增长、请求量的增多，Redis 的执行瓶颈主要在于⽹络 I/O。引入多线程处理可以提高网络 I/O处理速度。在 Redis 6.0 中，多线程主要用来处理网络 IO 操作，命令解析和执行仍然是单线程完成，这样既可以发挥多核 CPU 的优势，又能避免锁和上下文切换带来的性能损耗。所以为了提高网络 I/O 的并行度，Redis 6.0 对于网络 I/O 采用多线程来处理。&lt;/p&gt;
 &lt;p&gt;Redis 6.0 版本支持的 I/O 多线程特性，默认情况下 I/O 多线程只针对发送响应数据（write client socket），并不会以多线程的方式处理读请求（read client socket）。要想开启多线程处理客户端读请求，就需要把 Redis.conf 配置文件中的 io-threads-do-reads 配置项设为 yes。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-09_162926_813.png&#34; alt=&#34;Redis多线程模型&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
 &lt;h3 id=&#34;-redis启动时的线程&#34;&gt;⚡ Redis启动时的线程
 &lt;/h3&gt;&lt;p&gt;Redis 6.0 版本之后，Redis 在启动的时候，默认情况下会额外创建 6 个线程（这里的线程数不包括主线程）：&lt;/p&gt;
 &lt;ul&gt;
@@ -677,6 +735,9 @@
 &lt;li&gt;多个客户端与服务端连接时，Redis 使用 I/O 多路复用程序 将客户端 socket 对应的 FD 注册到监听列表(一个队列)中。当客户端执行 read、write 等操作命令时，I/O 多路复用程序会将命令封装成一个事件，并绑定到对应的 FD 上。&lt;/li&gt;
 &lt;li&gt;文件事件处理器使用 I/O 多路复用模块同时监控多个文件描述符（fd）的读写情况，当 accept、read、write 和 close 文件事件产生时，文件事件处理器就会回调 FD 绑定的事件处理器进行处理相关命令操作。&lt;/li&gt;
 &lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-09_162827_720.png&#34; alt=&#34;IO多路复用模型&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
 &lt;style type=&#34;text/css&#34;&gt;
    
   .notice {

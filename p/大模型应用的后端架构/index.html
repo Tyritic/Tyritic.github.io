@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="系统梳理大模型应用后端架构的核心组件、常见模式与工程实践，涵盖从简单串联到复杂 Agent 系统的架构演进路径。">
+<title>大模型应用的后端架构</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E7%9A%84%E5%90%8E%E7%AB%AF%E6%9E%B6%E6%9E%84/'>
+
+<link rel="stylesheet" href="/scss/style.min.cbd512f1ab381ec2ee22f919961cc92c7cd9fe892ef96c066f8877ab9872f162.css"><meta property='og:title' content="大模型应用的后端架构">
+<meta property='og:description' content="系统梳理大模型应用后端架构的核心组件、常见模式与工程实践，涵盖从简单串联到复杂 Agent 系统的架构演进路径。">
+<meta property='og:url' content='https://Tyritic.github.io/p/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E7%9A%84%E5%90%8E%E7%AB%AF%E6%9E%B6%E6%9E%84/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='' /><meta property='article:published_time' content='2026-05-09T11:20:00&#43;08:00'/><meta property='article:modified_time' content='2026-05-09T09:22:51&#43;00:00'/>
+<meta name="twitter:title" content="大模型应用的后端架构">
+<meta name="twitter:description" content="系统梳理大模型应用后端架构的核心组件、常见模式与工程实践，涵盖从简单串联到复杂 Agent 系统的架构演进路径。">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_691afbb6233f07b9.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#-大模型应用后端架构的本质">🧠 大模型应用后端架构的本质</a></li>
+    <li><a href="#-整体分层与请求流转">🏗️ 整体分层与请求流转</a></li>
+    <li><a href="#-接入层">📡 接入层</a></li>
+    <li><a href="#-业务编排层">🧩 业务编排层</a>
+      <ol>
+        <li><a href="#-异步与任务编排">⚙️ 异步与任务编排</a></li>
+      </ol>
+    </li>
+    <li><a href="#-模型服务层">🎛️ 模型服务层</a>
+      <ol>
+        <li><a href="#-多模型路由与降级">🔀 多模型路由与降级</a></li>
+      </ol>
+    </li>
+    <li><a href="#-数据与记忆层">💾 数据与记忆层</a>
+      <ol>
+        <li><a href="#-缓存策略">🗃️ 缓存策略</a></li>
+        <li><a href="#-prompt-管理">📝 Prompt 管理</a></li>
+      </ol>
+    </li>
+    <li><a href="#-总结">📌 总结</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/agent/" style="background-color: #2a9d8f; color: #fff;">
+                Agent
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E7%9A%84%E5%90%8E%E7%AB%AF%E6%9E%B6%E6%9E%84/">大模型应用的后端架构</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            系统梳理大模型应用后端架构的核心组件、常见模式与工程实践，涵盖从简单串联到复杂 Agent 系统的架构演进路径。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-05-09</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 8 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：3662 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="-大模型应用后端架构的本质">🧠 大模型应用后端架构的本质
+</h2><p>大模型应用的后端架构，本质上是在解决一个问题：如何让大模型（LLM）在生产环境中可靠、高效、可控地提供服务。这个问题看似简单——调个 API 就能跑——但当你真正要做产品时，API 调用只是冰山一角。</p>
+<p><strong>一个真实的大模型应用需要考虑的核心问题包括：</strong></p>
+<ul>
+<li>如何管理海量的 Prompt 模板和变量替换？</li>
+<li>如何处理多轮对话的上下文和会话状态？</li>
+<li>如何控制成本——LLM 调用是按 token 计费的？</li>
+<li>如何保证系统的稳定性——LLM 服务的 SLA 和自建模型的可靠性？</li>
+<li>如何实现复杂业务流程，比如 RAG、Agent、多模型路由？</li>
+<li>如何做监控和可观测性——知道每次回答是怎么生成的？</li>
+</ul>
+<p>这些问题的答案就构成了大模型应用后端架构的主体。和传统后端架构不同，LLM 应用有其独特的挑战：LLM 调用是外部依赖、成本高昂、延迟不稳定、输出不可预测——这意味着架构设计必须有针对性地应对这些问题。</p>
+<p>传统 Web 后端的核心瓶颈通常在数据库——查询慢了加索引，并发高了加缓存，数据量大了分库分表，整套方法论经过十几年的打磨已经非常成熟。但当你把 LLM 引入后端架构的那一刻，这些规则就变了。一个普通的数据库查询耗时毫秒级，一次 LLM 调用动辄几秒甚至十几秒；数据库查询按次计费几乎可以忽略不计，LLM 调用按 token 收费，一个活跃用户一天的对话成本可能就是几毛到几块钱；最关键的是，数据库查询是确定性的，同样的 SQL 永远返回同样的结果，而 LLM 的输出每次都可能不同。慢、贵、不确定——就是后端架构设计必须要考虑的三大核心因素</p>
+<hr>
+<h2 id="-整体分层与请求流转">🏗️ 整体分层与请求流转
+</h2><p>一个生产级的大模型应用后端，从外到内通常可以分成四层：接入层负责协议处理、认证鉴权和流量控制；业务编排层负责理解用户意图、组装 Prompt、编排多步调用逻辑；模型服务层负责管理和调用各种 LLM，做路由、负载均衡和容错降级；数据与记忆层负责对话历史、向量检索、用户画像等持久化存储。</p>
+<p>这四层的划分看起来和传统微服务架构差不多，但每一层内部的设计重心完全不同。传统后端的接入层主要关心的是鉴权和限流，大模型应用的接入层还要处理 SSE 长连接和流式传输；传统后端的业务层通常是&quot;接收请求→查数据库→返回结果&quot;这种同步短链路，大模型应用的业务层可能需要编排多轮 LLM 调用、工具调用、RAG 检索，整个链路又长又慢；传统后端的数据层主要是关系型数据库，大模型应用的数据层还要加上向量数据库、会话缓存、Prompt 模板库等一系列新组件。</p>
+<div align="center">
+  <img src="微信图片_2026-05-09_112533_842.png" alt="大模型应用后端架构" width="82%" />
+</div>
+<h2 id="-接入层">📡 接入层
+</h2><p>接入层是整个系统的入口，负责接收来自前端的请求并返回响应。这层的设计要点包括：</p>
+<ul>
+<li><strong>鉴权与限流</strong>：API Key 验证、用户配额控制、请求频率限制</li>
+<li><strong>协议转换</strong>：将 HTTP/WebSocket 请求转换为内部处理协议</li>
+<li><strong>响应缓存</strong>：对于重复或相似的请求，直接返回缓存结果以节省成本</li>
+</ul>
+<p>对于接入第三方 LLM API（如 OpenAI、Claude、国内厂商）的场景，接入层还需要处理多 API Key 的负载均衡和自动切换、API 兼容层、重试机制和熔断策略。</p>
+<p>流式传输是大模型后端架构必须把流式响应作为一等公民来设计。实现方案主要是 SSE 或 WebSocket。</p>
+<p>流式传输带来的工程复杂度不小。中间件兼容性是第一个坑——Nginx 默认会缓冲后端响应再一次性发给客户端。错误处理的时机也变了——流式场景下 HTTP 200 已经发出去了，中间出错没法改状态码。</p>
+<div align="center">
+  <img src="微信图片_2026-05-09_112533_842.png" alt="大模型应用接入层架构" width="82%" />
+</div>
+<h2 id="-业务编排层">🧩 业务编排层
+</h2><h3 id="-异步与任务编排">⚙️ 异步与任务编排
+</h3><p>传统 Web API 绝大部分请求可以在几百毫秒内同步返回，但大模型应用中有大量&quot;重任务&quot;——比如基于 RAG 的长文档问答（需要先检索、再拼装、再调用 LLM）、多步 Agent 任务（可能涉及十几次工具调用和 LLM 推理）、批量内容生成等。这些任务的耗时可能从十几秒到几分钟不等，用同步 HTTP 请求来承载显然不合适。</p>
+<p>成熟的做法是把重任务走异步任务队列——用户提交后立即返回 task_id，后台 Worker 异步执行，前端通过轮询或 WebSocket 接收进度推送。Celery + Redis 是 Python 生态最常用的方案。</p>
+<p>异步任务内部还需要一个编排引擎来协调多步骤的执行。比如一个 RAG 问答流程：先并行执行&quot;查询改写&quot;和&quot;关键词提取&quot;，完成后再并行做&quot;向量检索&quot;和&quot;关键词检索&quot;，汇总后 Rerank，最后送入 LLM 生成回答。这里面有串行有并行，步骤之间有数据依赖。LangGraph 用有向图来定义这种编排逻辑，每个节点是一个处理步骤，边定义数据流向和条件分支，比较适合这种场景。</p>
+<div align="center">
+  <img src="微信图片_2026-05-09_113840_544.png" alt="任务编排层" width="82%" />
+</div>
+<h2 id="-模型服务层">🎛️ 模型服务层
+</h2><p>模型服务层是大模型应用的核心，负责调度各种模型资源来完成复杂的任务。这层的设计直接决定了应用的能力上限，因为它要直接面对 LLM 的&quot;慢、贵、不确定&quot;三大特性。</p>
+<p><strong>模型服务层的核心职责包括：</strong></p>
+<ul>
+<li><strong>模型选择</strong>：根据任务类型自动选择最合适的模型（小模型快省、大模型准贵）</li>
+<li><strong>意图识别</strong>：判断用户意图，决定走哪个处理路径</li>
+<li><strong>任务分解</strong>：将复杂任务拆解为多个子任务，分配给不同模型或工具</li>
+<li><strong>结果聚合</strong>：整合多个子任务的结果，生成最终响应</li>
+</ul>
+<h3 id="-多模型路由与降级">🔀 多模型路由与降级
+</h3><p>多模型路由与降级是这一层最核心的设计。生产环境中几乎不会只用一个模型——你可能用 GPT-4o 做复杂推理、用 Claude 做长文档理解、用开源的 Qwen 做一些简单的分类和提取任务。这就需要一个模型路由器，根据任务类型、复杂度、成本预算等条件把请求分发到合适的模型。更重要的是降级策略：当首选模型 API 超时或返回错误时，系统应该自动 fallback 到备选模型，而不是直接报错给用户。一个典型的降级链可能是 GPT-4o → Claude → Qwen，越往后模型能力可能稍弱但可用性更高。</p>
+<p>实现上，路由器通常维护一张模型能力矩阵——记录每个模型的上下文窗口、支持的功能（Function Calling、Vision 等）、平均延迟、每千 token 价格和当前健康状态。路由决策可以基于规则（&ldquo;含图片的请求只发给支持 Vision 的模型&rdquo;），也可以基于策略（&ldquo;优先选延迟最低的健康模型，成本超阈值时降级&rdquo;）。</p>
+<div align="center">
+  <img src="微信图片_2026-05-09_113305_672.png" alt="大模型应用后端架构" width="82%" />
+</div>
+<h2 id="-数据与记忆层">💾 数据与记忆层
+</h2><h3 id="-缓存策略">🗃️ 缓存策略
+</h3><p>缓存在传统后端是锦上添花，在大模型后端是必须有的基础设施。原因很直接：LLM 调用既慢又贵，如果同样的问题能从缓存中直接返回，省下的时间和成本非常可观。</p>
+<p>最直接的是精确匹配缓存——把用户输入的 hash 作为 key，LLM 的响应作为 value 存入 Redis。完全相同的问题直接命中缓存，延迟从几秒降到几毫秒。但这种方案的命中率通常很低，因为自然语言表达的多样性意味着同一个意思有无数种问法，&ldquo;Python 怎么读取 JSON 文件&quot;和&quot;用 Python 解析 JSON 文件的方法&quot;虽然语义相同但 hash 完全不同。</p>
+<p>所以更实用的是语义缓存（Semantic Cache）。核心思路是把用户输入转成 Embedding 向量，在缓存中做向量相似度检索，相似度超过阈值就直接返回缓存结果。GPTCache 就是专门做这个的开源方案。语义缓存的命中率远高于精确匹配，但相似度阈值需要根据业务场景调优——设太高命中率低，设太低可能返回不太相关的结果。</p>
+<p>还有一层容易被忽视的缓存是 Prompt 模板缓存。在实际项目中，System Prompt 和 Few-shot 示例通常是固定的，每次请求都带上这些固定前缀会浪费大量 token。OpenAI 的 Prompt Caching 和 Anthropic 的 Cache Control 机制就是针对这个场景——把 Prompt 的固定前缀缓存在模型服务端，后续请求只需传增量部分，既减少了网络传输量也降低了 token 费用（缓存命中的 token 价格通常是原价的 10%-25%）。</p>
+<h3 id="-prompt-管理">📝 Prompt 管理
+</h3><p>Prompt 是 LLM 应用的&quot;灵魂&rdquo;，Prompt 管理的质量直接影响输出效果。一个成熟的 Prompt 管理体系包括：</p>
+<ul>
+<li><strong>模板存储</strong>：结构化存储 Prompt 模板，支持版本管理</li>
+<li><strong>变量替换</strong>：运行时动态填充变量（用户名、时间、上下文等）</li>
+<li><strong>模板组合</strong>：将多个子模板组合成完整 Prompt</li>
+<li><strong>A/B 测试</strong>：对比不同 Prompt 版本的效果差异</li>
+</ul>
+<p>Prompt 在大模型应用中的角色，相当于传统应用中的业务逻辑代码——它直接决定了应用的行为和输出质量。但很多团队在早期会犯一个错误：把 Prompt 硬编码在代码里，和业务逻辑混在一起。这在原型阶段没问题，但一旦进入生产环境就会遇到各种麻烦。问题一是迭代效率低——Prompt 的调优频率远高于代码，你可能每天都要微调措辞、补充示例，如果写在代码里每次都要走完整的发布流程，太重了。问题二是版本管理和回滚——Prompt 改了一版效果变差想回滚，如果和代码绑定就会影响同次发布的其他功能。</p>
+<div align="center">
+  <img src="微信图片_2026-05-09_113618_730.png" alt="Prompt 管理服务"  width="82%" />
+</div>
+<p>所以生产环境中通常会建一个独立的 Prompt 管理服务，本质上是一个带版本控制的模板仓库，支持灰度发布（10% 流量走新 Prompt）和快速回滚。模板通过变量占位符（{{user_query}}、{{context}}）和业务数据做动态拼装。LangFuse 和 PromptLayer 都提供了这种能力。</p>
+<hr>
+<h2 id="-总结">📌 总结
+</h2><p>大模型应用的后端架构，本质上是在传统后端架构的基础上，针对 LLM 的独特特性做适配和优化。核心要点包括：</p>
+<ul>
+<li><strong>分层清晰</strong>：接入层、编排层、数据层各司其职</li>
+<li><strong>成本意识</strong>：从架构层面控制 token 消耗</li>
+<li><strong>可靠性设计</strong>：重试、熔断、降级缺一不可</li>
+<li><strong>可观测性先行</strong>：没有监控的 LLM 应用是盲人摸象</li>
+<li><strong>渐进演进</strong>：从简单开始，按需增加复杂度</li>
+</ul>
+<p>架构没有绝对的好坏，只有适合不适合。选什么架构，取决于你的业务复杂度、团队规模、成本预算和对稳定性的要求。理解这些核心组件和模式，才能在具体场景下做出正确的架构决策。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026-05-09 09:22 UTC
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">大模型应用的高可用性</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/rag%E7%9A%84%E6%9B%B4%E6%96%B0%E7%AD%96%E7%95%A5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">RAG的更新策略</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84skills/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的Skills</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E8%A7%84%E5%88%92%E6%A8%A1%E5%9D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的规划模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/agent%E7%9A%84%E8%AE%B0%E5%BF%86%E6%A8%A1%E5%9D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Agent的记忆模块</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2026 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.93ec85291de2934df13aa4307b756a6eb93dd4ff935a9810e787a938c351043f.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
