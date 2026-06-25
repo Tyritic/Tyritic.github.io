@@ -12,27 +12,34 @@
         <pubDate>Tue, 18 Mar 2025 20:23:01 +0800</pubDate>
         
         <guid>https://Tyritic.github.io/p/kafka%E7%9A%84%E9%AB%98%E6%80%A7%E8%83%BD%E5%8E%9F%E5%9B%A0/</guid>
-        <description>&lt;h2 id=&#34;kafka高性能的原因&#34;&gt;Kafka高性能的原因
-&lt;/h2&gt;&lt;ul&gt;
-&lt;li&gt;批量收发消息&lt;/li&gt;
-&lt;li&gt;零拷贝&lt;/li&gt;
-&lt;li&gt;磁盘顺序读写&lt;/li&gt;
-&lt;li&gt;页缓存&lt;/li&gt;
+        <description>&lt;h2 id=&#34;-kafka-高性能的原因&#34;&gt;🚀 Kafka 高性能的原因
+&lt;/h2&gt;&lt;p&gt;Kafka 高性能的秘密主要体现在三个方面：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;生产者端&lt;/strong&gt;：批量收发 + 压缩消息&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Broker 写入&lt;/strong&gt;：磁盘顺序读写 + 页缓存&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Broker 发送给消费者&lt;/strong&gt;：零拷贝&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;批量收发消息&#34;&gt;批量收发消息
-&lt;/h2&gt;&lt;p&gt;Kafka 收发消息都是批量进行处理的。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-生产者端批量收发--压缩消息&#34;&gt;📤 生产者端：批量收发 + 压缩消息
+&lt;/h2&gt;&lt;p&gt;Kafka 收发消息都是批量进行处理的。生产者不是来一条发一条，而是把多条消息攒成一个 batch，压缩后一次性发出去。比如 100 条小消息单独发要 100 次网络往返，攒成一批只要 1 次。压缩后数据量从 100KB 变成 20KB，网络传输更快。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;生产者发送消息时，不会直接把消息发送出去，而是把消息缓存起来，缓存消息量达到配置的批量大小后，才会发送出去。&lt;/li&gt;
 &lt;li&gt;Broker 收到消息后，并不会把批量消息解析成单条消息后落盘，而是作为批量消息进行落盘，同时也会把批量消息直接同步给其他副本。&lt;/li&gt;
 &lt;li&gt;消费者拉取消息，也不会按照单条进行拉取，而是按照批量进行拉取，拉取到一批消息后，再解析成单条消息进行消费。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;磁盘顺序读写&#34;&gt;磁盘顺序读写
+&lt;hr&gt;
+&lt;h2 id=&#34;-broker-写入磁盘顺序读写--页缓存&#34;&gt;💾 Broker 写入：磁盘顺序读写 + 页缓存
 &lt;/h2&gt;&lt;p&gt;Kafka 采用不断追加写文件的方式来实现顺序写，从而提高磁盘的性能。顺序读写省去了寻址的时间，只要一次寻址，就可以连续读写。Kafka 的 Broker 在写消息数据时，首先为每个 Partition 创建一个文件，然后把数据顺序地追加到该文件对应的磁盘空间中，如果这个文件写满了，就再创建一个新文件继续追加写。这样大大减少了寻址时间，提高了读写性能。&lt;/p&gt;
-&lt;h2 id=&#34;页缓存&#34;&gt;页缓存
-&lt;/h2&gt;&lt;p&gt;在 Linux 系统中，PageCache 是磁盘文件在内存中建立的缓存。当应用程序读写文件时，并不会直接读写磁盘上的文件，而是操作 PageCache。应用程序写文件时，都先会把数据写入 PageCache，然后操作系统定期地将 PageCache 的数据写到磁盘上。而应用程序在读取文件数据时，首先会判断数据是否在 PageCache 中，如果在则直接读取，如果不在，则读取磁盘，并且将数据缓存到 PageCache。&lt;/p&gt;
-&lt;h2 id=&#34;零拷贝&#34;&gt;零拷贝
-&lt;/h2&gt;&lt;p&gt;Kafka Broker 将消息发送给消费端时，即使命中了 PageCache，也需要将 PageCache 中的数据先复制到应用程序的内存空间，然后从应用程序的内存空间复制到 Socket 缓存区，将数据发送出去。Kafka 采用了零拷贝技术把数据直接从 PageCache 复制到 Socket 缓冲区中，这样数据不用复制到用户态的内存空间，同时 DMA 控制器直接完成数据复制，不需要 CPU 参与。&lt;/p&gt;
-&lt;p&gt;零拷贝的技术原理参见&lt;a class=&#34;link&#34; href=&#34;https://tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/#%E9%9B%B6%E6%8B%B7%E8%B4%9D%E6%8A%80%E6%9C%AF-1&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+&lt;p&gt;而且操作系统会把频繁读写的磁盘数据缓存在 Page Cache 里，很多时候读的是内存而非磁盘。&lt;/p&gt;
+&lt;p&gt;在 Linux 系统中，Page Cache 是磁盘文件在内存中建立的缓存。当应用程序读写文件时，并不会直接读写磁盘上的文件，而是操作 Page Cache。应用程序写文件时，都先会把数据写入 Page Cache，然后操作系统定期地将 Page Cache 的数据写到磁盘上。而应用程序在读取文件数据时，首先会判断数据是否在 Page Cache 中，如果在则直接读取，如果不在，则读取磁盘，并且将数据缓存到 Page Cache。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-broker-发送给消费者零拷贝&#34;&gt;🔄 Broker 发送给消费者：零拷贝
+&lt;/h2&gt;&lt;p&gt;传统方式将消息发送给消费端时，即使命中了 Page Cache，也需要将 Page Cache 中的数据先复制到内核缓冲区，拷贝到应用程序的内存空间，然后从应用程序的内存空间复制到 Socket 缓存区，将数据发送出去，4 次拷贝。&lt;/p&gt;
+&lt;p&gt;Kafka 采用了零拷贝技术（sendfile）把数据直接从 Page Cache 复制到 Socket 缓冲区中，这样数据不用复制到用户态的内存空间，同时 DMA 控制器直接完成数据复制，不需要 CPU 参与。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-10_113810_341.png&#34; alt=&#34;零拷贝&#34; width=&#34;82%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;零拷贝的技术原理参见 &lt;a class=&#34;link&#34; href=&#34;https://tyritic.github.io/p/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9A%84io%E6%A8%A1%E5%9E%8B/#%E9%9B%B6%E6%8B%B7%E8%B4%9D%E6%8A%80%E6%9C%AF-1&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
     &gt;往期博客&lt;/a&gt;&lt;/p&gt;
 </description>
         </item>
@@ -42,152 +49,76 @@
         <pubDate>Tue, 18 Mar 2025 19:40:28 +0800</pubDate>
         
         <guid>https://Tyritic.github.io/p/kafka%E7%9A%84%E6%B6%88%E6%81%AF%E9%A1%BA%E5%BA%8F%E6%80%A7%E5%92%8C%E5%AE%8C%E6%95%B4%E6%80%A7/</guid>
-        <description>&lt;h2 id=&#34;消息顺序性的保证&#34;&gt;消息顺序性的保证
-&lt;/h2&gt;&lt;p&gt;Kafka 通过分区机制和消息键来保证消息的顺序性。在 Kafka 中，每个 Topic 可以分为多个分区，每个分区内的消息都是有序的。消息在被追加到 Partition(分区)的时候都会分配一个特定的偏移量（offset）。Kafka 通过偏移量（offset）来保证消息在分区内的顺序性。&lt;/p&gt;
+        <description>&lt;h2 id=&#34;-消息顺序性&#34;&gt;🧠 消息顺序性
+&lt;/h2&gt;&lt;h3 id=&#34;-为什么需要消息顺序性&#34;&gt;🔍 为什么需要消息顺序性
+&lt;/h3&gt;&lt;p&gt;假设一个订单经历了三个状态变化：创建→支付→完成，对应发了三条消息。如果这三条消息分散到了三个不同的分区/队列，三个消费者同时消费，可能出现消费者 C3 先处理&amp;quot;完成&amp;quot;，C1 才开始处理&amp;quot;创建&amp;quot;——顺序完全乱了。即使在同一个队列里，如果消费者开了多线程并发处理，也会乱序：线程 1 拿到&amp;quot;创建&amp;quot;但处理慢，线程 2 拿到&amp;quot;支付&amp;quot;先处理完了。&lt;/p&gt;
+&lt;h3 id=&#34;-如何保证消息顺序性&#34;&gt;🛠️ 如何保证消息顺序性？
+&lt;/h3&gt;&lt;p&gt;保证顺序的核心思路就是把并行变成串行——但不是全局串行（那性能就废了），而是局部串行。只对需要保序的一组消息（比如同一个订单的所有消息）走同一条串行通道，不同组之间仍然可以并行。&lt;/p&gt;
+&lt;p&gt;Kafka 通过分区机制和消息键来保证消息的顺序性。在 Kafka 中，每个 Topic 可以分为多个分区，每个分区内的消息都是有序的。消息在被追加到 Partition(分区)的时候都会分配一个特定的偏移量（offset）。Kafka 通过偏移量（offset）来保证消息在分区内的顺序性。&lt;/p&gt;
 &lt;p&gt;对于生产者端，因为在同一个分区内，消息是有序的。 因此可以使用消息键和指定分区将相关消息分配到同一分区，可以保证这些消息在同一分区内依然有序。&lt;/p&gt;
-&lt;p&gt;对于消费者端：消费者在消费消息时，同一个消费者线程只能同时消费一个分区的消息，这样可以保证消费端在处理某个分区内的消息时是按顺序的。如果 Kafka 集群中没有足够的消费者线程，某个消费者线程可能需要同时消费多个分区的消息，但这些分区之间的顺序是无法保证的。&lt;/p&gt;
-&lt;h2 id=&#34;消息可靠性的保证&#34;&gt;消息可靠性的保证
-&lt;/h2&gt;&lt;h3 id=&#34;生产者端的保证&#34;&gt;生产者端的保证
+&lt;p&gt;对于消费者端：消费者在消费消息时，同一个消费者线程只能同时消费一个分区的消息，这样可以保证消费端在处理某个分区内的消息时是按顺序的。不同分区的消息并行处理，兼顾了顺序性和吞吐量。如果 Kafka 集群中没有足够的消费者线程，某个消费者线程可能需要同时消费多个分区的消息，但这些分区之间的顺序是无法保证的。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-10_111444_970.png&#34; alt=&#34;消息顺序性&#34; width=&#34;84%&#34; /&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-消息可靠性&#34;&gt;🛡️ 消息可靠性
+&lt;/h2&gt;&lt;p&gt;消息从生产到消费要经历三个环节：生产者→Broker→消费者。消息在任何一个环节都可能丢失，所以必须每个环节都做保障。可以把它想象成一个接力赛：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;第一棒（发送）要确认交接成功——生产者发出消息后必须收到 Broker 的 ack 才算发送成功&lt;/li&gt;
+&lt;li&gt;第二棒（存储）要把接力棒拿稳、备份——Broker 要做持久化防宕机，做多副本防单点故障&lt;/li&gt;
+&lt;li&gt;第三棒（消费）要跑完全程才算完成——消费者必须处理完业务逻辑后才回复 ack，不能提前确认&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-10_110524_174.png&#34; alt=&#34;消息可靠性保证&#34; width=&#34;84%&#34; /&gt;
+&lt;/div&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-10_110958_292.png&#34; alt=&#34;消息确认机制&#34; width=&#34;84%&#34; /&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-生产者端的保证&#34;&gt;📤 生产者端的保证
 &lt;/h3&gt;&lt;p&gt;生产者在发送消息时，需要通过消息确认机制来确保消息成功到达。生产者发送消息至 Broker ，需要处理 Broker 的响应，如果 Broker 返回写入失败等错误消息，重试发送。&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;设置合适的重试次数 &lt;strong&gt;&lt;code&gt;retries&lt;/code&gt;&lt;/strong&gt; 和重试间隔：决定生产者端的重试次数&lt;/li&gt;
-&lt;li&gt;配置合适的 &lt;strong&gt;&lt;code&gt;acks&lt;/code&gt;&lt;/strong&gt; 参数：决定生产者在收到多少个副本的确认后认为消息发送成功。
-&lt;ul&gt;
-&lt;li&gt;acks=0：生产者不会等待任何服务器的确认。消息可能会丢失，但性能最高。&lt;/li&gt;
-&lt;li&gt;acks=1：生产者会在领导者副本（leader）成功接收到数据后收到确认。数据可靠性得到了基本保障，但如果领导者副本崩溃，仍有可能丢失消息。&lt;/li&gt;
-&lt;li&gt;acks=all（或 -1）：生产者会等待所有同步副本（ISR）接收到数据后收到确认。数据可靠性最高，但性能会有所下降，因为需要等多个副本都确认接收。&lt;/li&gt;
+&lt;li&gt;配置合适的 &lt;strong&gt;&lt;code&gt;acks&lt;/code&gt;&lt;/strong&gt; 参数：决定生产者在收到多少个副本的确认后认为消息发送成功&lt;/li&gt;
 &lt;/ul&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&#34;消费者端的保证&#34;&gt;消费者端的保证
+&lt;table&gt;
+	&lt;thead&gt;
+			&lt;tr&gt;
+					&lt;th&gt;acks 值&lt;/th&gt;
+					&lt;th&gt;说明&lt;/th&gt;
+			&lt;/tr&gt;
+	&lt;/thead&gt;
+	&lt;tbody&gt;
+			&lt;tr&gt;
+					&lt;td&gt;&lt;code&gt;0&lt;/code&gt;&lt;/td&gt;
+					&lt;td&gt;生产者不会等待任何服务器的确认。消息可能会丢失，但性能最高。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;&lt;code&gt;1&lt;/code&gt;&lt;/td&gt;
+					&lt;td&gt;生产者会在领导者副本（leader）成功接收到数据后收到确认。数据可靠性得到了基本保障，但如果领导者副本崩溃，仍有可能丢失消息。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;&lt;code&gt;all&lt;/code&gt;（或 &lt;code&gt;-1&lt;/code&gt;）&lt;/td&gt;
+					&lt;td&gt;生产者会等待所有同步副本（ISR）接收到数据后收到确认。数据可靠性最高，但性能会有所下降，因为需要等多个副本都确认接收。&lt;/td&gt;
+			&lt;/tr&gt;
+	&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-消费者端的保证&#34;&gt;📥 消费者端的保证
 &lt;/h3&gt;&lt;p&gt;消息在被追加到 Partition(分区)的时候都会分配一个特定的偏移量（offset）。偏移量（offset）表示 Consumer 当前消费到的 Partition(分区)的所在的位置。Kafka 通过偏移量（offset）可以保证消息在分区内的顺序性。&lt;/p&gt;
-&lt;p&gt;自动提交offset会导致以下问题：当消费者拉取到了分区的某个消息之后，消费者会自动提交了 offset。当消费者刚拿到这个消息准备进行真正消费的时候，突然挂掉了，消息实际上并没有被消费，但是 offset 却被自动提交了。&lt;/p&gt;
+&lt;p&gt;自动提交 offset 会导致以下问题：当消费者拉取到了分区的某个消息之后，消费者会自动提交了 offset。当消费者刚拿到这个消息准备进行真正消费的时候，突然挂掉了，消息实际上并没有被消费，但是 offset 却被自动提交了。&lt;/p&gt;
 &lt;p&gt;通常的解决方法：&lt;strong&gt;手动关闭自动提交 offset，每次在真正消费完消息之后再自己手动提交 offset 。&lt;/strong&gt; 但是这样会带来消息被重新消费的问题。比如你刚刚消费完消息之后，还没提交 offset，结果自己挂掉了，那么这个消息理论上就会被消费两次。&lt;/p&gt;
-&lt;h3 id=&#34;broker的保证&#34;&gt;Broker的保证
-&lt;/h3&gt;&lt;p&gt;Broker通过 &lt;strong&gt;多副本机制&lt;/strong&gt; 来保证消息不丢失。Kafka 中的每个分区都有多个副本（Replicas），这些副本分布在不同的 Broker 上。当一个 Broker 宕机时，其他持有该分区副本的 Broker 能够接管工作。&lt;/p&gt;
-&lt;p&gt;Kafka 的副本分为leader副本和follower副本。每个主题（topic）中的分区（partition）会有一个leader副本和多个follower副本。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-broker-的保证&#34;&gt;🏗️ Broker 的保证
+&lt;/h3&gt;&lt;h4 id=&#34;-多副本机制&#34;&gt;📚 多副本机制
+&lt;/h4&gt;&lt;p&gt;Broker 通过 &lt;strong&gt;多副本机制&lt;/strong&gt; 来保证消息不丢失。Kafka 中的每个分区都有多个副本（Replicas），这些副本分布在不同的 Broker 上。当一个 Broker 宕机时，其他持有该分区副本的 Broker 能够接管工作。&lt;/p&gt;
+&lt;p&gt;Kafka 的副本分为 leader 副本和 follower 副本。每个主题（topic）中的分区（partition）会有一个 leader 副本和多个 follower 副本。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;leader副本：每个 Kafka 分区都有一个 Leader，负责处理所有的读写请求&lt;/li&gt;
-&lt;li&gt;follower副本：定期从领导者副本中拉取数据，保持数据的一致性。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;leader 副本&lt;/strong&gt;：每个 Kafka 分区都有一个 Leader，负责处理所有的读写请求&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;follower 副本&lt;/strong&gt;：定期从领导者副本中拉取数据，保持数据的一致性&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;当leader副本宕机时，会在follower副本中选出一个新的领导者，确保数据的连续性和可用性。&lt;/p&gt;
-&lt;style type=&#34;text/css&#34;&gt;
-   
-  .notice {
-    --title-color: #fff;
-    --title-background-color: #6be;
-    --content-color: #444;
-    --content-background-color: #e7f2fa;
-  }
-
-  .notice.info {
-    --title-background-color: #fb7;
-    --content-background-color: #fec;
-  }
-
-  .notice.tip {
-    --title-background-color: #5a5;
-    --content-background-color: #efe;
-  }
-
-  .notice.warning {
-    --title-background-color: #c33;
-    --content-background-color: #fee;
-  }
-
-   
-  @media (prefers-color-scheme: dark) {
-    .notice {
-      --title-color: #fff;
-      --title-background-color: #069;
-      --content-color: #ddd;
-      --content-background-color: #023;
-    }
-
-    .notice.info {
-      --title-background-color: #a50;
-      --content-background-color: #420;
-    }
-
-    .notice.tip {
-      --title-background-color: #363;
-      --content-background-color: #121;
-    }
-
-    .notice.warning {
-      --title-background-color: #800;
-      --content-background-color: #400;
-    }
-  }
-
-  body.dark .notice {
-    --title-color: #fff;
-    --title-background-color: #069;
-    --content-color: #ddd;
-    --content-background-color: #023;
-  }
-
-  body.dark .notice.info {
-    --title-background-color: #a50;
-    --content-background-color: #420;
-  }
-
-  body.dark .notice.tip {
-    --title-background-color: #363;
-    --content-background-color: #121;
-  }
-
-  body.dark .notice.warning {
-    --title-background-color: #800;
-    --content-background-color: #400;
-  }
-
-   
-  .notice {
-    width: 100%;  
-    max-width: 600px;  
-    padding: 18px;
-    line-height: 24px;
-    margin-bottom: 24px;
-    border-radius: 4px;
-    color: var(--content-color);
-    background: var(--content-background-color);
-  }
-
-  .notice p:last-child {
-    margin-bottom: 0;
-  }
-
-   
-  .notice-title {
-    margin: -18px -18px 12px;
-    padding: 4px 18px;
-    border-radius: 4px 4px 0 0;
-    font-weight: 700;
-    color: var(--title-color);
-    background: var(--title-background-color);
-  }
-
-   
-  .icon-notice {
-    display: inline-flex;
-    align-self: center;
-    margin-right: 8px;
-  }
-
-  .icon-notice img,
-  .icon-notice svg {
-    height: 1em;
-    width: 1em;
-    fill: currentColor;
-  }
-
-  .icon-notice img,
-  .icon-notice.baseline svg {
-    top: 0.125em;
-    position: relative;
-  }
-&lt;/style&gt;&lt;div
+&lt;p&gt;当 leader 副本宕机时，会在 follower 副本中选出一个新的领导者，确保数据的连续性和可用性。&lt;/p&gt;
+&lt;div
   class=&#34;notice tip&#34;
   
 &gt;
@@ -197,39 +128,84 @@
   &lt;path d=&#34;M551.281 252.36c0-3.32-1.172-6.641-3.515-8.985l-17.774-17.578c-2.344-2.344-5.469-3.711-8.789-3.711-3.32 0-6.445 1.367-8.789 3.71l-79.687 79.493-44.141-44.14c-2.344-2.344-5.469-3.712-8.79-3.712-3.32 0-6.444 1.368-8.788 3.711l-17.774 17.579c-2.343 2.343-3.515 5.664-3.515 8.984 0 3.32 1.172 6.445 3.515 8.789l70.704 70.703c2.343 2.344 5.664 3.711 8.789 3.711 3.32 0 6.64-1.367 8.984-3.71l106.055-106.056c2.343-2.343 3.515-5.468 3.515-8.789ZM600.5 284c0 82.813-67.188 150-150 150-82.813 0-150-67.188-150-150 0-82.813 67.188-150 150-150 82.813 0 150 67.188 150 150Z&#34;/&gt;
 &lt;/svg&gt;
 
-    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;在 Kafka 中，ISR (In-Sync Replica) 是一组与 Leader 副本保持同步的所有副本。具体来说，ISR 包含那些能够及时复制 Leader 副本中最新消息的副本。ISR 中的副本保证了它们的数据与 Leader 的数据一致或者仅仅落后很少量的数据，这些副本在副本集合中被认为是“同步”的。&lt;/p&gt;
+    &lt;/span&gt;提示&lt;/p&gt;&lt;p&gt;在 Kafka 中，ISR (In-Sync Replica) 是一组与 Leader 副本保持同步的所有副本。具体来说，ISR 包含那些能够及时复制 Leader 副本中最新消息的副本。ISR 中的副本保证了它们的数据与 Leader 的数据一致或者仅仅落后很少量的数据，这些副本在副本集合中被认为是&amp;quot;同步&amp;quot;的。&lt;/p&gt;
 &lt;p&gt;一个副本如果长时间无法与 Leader 同步（可能因为网络延迟、故障等原因），它就会被移出 ISR 集合。只有在其再次追上 Leader 后，才会被重新加入 ISR 集合。&lt;/p&gt;&lt;/div&gt;
 
-&lt;h3 id=&#34;选举机制&#34;&gt;选举机制
-&lt;/h3&gt;&lt;p&gt;Kafka的选举有以下几种&lt;/p&gt;
+&lt;hr&gt;
+&lt;h4 id=&#34;-选举机制&#34;&gt;⚙️ 选举机制
+&lt;/h4&gt;&lt;p&gt;Kafka 的选举有以下几种：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;Kafka Controller的选举&lt;/li&gt;
-&lt;li&gt;Partition Leader的选举&lt;/li&gt;
-&lt;li&gt;Consumer Group Coordinator(消费组协调者)的选举。&lt;/li&gt;
+&lt;li&gt;Kafka Controller 的选举&lt;/li&gt;
+&lt;li&gt;Partition Leader 的选举&lt;/li&gt;
+&lt;li&gt;Consumer Group Coordinator（消费组协调者）的选举&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;Kafka Controller的选举过程&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;启动竞争&lt;/strong&gt; ：集群启动时，各个 Broker 节点会尝试在 ZooKeeper 中创建一个临时节点&lt;code&gt;/controller&lt;/code&gt;。ZooKeeper 是一个分布式协调服务，可保障只有一个节点能成功创建该节点。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;确定控制器&lt;/strong&gt; ：成功创建&lt;code&gt;/controller&lt;/code&gt;节点的 Broker 会成为控制器，并在该节点中记录自身的 Broker ID 等信息。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;故障处理&lt;/strong&gt; ：若控制器所在节点发生故障，其创建的临时节点会自动消失。其他 Broker 监听到这一变化后，会重新竞争创建&lt;code&gt;/controller&lt;/code&gt;节点，从而选出新的控制器。&lt;/li&gt;
+&lt;h5 id=&#34;-kafka-controller-的选举过程&#34;&gt;⚡ Kafka Controller 的选举过程
+&lt;/h5&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;启动竞争&lt;/strong&gt; ：集群启动时，各个 Broker 节点会尝试在 ZooKeeper 中创建一个临时节点 &lt;code&gt;/controller&lt;/code&gt;。ZooKeeper 是一个分布式协调服务，可保障只有一个节点能成功创建该节点。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;确定控制器&lt;/strong&gt; ：成功创建 &lt;code&gt;/controller&lt;/code&gt; 节点的 Broker 会成为控制器，并在该节点中记录自身的 Broker ID 等信息。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;故障处理&lt;/strong&gt; ：若控制器所在节点发生故障，其创建的临时节点会自动消失。其他 Broker 监听到这一变化后，会重新竞争创建 &lt;code&gt;/controller&lt;/code&gt; 节点，从而选出新的控制器。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;Partition Leader的选举过程&lt;/p&gt;
-&lt;ul&gt;
+&lt;h5 id=&#34;-partition-leader-的选举过程&#34;&gt;🎯 Partition Leader 的选举过程
+&lt;/h5&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;控制器主导&lt;/strong&gt; ：分区首领选举由控制器负责。控制器会维护分区的状态信息，当检测到首领副本不可用时，会触发选举流程。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;优先副本选择&lt;/strong&gt; ：Kafka 优先选择分区的优先副本作为首领。优先副本是在分区创建时指定的第一个副本。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;存活副本选举&lt;/strong&gt; ：若优先副本不可用，控制器会从同步副本集合（ISR）中选择一个副本作为新的首领。同步副本是指与首领副本保持同步的副本。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;元数据更新&lt;/strong&gt; ：选举出新首领后，控制器会更新集群元数据，通知其他 Broker 新的首领信息。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;Consumer Group Coordinator(消费组协调者)的选举&lt;/p&gt;
-&lt;ul&gt;
+&lt;h5 id=&#34;-consumer-group-coordinator-的选举&#34;&gt;🔗 Consumer Group Coordinator 的选举
+&lt;/h5&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;协调器确定&lt;/strong&gt;：消费者组中的消费者在启动时，会向 Kafka 集群发送请求，Kafka 根据消费者组 ID 的哈希值选择一个 Broker 作为协调器。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;注册与通知&lt;/strong&gt; ：消费者向选定的协调器注册自己，协调器会维护消费者组的成员信息，并将分区分配方案通知给各个消费者。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;故障处理&lt;/strong&gt; ：若协调器所在 Broker 故障，消费者会收到通知，重新发起协调器选举。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;消息重复消费的处理方案&#34;&gt;消息重复消费的处理方案
-&lt;/h2&gt;&lt;p&gt;Kafka中会出现消息重复的情况，根本原因：&lt;strong&gt;服务端侧已经消费的数据没有成功提交 offset&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;严格意义上是无法从根本上解决重复的消息，因为为了保证消息的可靠性会产生重复的消息。只能从业务层面解决重复消息的影响&lt;/p&gt;
-&lt;p&gt;只有让消费者的处理逻辑具有 &lt;strong&gt;幂等性&lt;/strong&gt; ，保证无论同一条消息被消费多少次，结果都是一样的，从而避免因重复消费带来的副作用。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-消息重复消费&#34;&gt;⚠️ 消息重复消费
+&lt;/h2&gt;&lt;h3 id=&#34;-重复消费的原因&#34;&gt;🔍 重复消费的原因
+&lt;/h3&gt;&lt;p&gt;Kafka 中会出现消息重复的情况，根本原因：&lt;strong&gt;服务端侧已经消费的数据没有成功提交 offset&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;消费者的工作流程是：拉取消息 → 处理消息 → 提交 offset（告诉 Broker&amp;quot;我已经消费到第 N 条了&amp;quot;）。关键问题在于处理消息和提交 offset 是两个独立的步骤，不是原子操作。假设消费者拉了第 100 条消息，处理完了，正准备提交 offset=100，这一瞬间消费者宕机了。重启后 Broker 发现上次提交的 offset 还是 99，于是消费者拉取消息时——重复消费就这么发生了。&lt;/li&gt;
+&lt;li&gt;生产者端也会造成重复：消息发到 Broker 了，Broker 也存下来了，但返回 ack 的时候网络断了，生产者以为没发成功又发了一次——同一条消息就被存了两次。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-10_110113_890.png&#34; alt=&#34;重复消费的原因&#34; width=&#34;84%&#34; /&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;-解决重复消费的策略&#34;&gt;🛠️ 解决重复消费的策略
+&lt;/h3&gt;&lt;p&gt;严格意义上是无法从根本上解决重复的消息，因为为了保证消息的可靠性会产生重复的消息。既然重复消费无法 100% 避免（除非做分布式事务，代价太高），业界的共识是：MQ 保证 at-least-once（至少投递一次），业务层自己做幂等保证重复消费不影响结果。只有让消费者的处理逻辑具有 &lt;strong&gt;幂等性&lt;/strong&gt; ，幂等性就是同一个操作执行多次和执行一次的效果一样，保证无论同一条消息被消费多少次，结果都是一样的，从而避免因重复消费带来的副作用。&lt;/p&gt;
+&lt;p&gt;具体来说就是每条消息带一个唯一的业务标识，消费者处理之前先去数据库或 Redis 里查这个标识有没有被处理过，如果已处理就直接跳过，保证同一条消息不管消费几次，业务结果都只生效一次。&lt;/p&gt;
+&lt;p&gt;实现幂等性的常用方案：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;唯一标识（幂等键）&lt;/strong&gt;：每个请求生成一个全局唯一 ID 比如 UUID 或业务主键，服务端处理前先校验这个 ID 是否已处理过，处理过就不再处理，直接跳过或者直接返回&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;数据库乐观锁&lt;/strong&gt;：通过版本号或状态字段控制并发更新，确保多次更新等同于单次&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;数据库唯一约束&lt;/strong&gt;：利用唯一索引防止重复插入&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;分布式锁&lt;/strong&gt;：保证同一时刻只有一个请求执行关键操作&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;消息去重&lt;/strong&gt;：消息队列场景下，生产者给每条消息生成唯一消息 ID，消费者处理前先检查该 ID 是否已处理过&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&amp;mdash;:&lt;/p&gt;
+&lt;h2 id=&#34;-消息事务保证数据一致性&#34;&gt;🔄 消息事务保证数据一致性
+&lt;/h2&gt;&lt;h3 id=&#34;-消息事务的核心问题&#34;&gt;📖 消息事务的核心问题
+&lt;/h3&gt;&lt;p&gt;消息事务解决的核心问题是：&lt;strong&gt;&amp;ldquo;写数据库&amp;quot;和&amp;quot;发消息到 MQ&amp;quot;这两个操作要么都成功，要么都失败&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;这个问题看似简单，实际很难，因为数据库和 MQ 是两个独立的系统，没法放在同一个本地事务里。先看两种&amp;quot;直觉方案&amp;quot;为什么有问题：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;先发消息再写库&lt;/strong&gt;：消息发成功了，下游开始处理了，结果本地数据库写失败了回滚了，下游收到了一条不该收到的消息，数据不一致&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;先写库再发消息&lt;/strong&gt;：数据库写成功了，但发消息时网络断了或 MQ 挂了，消息没发出去，下游永远收不到，数据也不一致&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-解决消息事务的策略&#34;&gt;🛠️ 解决消息事务的策略
+&lt;/h3&gt;&lt;p&gt;半事务消息方案巧妙地解决了这个问题。&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-10_111859_519.png&#34; alt=&#34;消息事务的策略&#34; width=&#34;84%&#34; /&gt;
+&lt;/div&gt;
+&lt;p&gt;具体流程如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;发送半事务消息&lt;/strong&gt;：生产者先发一条半事务消息（Half Message）给 Broker（相当于先&amp;quot;占个位&amp;rdquo;），Broker 存储但标记为暂不投递状态，然后返回 ack 给生产者&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;执行本地事务&lt;/strong&gt;：生产者收到 ack 后执行本地事务
+&lt;ul&gt;
+&lt;li&gt;如果本地事务成功，就发 commit 给 Broker，Broker 把消息状态改为可发送，推给消费者&lt;/li&gt;
+&lt;li&gt;如果本地事务失败，就发 rollback，Broker 删除这条半消息&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;兜底回查机制&lt;/strong&gt;：如果 Broker 长时间没收到 commit 或 rollback（比如生产者宕机了），Broker 有兜底机制：定时主动回查生产者的本地事务状态，根据结果决定提交还是回滚&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;这样就保证了只有本地事务成功，消息才会被消费。&lt;/p&gt;
 </description>
         </item>
         <item>
@@ -439,90 +415,55 @@
         <pubDate>Tue, 18 Mar 2025 11:04:57 +0800</pubDate>
         
         <guid>https://Tyritic.github.io/p/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%9F%BA%E7%A1%80/</guid>
-        <description>&lt;h2 id=&#34;什么是消息队列&#34;&gt;什么是消息队列
+        <description>&lt;h2 id=&#34;-什么是消息队列&#34;&gt;📖 什么是消息队列
 &lt;/h2&gt;&lt;p&gt;消息队列是一种 &lt;strong&gt;异步通信机制&lt;/strong&gt; ，用于在 &lt;strong&gt;分布式系统&lt;/strong&gt; 中解耦发送方和接收方之间的通信。它通过在消息生产者和消费者之间引入一个 &lt;strong&gt;中间缓冲区&lt;/strong&gt; ，将消息存储在 broker 中，然后由消费者从 broker 中读取和处理消息。&lt;/p&gt;
-&lt;h2 id=&#34;消息队列中的核心概念&#34;&gt;消息队列中的核心概念
+&lt;hr&gt;
+&lt;h2 id=&#34;-消息队列中的核心概念&#34;&gt;🧩 消息队列中的核心概念
 &lt;/h2&gt;&lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;生产者（Producer）&lt;/strong&gt; ：负责向消息队列中发送消息的应用程序或服务。生产者将消息发送到指定的队列或主题（Topic），供消费者消费。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;消费者（Consumer）&lt;/strong&gt; ：从消息队列中读取和处理消息的应用程序或服务。消费者根据业务逻辑处理收到的消息，并可以向消息队列发送确认。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Broker&lt;/strong&gt; ：消息队列的核心组件，负责接收、存储和分发消息。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;队列（Queue）&lt;/strong&gt; ：存储消息的容器，消息按照先进先出（FIFO）的顺序在队列中存储。队列中的每条消息通常只能被一个消费者消费一次。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Broker&lt;/strong&gt; ：消息队列的核心组件，负责接收、存储和分发消息。存储消息的容器，消息按照先进先出（FIFO）的顺序在队列中存储。队列中的每条消息通常只能被一个消费者消费一次。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;主题（Topic）&lt;/strong&gt; ：用于在发布/订阅模型中，消息生产者将消息发布到一个主题，多个订阅该主题的消费者可以接收到相同的消息。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;消息队列的模型&#34;&gt;消息队列的模型
-&lt;/h2&gt;&lt;h3 id=&#34;队列模型点对点模型&#34;&gt;队列模型（点对点模型）
+&lt;hr&gt;
+&lt;h2 id=&#34;-消息队列的模型&#34;&gt;🏗️ 消息队列的模型
+&lt;/h2&gt;&lt;h3 id=&#34;-队列模型点对点模型&#34;&gt;📬 队列模型（点对点模型）
 &lt;/h3&gt;&lt;p&gt;在队列模型中，消息从生产者发送到队列，并且每条消息只能被一个消费者消费一次。消费之后，消息在队列中被删除。适用于任务处理类场景，如一个任务只需要一个处理者执行。&lt;/p&gt;
 &lt;p&gt;存在问题：生产者向队列中投放消息，但是队列会有多个消费者，多个消费者之间存在竞争关系，即 &lt;strong&gt;每条消息只能被一个消费者消费&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;会造成数据冗余的问题&lt;/p&gt;
-&lt;h3 id=&#34;发布-订阅模型&#34;&gt;发布-订阅模型
+&lt;p&gt;会造成数据冗余的问题。&lt;/p&gt;
+&lt;h3 id=&#34;-发布-订阅模型&#34;&gt;📡 发布-订阅模型
 &lt;/h3&gt;&lt;p&gt;在发布/订阅模型中，生产者将消息发布到某个主题（Topic），所有订阅了该主题的消费者都会接收到该消息。每个订阅者都会接收到相同的消息，适用于广播通知、实时推送等场景。可以将发布-订阅模型理解为将消费者都加入了一个群聊中，生产者发一条消息，加入了这个群聊的消费者都能收到这条消息。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%9F%BA%E7%A1%80/message-queue-pub-sub-model.png&#34;
-	width=&#34;701&#34;
-	height=&#34;296&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;发布/订阅（Pub/Sub）模型&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;236&#34;
-		data-flex-basis=&#34;568px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;h2 id=&#34;消息队列的作用&#34;&gt;消息队列的作用
-&lt;/h2&gt;&lt;h3 id=&#34;服务解耦&#34;&gt;服务解耦
-&lt;/h3&gt;&lt;p&gt;&lt;img src=&#34;https://Tyritic.github.io/p/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%9F%BA%E7%A1%80/message-queue-pub-sub-model.png&#34;
-	width=&#34;701&#34;
-	height=&#34;296&#34;
-	
-	loading=&#34;lazy&#34;
-	
-		alt=&#34;发布/订阅（Pub/Sub）模型&#34;
-	
-	
-		class=&#34;gallery-image&#34; 
-		data-flex-grow=&#34;236&#34;
-		data-flex-basis=&#34;568px&#34;
-	
-&gt;&lt;/p&gt;
-&lt;p&gt;生产者和消费者无需同时在线，生产者可以发送消息后立即返回，而消费者在合适的时机处理消息。&lt;strong&gt;消息发送者（生产者）和消息接受者（消费者）之间没有直接耦合&lt;/strong&gt; ，消息发送者将消息发送至分布式消息队列即结束对消息的处理，消息接受者从分布式消息队列获取该消息后进行后续处理，并不需要知道该消息从何而来。 &lt;strong&gt;对新增业务，只要对该类消息感兴趣，即可订阅该消息，对原有系统和业务没有任何影响，从而实现可扩展性设计&lt;/strong&gt;。&lt;/p&gt;
-&lt;h3 id=&#34;削峰填谷和流量限制&#34;&gt;削峰填谷和流量限制
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;message-queue-pub-sub-model.png&#34; alt=&#34;发布/订阅（Pub/Sub）模型&#34; width=&#34;75%&#34;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-消息队列的作用&#34;&gt;🎯 消息队列的作用
+&lt;/h2&gt;&lt;h3 id=&#34;-服务解耦&#34;&gt;🔗 服务解耦
+&lt;/h3&gt;&lt;p&gt;生产者和消费者无需同时在线，生产者可以发送消息后立即返回，而消费者在合适的时机处理消息。&lt;strong&gt;消息发送者（生产者）和消息接受者（消费者）之间没有直接耦合&lt;/strong&gt; ，消息发送者将消息发送至分布式消息队列即结束对消息的处理，消息接受者从分布式消息队列获取该消息后进行后续处理，并不需要知道该消息从何而来。 &lt;strong&gt;对新增业务，只要对该类消息感兴趣，即可订阅该消息，对原有系统和业务没有任何影响，从而实现可扩展性设计&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;-削峰填谷和流量限制&#34;&gt;⚖️ 削峰填谷和流量限制
 &lt;/h3&gt;&lt;p&gt;在高并发场景下，消息队列可以暂存大量请求，平滑高峰流量，避免系统过载。在项目开发中，后端服务相对而言都是比较「弱」的，因为业务较重，处理时间较长。消息队列作为中间件可以起到缓冲的作用。网关的请求先放入消息队列中，后端服务尽自己最大能力去消息队列中消费请求。超时的请求可以直接返回错误。&lt;/p&gt;
-&lt;h3 id=&#34;异步处理&#34;&gt;异步处理
+&lt;h3 id=&#34;-异步处理&#34;&gt;🔄 异步处理
 &lt;/h3&gt;&lt;p&gt;将用户请求中包含的耗时操作，通过消息队列实现异步处理。&lt;/p&gt;
 &lt;p&gt;生产者将对应的消息发送到消息队列之后就立即返回结果，减少响应时间，提高用户体验。随后，消费者再对消息进行消费。请求数据在后续的业务校验、写数据库等操作中可能失败。因此，&lt;strong&gt;使用消息队列进行异步处理之后，需要适当修改业务流程进行配合&lt;/strong&gt;&lt;/p&gt;
-&lt;h2 id=&#34;推模式和拉模式&#34;&gt;推模式和拉模式
-&lt;/h2&gt;&lt;p&gt;推模式和拉模式指的是消费者和Broker之间的交互过程&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;推模式（Push）&lt;/strong&gt; ：消息队列将消息主动推送给消费者，适合实时性要求高、消费者能够及时处理消息的场景。&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;优点&lt;/strong&gt; ：实时性好，消息可立即送达消费者。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;缺点&lt;/strong&gt; ：难以控制消费速度，容易导致消费者过载，尤其是在高并发时。&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;拉模式（Pull）&lt;/strong&gt; ：消费者主动从消息队列中拉取消息，适合消费能力有限、需要根据自身处理能力调控速率的场景。&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;优点&lt;/strong&gt; ：消费者可以根据自身负载决定拉取频率，避免过载；更适合批量处理。&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;strong&gt;缺点&lt;/strong&gt; ：可能会导致消息延迟，实时性不如推模式，尤其是拉取频率较低时。&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&#34;选择策略&#34;&gt;选择策略
+&lt;hr&gt;
+&lt;h2 id=&#34;-推模式和拉模式&#34;&gt;🔄 推模式和拉模式
+&lt;/h2&gt;&lt;p&gt;推模式和拉模式指的是消费者和 Broker 之间的交互过程。Push vs Pull 是 MQ 设计中的经典取舍，理解它们的核心是搞清楚一个根本问题：消费速率应该由谁来控制？&lt;/p&gt;
+&lt;div align=&#34;center&#34;&gt;
+  &lt;img src=&#34;微信图片_2026-05-10_112827_570.png&#34; alt=&#34;推模式和拉模式&#34; width=&#34;85%&#34;&gt;
+&lt;/div&gt;
+&lt;h3 id=&#34;-推模式push&#34;&gt;📥 推模式（Push）
+&lt;/h3&gt;&lt;p&gt;Broker 将消息主动推送给消费者，适合实时性要求高、消费者能够及时处理消息的场景。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点&lt;/strong&gt;：实时性好，消息可立即送达消费者。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;缺点&lt;/strong&gt;：Broker 不了解每个消费者的处理能力——有的消费者处理快，有的处理慢，Broker 按同一个速度推送，处理慢的消费者就会被压垮，容易导致消费者过载，尤其是在高并发时。虽然可以通过流控（比如 RabbitMQ 的 prefetch 参数限制一次推几条）来缓解，但本质上控制权在 Broker 手里，消费者是被动接收的。&lt;/p&gt;
+&lt;h3 id=&#34;-拉模式pull&#34;&gt;📤 拉模式（Pull）
+&lt;/h3&gt;&lt;p&gt;消费者主动从 Broker 中拉取消息，适合消费能力有限、需要根据自身处理能力调控速率的场景。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优点&lt;/strong&gt;：消费者可以根据自身负载决定拉取频率，避免过载；更适合批量处理。而且消费者可以灵活控制 offset——想重新消费历史消息就把 offset 往回拨，想跳过积压就把 offset 往前调。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;缺点&lt;/strong&gt;：可能会导致消息延迟，实时性不如推模式，尤其是拉取频率较低时。如果 Broker 里暂时没有新消息，消费者每次去拉都拉到空数据，就会空轮询浪费 CPU 和网络资源。Kafka 的解决方案是让消费者在拉取时传一个 timeout 参数（长轮询），如果没有新数据就阻塞等待一段时间再返回，避免了忙等。&lt;/p&gt;
+&lt;h3 id=&#34;-选择策略&#34;&gt;💡 选择策略
 &lt;/h3&gt;&lt;p&gt;个人认为相较于推模式，拉模式更加适应当下的需求。因为现在的消息队列都有持久化消息的需求，也就是说本身它就有个存储功能，它的使命就是接受消息，保存好消息使得消费者可以消费消息即可，身为 Broker 不应该有依赖于消费者的倾向。&lt;/p&gt;
-&lt;h3 id=&#34;在kafka中的实现&#34;&gt;在Kafka中的实现
-&lt;/h3&gt;&lt;p&gt;Kafka通过长轮询来实现拉模式。具体的做法都是通过消费者去 Broker 拉取消息时，当有消息的情况下 Broker 会直接返回消息，如果没有消息都会采取延迟处理的策略，即保持连接，暂时 hold 主请求，然后在对应队列或者分区有新消息到来的时候都会提醒消息来了，通过之前 hold 主的请求及时返回消息，保证消息的及时性。&lt;/p&gt;
-&lt;p&gt;在Kafka中设置了超时参数，消费者去 Broker 拉消息，定义了一个超时时间，也就是说消费者去请求消息，如果有的话马上返回消息，如果没有的话消费者等着直到超时，然后再次发起拉消息请求。并且 Broker 也得配合，如果消费者请求过来，有消息马上返回，没有消息那就建立一个延迟操作，等条件满足了再返回。&lt;/p&gt;
+&lt;h3 id=&#34;-在-kafka-中的实现&#34;&gt;💻 在 Kafka 中的实现
+&lt;/h3&gt;&lt;p&gt;Kafka 通过长轮询来实现拉模式。具体的做法都是通过消费者去 Broker 拉取消息时，当有消息的情况下 Broker 会直接返回消息，如果没有消息都会采取延迟处理的策略，即保持连接，暂时 hold 主请求，然后在对应队列或者分区有新消息到来的时候都会提醒消息来了，通过之前 hold 主的请求及时返回消息，保证消息的及时性。&lt;/p&gt;
+&lt;p&gt;在 Kafka 中设置了超时参数，消费者去 Broker 拉消息，定义了一个超时时间，也就是说消费者去请求消息，如果有的话马上返回消息，如果没有的话消费者等着直到超时，然后再次发起拉消息请求。并且 Broker 也得配合，如果消费者请求过来，有消息马上返回，没有消息那就建立一个延迟操作，等条件满足了再返回。&lt;/p&gt;
 </description>
         </item>
         
