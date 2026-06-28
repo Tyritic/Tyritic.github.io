@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="把 Spec Coding 落地过程中踩过的坑逐条记录——从规格写歪、AI 跑偏、到工程纪律失效的真实案例与反思。">
+<title>Spec Coding的踩坑实录</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/spec-coding%E7%9A%84%E8%B8%A9%E5%9D%91%E5%AE%9E%E5%BD%95/'>
+
+<link rel="stylesheet" href="/scss/style.min.cbd512f1ab381ec2ee22f919961cc92c7cd9fe892ef96c066f8877ab9872f162.css"><meta property='og:title' content="Spec Coding的踩坑实录">
+<meta property='og:description' content="把 Spec Coding 落地过程中踩过的坑逐条记录——从规格写歪、AI 跑偏、到工程纪律失效的真实案例与反思。">
+<meta property='og:url' content='https://Tyritic.github.io/p/spec-coding%E7%9A%84%E8%B8%A9%E5%9D%91%E5%AE%9E%E5%BD%95/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Spec Coding' /><meta property='article:published_time' content='2026-06-27T20:45:00&#43;08:00'/><meta property='article:modified_time' content='2026-06-28T16:20:52&#43;00:00'/>
+<meta name="twitter:title" content="Spec Coding的踩坑实录">
+<meta name="twitter:description" content="把 Spec Coding 落地过程中踩过的坑逐条记录——从规格写歪、AI 跑偏、到工程纪律失效的真实案例与反思。">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_691afbb6233f07b9.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#-目前的落地方式">🛠️ 目前的落地方式</a></li>
+    <li><a href="#-不是所有需求都需要-spec-coding有的时候-plan-mode-就足够">⚖️ 不是所有需求都需要 Spec Coding，有的时候 Plan Mode 就足够</a>
+      <ol>
+        <li><a href="#-损耗发生在哪里">📉 损耗发生在哪里</a></li>
+      </ol>
+    </li>
+    <li><a href="#-业界主流-spec-框架不一定适配模型能力">⚠️ 业界主流 Spec 框架不一定适配模型能力</a></li>
+    <li><a href="#-不是只有独立的-spec-文件才是-sdd">📚 不是只有独立的 Spec 文件才是 SDD</a></li>
+    <li><a href="#-不需要-100-走-spec-流程">🎯 不需要 100% 走 Spec 流程</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/ai-coding/" style="background-color: #2a9d8f; color: #fff;">
+                AI Coding
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/spec-coding%E7%9A%84%E8%B8%A9%E5%9D%91%E5%AE%9E%E5%BD%95/">Spec Coding的踩坑实录</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            把 Spec Coding 落地过程中踩过的坑逐条记录——从规格写歪、AI 跑偏、到工程纪律失效的真实案例与反思。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-06-27</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 5 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：2474 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="-目前的落地方式">🛠️ 目前的落地方式
+</h2><p>SDD（Spec-Driven Development）可以先简单理解成：先写一份“规格说明书”，再让 AI 按照说明书写代码。类比盖房子，就是先画图纸，再让施工队施工。</p>
+<p>目前采用的是 OpenSpec + Superpowers 的融合方案。OpenSpec 负责定义“做什么”（What），产出 proposal、spec、design 等结构化文档；Superpowers 负责“怎么做”（How），用 Skills 推着 AI 走 brainstorming、writing-plans、TDD、code review 这条执行链路。</p>
+<div align="center">
+  <img src="ee0c481c-64c6-11f1-8b2b-360751745e63.png" alt="完整协作流程" width="78%" />
+</div>
+<p>一开始想得很理想：OpenSpec 像图纸，Superpowers 像施工队，各管一段。但真正跑起来以后，我们发现两套工具不是简单拼起来就能协作，很多地方反而互相抢活。最明显的冲突有三个：</p>
+<ul>
+<li>Superpowers 的 brainstorming 也会产出 design doc，和 OpenSpec 的 design 职责重叠。</li>
+<li>OpenSpec 里的验收标准，后面又会被 Superpowers 的 TDD plan 转成 test case，原来的 spec 反而不再是主要验证手段。</li>
+<li>两层审批互不信任，开发者经常不知道到底该以哪一层为准。</li>
+</ul>
+<hr>
+<h2 id="-不是所有需求都需要-spec-coding有的时候-plan-mode-就足够">⚖️ 不是所有需求都需要 Spec Coding，有的时候 Plan Mode 就足够
+</h2><p>业界常说 Spec Coding 有三条铁律：No Spec, No Code；Spec is Truth；Reverse Sync。听起来很合理，实践里却很容易变成误区。</p>
+<ul>
+<li>No Spec, No Code。如果需求本身是“一个人半天能搞定”的小任务，写 spec 的时间可能已经超过直接改代码的时间。这时候坚持 no spec no code，最后就变成了为了流程而流程。</li>
+<li>Spec is Truth。Spec 是自然语言写的，AI 再按自己的理解生成代码。中间至少经历两次翻译：人把意图翻译成 spec，AI 把 spec 翻译成 code。每一层都会丢信息。</li>
+</ul>
+<p>真正能代表系统状态的，不是 spec，而是跑得通、测得过、能在线上工作的代码。</p>
+<h3 id="-损耗发生在哪里">📉 损耗发生在哪里
+</h3><ul>
+<li>第一层损耗：意图 → spec。很多隐性知识很难完整写出来。比如你觉得“余额不能为负”显而易见，但如果没有写进约束里，AI 未必会自动补上。</li>
+<li>第二层损耗：spec → code。AI 对同一段 spec 的理解并不完全稳定。通常能遵循 70%—90%，但复杂需求里，总会有一部分需要人工改。</li>
+<li>两层叠加后，差距会被放大。如果每层损失 20% 信息，最终保真度大概是 0.8 × 0.8 ≈ 64%。这和我们在复杂需求里的体感很接近：生成代码经常需要改 30%—40%。</li>
+</ul>
+<div align="center">
+  <img src="31242d5464c711f19b2b9e8f68088af4.png" alt="完整协作流程" width="78%" />
+</div>
+相比之下，Plan Mode 是“意图 → 代码”一步到位。人在交互过程中可以随时补充遗漏细节，用即时反馈替代静态文档。对简单任务来说，这种方式的对齐度反而更高。
+<p>因此建议做出以下调整</p>
+<ul>
+<li>Spec 不追求绝对精确。写得越像代码，成本越接近代码本身。</li>
+<li>Spec 更适合作为“验收基准”，不是“生成蓝图”。它应该回答怎么判断对不对，而不是要求 AI 一比一照抄。</li>
+<li>简单任务优先 Plan Mode，不是偷懒，而是减少中间损耗。</li>
+<li>Code 才是最终事实依据。Spec 更像脚手架，帮 AI 生成第一版，后续真正被维护的是代码和测试。</li>
+<li>过时的 spec 不只是没用，还可能误导 Agent。留在仓库里的错误前提，会变成下一次生成代码时的噪音。</li>
+</ul>
+<hr>
+<h2 id="-业界主流-spec-框架不一定适配模型能力">⚠️ 业界主流 Spec 框架不一定适配模型能力
+</h2><p>这个坑来自时间错配：工具的默认流程，往往跟不上模型能力的变化。Superpowers、Spec Kit、Kiro 等 SDD 工具，大多是在 2024—2025 年形成的。那时模型还没现在强，确实需要更细的 spec 才能生成可用代码。到了 2026 年，强模型在很多单模块任务里，已经能根据很短的意图描述生成 80% 以上可用代码。</p>
+<p>问题是，很多工具的默认流程还停留在旧假设里：先写大段 spec，再写 design，再写 tasks，再审批，再执行。模型变强后，这套流程的边际收益变低，但写作、阅读、审批、维护成本仍然存在。</p>
+<ul>
+<li>
+<p>OpenAI Codex 团队（Harness Engineering，2026.02）。他们更强调四象限轻量 prompt：Goal、Context、Constraints、Done-When，再配合 AGENTS.md 约束项目边界。架构一致性靠 linter、structural test 和 CI 守住，而不是靠人反复 review spec。</p>
+</li>
+<li>
+<p>Anthropic Claude Code 团队。CLAUDE.md 控制在较短篇幅，每个需求主要写验收标准和关键约束，而不是把完整实现方案写成蓝图。</p>
+</li>
+</ul>
+<p>一个趋势很明显：模型越强，spec 越薄。真正需要补足的不是流程控制，而是上下文、边界和验证。</p>
+<p>换句话说，更应该追求 More Context, Less Control。Context 是信息，能帮助模型做判断；Control 是流程约束，过多时会变成负担。</p>
+<hr>
+<h2 id="-不是只有独立的-spec-文件才是-sdd">📚 不是只有独立的 Spec 文件才是 SDD
+</h2><div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>实践</th>
+					<th>是不是 Spec</th>
+					<th>为什么</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>OpenSpec 的 <code>spec.md</code></td>
+					<td>是</td>
+					<td>显式描述 What 的结构化文件</td>
+			</tr>
+			<tr>
+					<td>Superpowers 的 <code>design doc</code></td>
+					<td>是</td>
+					<td>描述 What + How 的设计边界</td>
+			</tr>
+			<tr>
+					<td>Plan Mode 的 prompt</td>
+					<td>是</td>
+					<td>&ldquo;先调研、给方案、确认后再写代码&quot;本身就是轻量 spec</td>
+			</tr>
+			<tr>
+					<td><code>CLAUDE.md</code> / <code>AGENTS.md</code></td>
+					<td>是</td>
+					<td>项目级约束，是持久化的 spec</td>
+			</tr>
+			<tr>
+					<td>验收测试</td>
+					<td>是</td>
+					<td>可执行的 spec，也是最强的约束形式</td>
+			</tr>
+			<tr>
+					<td>一句话口头意图</td>
+					<td>边界形态</td>
+					<td>很轻，但仍然在约束实现空间。</td>
+			</tr>
+	</tbody>
+</table></div>
+<p>经常有人说：“Plan Mode 不算 SDD，因为它没有写 spec 文件。”也有人说：“Superpowers 才是正统 SDD，因为它有 design doc。”这些说法背后有一个默认前提：只有独立的 spec 文件，才算 Spec-Driven。</p>
+<p>实际上Spec 是一个光谱，不是某一种固定格式。从一句口头意图，到 AGENTS.md，再到验收测试，都是不同浓度的 spec。重新定义 SDD 的成功标准，也许更合理：不是“有没有写 spec 文件”，而是“AI 是否在正确的约束空间内工作”。例如</p>
+<ul>
+<li>Plan Mode 不是没有 spec，而是 spec 和执行发生在同一条交互链里。</li>
+<li>AGENTS.md 不是普通配置文件，它记录的是项目级行为边界。</li>
+<li>TDD 的测试不只是测试，它也是最严格、最可执行的 spec。</li>
+</ul>
+<hr>
+<h2 id="-不需要-100-走-spec-流程">🎯 不需要 100% 走 Spec 流程
+</h2><p>最开始，默认所有需求都走 Superpowers 完整流程。结果连改一行文案，也要先brainstorming，再生成 design doc，再 review，再写 plan，再 TDD，再执行，再code review。</p>
+<p>对于“一个人半天能搞定”的小需求。它们走完整流程时，brainstorming + design 的时间约等于编码时间的 60%—80%，端到端反而更慢，也就是说，超过一半需求被套上了过重流程。</p>
+<p>更合理的分流方式应该是</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>档位</th>
+					<th>示例</th>
+					<th>更适合的方式</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>零 spec</td>
+					<td>改文案、修样式、hot fix</td>
+					<td>直接改代码</td>
+			</tr>
+			<tr>
+					<td>轻 spec</td>
+					<td>加筛选项、改接口参数</td>
+					<td>Plan Mode + 一句话意图</td>
+			</tr>
+			<tr>
+					<td>中 spec</td>
+					<td>新增业务模块、跨人协作</td>
+					<td>验收标准 + 关键约束</td>
+			</tr>
+			<tr>
+					<td>重 spec</td>
+					<td>架构重构、新系统设计</td>
+					<td>OpenSpec + Superpowers 全流程</td>
+			</tr>
+	</tbody>
+</table></div>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/spec-coding/">Spec Coding</a>
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026-06-28 16:20 UTC
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/openspec%E7%9A%84%E6%A6%82%E5%BF%B5%E4%B8%8E%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">OpenSpec的概念与基本使用</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/spec-coding-%E7%9A%84%E5%AE%9E%E8%B7%B5%E6%8C%87%E5%8D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Spec Coding 的实践指南</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/spec-coding-%E7%9A%84%E5%AE%9A%E4%B9%89/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Spec Coding 的定义</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/superpowers%E4%B8%8Eopenspec%E7%9A%84%E9%85%8D%E5%90%88%E4%BD%BF%E7%94%A8/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Superpowers与OpenSpec的配合使用</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2026 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.93ec85291de2934df13aa4307b756a6eb93dd4ff935a9810e787a938c351043f.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
