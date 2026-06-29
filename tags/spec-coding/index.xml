@@ -7,7 +7,589 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>Tyritic</copyright>
-        <lastBuildDate>Sun, 28 Jun 2026 16:27:00 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/spec-coding/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Mon, 29 Jun 2026 16:33:26 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/spec-coding/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>OpenSpec的使用经验和最佳实践</title>
+        <link>https://Tyritic.github.io/p/openspec%E7%9A%84%E4%BD%BF%E7%94%A8%E7%BB%8F%E9%AA%8C%E5%92%8C%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/</link>
+        <pubDate>Mon, 29 Jun 2026 10:00:00 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/openspec%E7%9A%84%E4%BD%BF%E7%94%A8%E7%BB%8F%E9%AA%8C%E5%92%8C%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/</guid>
+        <description>&lt;h2 id=&#34;-引言从会跑到跑得稳&#34;&gt;🧭 引言：从&amp;quot;会跑&amp;quot;到&amp;quot;跑得稳&amp;quot;
+&lt;/h2&gt;&lt;p&gt;在上一篇《&lt;a class=&#34;link&#34; href=&#34;../OpenSpec%e7%9a%84%e6%a6%82%e5%bf%b5%e4%b8%8e%e5%9f%ba%e6%9c%ac%e4%bd%bf%e7%94%a8/index.zh-cn.md&#34; &gt;OpenSpec 的概念与基本使用&lt;/a&gt;》里，我们把 OpenSpec 的双文件夹模型、核心命令和最小流程跑通了一遍。但&amp;quot;能跑&amp;quot;和&amp;quot;跑得稳&amp;quot;之间，还隔着大量实战细节。&lt;/p&gt;
+&lt;p&gt;这一篇是经验复盘：把过去几个月在多个真实项目里踩过的坑、验证过的做法，整理成一份&amp;quot;避坑指南 + 最佳实践&amp;quot;合集。读完它，你应该能避免 80% 的常见返工。&lt;/p&gt;
+&lt;p&gt;整篇文章围绕 OpenSpec 生命周期的六个关键阶段展开：&lt;/p&gt;
+&lt;table&gt;
+	&lt;thead&gt;
+			&lt;tr&gt;
+					&lt;th&gt;阶段&lt;/th&gt;
+					&lt;th&gt;关键词&lt;/th&gt;
+					&lt;th&gt;核心目标&lt;/th&gt;
+			&lt;/tr&gt;
+	&lt;/thead&gt;
+	&lt;tbody&gt;
+			&lt;tr&gt;
+					&lt;td&gt;初始化&lt;/td&gt;
+					&lt;td&gt;选工具、选模式&lt;/td&gt;
+					&lt;td&gt;搭建最少够用的工作环境&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;提案&lt;/td&gt;
+					&lt;td&gt;输入质量、权重分配&lt;/td&gt;
+					&lt;td&gt;把模糊意图压缩成可执行合同&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;实现&lt;/td&gt;
+					&lt;td&gt;任务粒度、节奏控制&lt;/td&gt;
+					&lt;td&gt;让 AI 严格按合同办事&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;验证&lt;/td&gt;
+					&lt;td&gt;报告解读、自检&lt;/td&gt;
+					&lt;td&gt;关闭变更前最后一道关&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;归档&lt;/td&gt;
+					&lt;td&gt;留痕、活文档&lt;/td&gt;
+					&lt;td&gt;让 &lt;code&gt;specs/&lt;/code&gt; 反映系统真实状态&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;协作&lt;/td&gt;
+					&lt;td&gt;Git、Review&lt;/td&gt;
+					&lt;td&gt;多人多 Agent 共享同一份真相源&lt;/td&gt;
+			&lt;/tr&gt;
+	&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-core-vs-expanded-模式选择&#34;&gt;🎚️ Core vs Expanded 模式选择
+&lt;/h2&gt;&lt;p&gt;OpenSpec 有两种工作模式（用 &lt;code&gt;openspec config profile&lt;/code&gt; 切换）：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Core 模式&lt;/strong&gt;（默认）：&lt;code&gt;propose → apply → archive&lt;/code&gt; 三个命令，够 80% 的项目用。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Expanded 模式&lt;/strong&gt;：额外解锁 &lt;code&gt;new&lt;/code&gt;、&lt;code&gt;continue&lt;/code&gt;、&lt;code&gt;ff&lt;/code&gt;、&lt;code&gt;verify&lt;/code&gt;、&lt;code&gt;bulk-archive&lt;/code&gt;、&lt;code&gt;onboard&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;我的建议是：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;默认 Core，复杂项目再 Expanded&lt;/strong&gt;。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;理由很简单——命令越多，记忆负担越大，反而拖慢节奏。&lt;code&gt;verify&lt;/code&gt; 和 &lt;code&gt;bulk-archive&lt;/code&gt; 这两个命令看起来很香，但 &lt;code&gt;verify&lt;/code&gt; 的输出经常和&amp;quot;直接跑测试&amp;quot;重复；&lt;code&gt;bulk-archive&lt;/code&gt; 适合&amp;quot;一次性交付多个 feature&amp;quot;的场景，平时几乎用不上。&lt;/p&gt;
+&lt;p&gt;如果你一定要切到 Expanded，&lt;strong&gt;至少先熟练 Core 一周再切&lt;/strong&gt;。一来就上 10 个命令的团队，几乎都会出现&amp;quot;忘了某个命令是干嘛的&amp;quot;的问题。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-前期沟通优先先-explore-再动手&#34;&gt;💬 前期沟通优先：先 explore 再动手
+&lt;/h2&gt;&lt;p&gt;这是我踩过最多坑后学到的教训。在创建变更前，一定要先用 explore 和 AI 对齐需求边界。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;8
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-markdown&#34; data-lang=&#34;markdown&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;❌ 错误做法：
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&amp;#34;/opsx/ff 给模型推理服务加个缓存&amp;#34;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;✅ 正确做法：
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&amp;#34;/opsx/explore 我想给模型推理服务加缓存，你帮我分析一下：
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;1.&lt;/span&gt; 缓存应该加在哪一层？
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;2.&lt;/span&gt; 用 Redis 还是本地 LRU？
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;3.&lt;/span&gt; 缓存 key 怎么设计？&amp;#34;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;AI也会提出它认为还不够明确的地方，可以和AI进行多轮沟通，直到双方都充分理解需求并设计出具体的方案，再执行 /opsx:propose 或 /opsx:ff。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-propose-阶段把模糊意图压成可执行合同&#34;&gt;🎯 propose 阶段：把&amp;quot;模糊意图&amp;quot;压成&amp;quot;可执行合同&amp;quot;
+&lt;/h2&gt;&lt;p&gt;&lt;code&gt;/opsx:propose&lt;/code&gt; 是 OpenSpec 流程的&amp;quot;重头戏&amp;quot;——它决定后续 80% 的工作量。这一阶段的核心矛盾是：&lt;strong&gt;人脑子里&amp;quot;大概想要的东西&amp;quot;&lt;/strong&gt; 和 &lt;strong&gt;AI 需要的&amp;quot;可执行合同&amp;quot;&lt;/strong&gt; 之间，存在巨大的表达差。&lt;/p&gt;
+&lt;h3 id=&#34;-需求描述的黄金模板&#34;&gt;📋 需求描述的&amp;quot;黄金模板&amp;quot;
+&lt;/h3&gt;&lt;p&gt;我用得最多的需求描述模板（&lt;strong&gt;五段式&lt;/strong&gt;）：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;1. 背景：为什么要做这个变更？（业务上下文）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;2. 目标：完成什么之后可以认为&amp;#34;做完了&amp;#34;？（可衡量的成功标准）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;3. 范围：包含什么 / 不包含什么？（边界）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;4. 关键约束：性能、兼容性、API 风格、安全等硬性要求
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;5. 验收示例：给出 1~2 个具体的输入-输出对
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;举例——同样是&amp;quot;加个用户头像上传功能&amp;quot;，两种描述差很多：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;❌ 差：帮我加个用户头像上传。
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;✅ 好：
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   - 背景：用户反馈个人主页没有头像，转化率低。
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   - 目标：用户可在个人设置页上传 ≤2MB 的 jpg/png，刷新后生效。
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   - 范围：仅做单头像上传，不做多头像、裁剪、特效。
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   - 关键约束：必须 CDN 加速；老用户无头像时显示默认占位图。
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   - 验收示例：上传 3MB 文件 → 弹错误提示；上传 1MB jpg → 主页立即显示。
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;strong&gt;输入质量决定产物质量&lt;/strong&gt;——这是 OpenSpec 的第一性原理。&lt;/p&gt;
+&lt;h3 id=&#34;-proposaldesignspecstasks-的权重&#34;&gt;⚖️ proposal/design/specs/tasks 的权重
+&lt;/h3&gt;&lt;p&gt;很多人误以为&amp;quot;四份文档权重一样&amp;quot;。实战经验是&lt;strong&gt;严重不均&lt;/strong&gt;的：&lt;/p&gt;
+&lt;table&gt;
+	&lt;thead&gt;
+			&lt;tr&gt;
+					&lt;th&gt;文档&lt;/th&gt;
+					&lt;th&gt;重要度&lt;/th&gt;
+					&lt;th&gt;阅读优先级&lt;/th&gt;
+					&lt;th&gt;写不好的代价&lt;/th&gt;
+			&lt;/tr&gt;
+	&lt;/thead&gt;
+	&lt;tbody&gt;
+			&lt;tr&gt;
+					&lt;td&gt;&lt;code&gt;proposal&lt;/code&gt;&lt;/td&gt;
+					&lt;td&gt;⭐⭐&lt;/td&gt;
+					&lt;td&gt;低（一次）&lt;/td&gt;
+					&lt;td&gt;范围失控，AI 跑偏&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;&lt;code&gt;design&lt;/code&gt;&lt;/td&gt;
+					&lt;td&gt;⭐⭐⭐&lt;/td&gt;
+					&lt;td&gt;中（一次）&lt;/td&gt;
+					&lt;td&gt;方案返工，多走弯路&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;&lt;code&gt;specs/&lt;/code&gt;&lt;/td&gt;
+					&lt;td&gt;⭐⭐⭐⭐⭐&lt;/td&gt;
+					&lt;td&gt;高（持续）&lt;/td&gt;
+					&lt;td&gt;AI 实现时反复偏离，业务不达标&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;&lt;code&gt;tasks&lt;/code&gt;&lt;/td&gt;
+					&lt;td&gt;⭐⭐⭐⭐&lt;/td&gt;
+					&lt;td&gt;高（持续）&lt;/td&gt;
+					&lt;td&gt;任务粒度失控，apply 阶段失控&lt;/td&gt;
+			&lt;/tr&gt;
+	&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;关键判断&lt;/strong&gt;：&lt;strong&gt;&lt;code&gt;specs/&lt;/code&gt; 的 ROI 远高于其他三份&lt;/strong&gt;。一个反模式是把 proposal 写得很长、spec 写得很短。Spec 才是 AI 在 apply 阶段&amp;quot;读&amp;quot;得最多的文件，验收场景越具体，AI 跑偏的概率越低。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3 id=&#34;-提案-review-checklist&#34;&gt;🔍 提案 review checklist
+&lt;/h3&gt;&lt;p&gt;&lt;code&gt;/opsx:propose&lt;/code&gt; 跑完后，&lt;strong&gt;不要直接 &lt;code&gt;/opsx:apply&lt;/code&gt;&lt;/strong&gt;。先用这张清单自检：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;input disabled=&#34;&#34; type=&#34;checkbox&#34;&gt; &lt;code&gt;proposal.md&lt;/code&gt; 的&amp;quot;为什么&amp;quot;是否清晰，团队成员能 30 秒内 get 到意图？&lt;/li&gt;
+&lt;li&gt;&lt;input disabled=&#34;&#34; type=&#34;checkbox&#34;&gt; &lt;code&gt;design.md&lt;/code&gt; 的关键技术选型是否有 trade-off 记录？（不是只给一个方案）&lt;/li&gt;
+&lt;li&gt;&lt;input disabled=&#34;&#34; type=&#34;checkbox&#34;&gt; &lt;code&gt;specs/&lt;/code&gt; 中每个 Requirement 是否都用 &lt;code&gt;SHALL&lt;/code&gt; 写明确？&lt;/li&gt;
+&lt;li&gt;&lt;input disabled=&#34;&#34; type=&#34;checkbox&#34;&gt; 每个 Requirement 是否有 2 个以上 Scenario 覆盖正常/异常路径？&lt;/li&gt;
+&lt;li&gt;&lt;input disabled=&#34;&#34; type=&#34;checkbox&#34;&gt; &lt;code&gt;tasks.md&lt;/code&gt; 的任务粒度是否在 30 分钟~2 小时可完成？（粗了失控，细了过度）&lt;/li&gt;
+&lt;li&gt;&lt;input disabled=&#34;&#34; type=&#34;checkbox&#34;&gt; 范围&amp;quot;边界&amp;quot;是否在 proposal 里写明（哪些明确不做）？&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这张清单过一遍，archive 阶段的返工率能下降一半。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-apply-阶段让-ai-真正按合同办事&#34;&gt;🔧 apply 阶段：让 AI 真正&amp;quot;按合同办事&amp;quot;
+&lt;/h2&gt;&lt;p&gt;&lt;code&gt;/opsx:apply&lt;/code&gt; 是把 Markdown 变成代码的阶段。这一阶段最大的坑是&lt;strong&gt;让 AI 一次跑完整个 tasks.md&lt;/strong&gt;——表面上高效，实际上埋雷无数。&lt;/p&gt;
+&lt;h3 id=&#34;-任务粒度再小一点也不为过&#34;&gt;📐 任务粒度：再小一点也不为过
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;经验法则&lt;/strong&gt;：一个任务如果不能在 30 分钟~2 小时内独立验证，&lt;strong&gt;就应该再拆&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;我常用的拆解方式：&lt;/p&gt;
+&lt;table&gt;
+	&lt;thead&gt;
+			&lt;tr&gt;
+					&lt;th&gt;任务粒度&lt;/th&gt;
+					&lt;th&gt;适合什么&lt;/th&gt;
+					&lt;th&gt;风险&lt;/th&gt;
+			&lt;/tr&gt;
+	&lt;/thead&gt;
+	&lt;tbody&gt;
+			&lt;tr&gt;
+					&lt;td&gt;30 分钟以内&lt;/td&gt;
+					&lt;td&gt;单文件、单函数、配置项&lt;/td&gt;
+					&lt;td&gt;几乎没风险，适合激进 AI&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;1~2 小时&lt;/td&gt;
+					&lt;td&gt;单模块、单个 API 端点&lt;/td&gt;
+					&lt;td&gt;风险低，主流粒度&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;半天以上&lt;/td&gt;
+					&lt;td&gt;跨模块、跨服务&lt;/td&gt;
+					&lt;td&gt;风险高，必须配合 review&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;跨两天以上&lt;/td&gt;
+					&lt;td&gt;不应该作为一个任务存在&lt;/td&gt;
+					&lt;td&gt;一定要拆&lt;/td&gt;
+			&lt;/tr&gt;
+	&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;举个例子，&amp;ldquo;实现用户登录&amp;quot;会被我拆成：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;1. 数据库 schema 调整（加 last_login_at 字段）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;2. 登录 service 函数（含密码校验、失败次数）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;3. 登录 API 路由（带 rate limit）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;4. 错误响应统一封装
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;5. 日志埋点
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;6. 单元测试（覆盖 5 个边界 case）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;7. 集成测试（从 HTTP 入口到 DB 落库）
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;7 个子任务，每个独立可验证。AI 在任何一个上跑偏，review 时都能快速定位。&lt;/p&gt;
+&lt;h3 id=&#34;-中途打断让-ai-慢下来&#34;&gt;✋ 中途打断：让 AI 慢下来
+&lt;/h3&gt;&lt;p&gt;&lt;code&gt;/opsx:apply&lt;/code&gt; 的本质是&amp;quot;AI 自动跑完整个 tasks.md&amp;rdquo;。听起来很爽，但实战中&lt;strong&gt;必须主动打断&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;打断的三个黄金时机：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;跨任务粒度切换时&lt;/strong&gt;——比如从&amp;quot;数据库层&amp;quot;切到&amp;quot;API 层&amp;quot;时，要求 AI 先暂停，汇报当前进展。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;遇到模糊点时&lt;/strong&gt;——AI 主动提问&amp;quot;这里用 try-catch 还是 Result 类型&amp;quot;时，&lt;strong&gt;不要让它自己选&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;发现 spec 有歧义时&lt;/strong&gt;——立即停下来，先改 spec，再继续 apply。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;打断话术参考：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&amp;#34;先停一下。回顾一下当前 tasks 1~3 的完成情况，列出已经修改的文件和未覆盖的边界 case，
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;我们 review 完再继续 4~7。&amp;#34;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;这一招在长任务链里特别管用——AI 不会&amp;quot;闷头走到黑&amp;quot;，人在环路里始终能纠偏。&lt;/p&gt;
+&lt;h3 id=&#34;-与-tdd-工具的配合&#34;&gt;🧪 与 TDD 工具的配合
+&lt;/h3&gt;&lt;p&gt;OpenSpec 管&amp;quot;做什么&amp;quot;，TDD 管&amp;quot;做得对不对&amp;quot;——两者缺一不可。&lt;/p&gt;
+&lt;p&gt;推荐组合：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;OpenSpec /opsx:apply  →  按 tasks 推进
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   ↓ 每个子任务完成后
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;Superpowers test-driven-development  →  强制走 红-绿-重构
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   ↓
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;下一个子任务
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;在 Claude Code 里的具体操作：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;# 1. OpenSpec 提出 tasks
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/opsx:apply
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;# 2. 切到 TDD 模式（强制红绿循环）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/superpowers:test-driven-development
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;# 3. AI 会先写失败测试，再写最小实现
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;实战中这个组合能把&amp;quot;AI 自己写完然后发现测试挂了&amp;quot;的情况消灭掉。&lt;strong&gt;AI 写测试 → AI 改实现 → 测试通过&lt;/strong&gt;，是一个稳定的反馈环。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-verify-与-archive-阶段把好最后一道关&#34;&gt;✅ verify 与 archive 阶段：把好最后一道关
+&lt;/h2&gt;&lt;p&gt;很多团队栽在&amp;quot;看起来对就 archive&amp;quot;这一步。&lt;strong&gt;verify + archive 才是 OpenSpec 真正产生价值的地方&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;-如何读懂-verify-报告&#34;&gt;📊 如何读懂 verify 报告
+&lt;/h3&gt;&lt;p&gt;&lt;code&gt;/opsx:verify&lt;/code&gt; 会输出 CRITICAL / WARNING / SUGGESTION 三级问题。我的处理策略：&lt;/p&gt;
+&lt;table&gt;
+	&lt;thead&gt;
+			&lt;tr&gt;
+					&lt;th&gt;级别&lt;/th&gt;
+					&lt;th&gt;含义&lt;/th&gt;
+					&lt;th&gt;处理方式&lt;/th&gt;
+			&lt;/tr&gt;
+	&lt;/thead&gt;
+	&lt;tbody&gt;
+			&lt;tr&gt;
+					&lt;td&gt;CRITICAL&lt;/td&gt;
+					&lt;td&gt;spec 强制约束被违反&lt;/td&gt;
+					&lt;td&gt;&lt;strong&gt;必须修复&lt;/strong&gt;，否则不进 archive&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;WARNING&lt;/td&gt;
+					&lt;td&gt;实现偏离但未触底&lt;/td&gt;
+					&lt;td&gt;评估偏离原因，必要时回滚或调整 spec&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;SUGGESTION&lt;/td&gt;
+					&lt;td&gt;风格/可读性建议&lt;/td&gt;
+					&lt;td&gt;记录到 backlog，不阻塞 archive&lt;/td&gt;
+			&lt;/tr&gt;
+	&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;实战经验：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;CRITICAL 数量 ≠ 实现质量&lt;/strong&gt;——一个变更 0 CRITICAL 不代表完美，可能只是 spec 写得太松。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;WARNING 集中在同一模块时&lt;/strong&gt;，往往是设计本身有问题，应该改 &lt;code&gt;design.md&lt;/code&gt; 而不是改代码。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;SUGGESTION 数量特别多时&lt;/strong&gt;，说明这个项目的 spec 风格没沉淀下来，应该在归档后顺手补一个 &lt;code&gt;AGENTS.md&lt;/code&gt; 模板。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-双保险验证机制&#34;&gt;🛡️ 双保险验证机制
+&lt;/h3&gt;&lt;p&gt;强烈建议：新开一个 Agent 窗口专门执行 verify 指令。原因很简单——让写代码的 AI 和检查代码的 AI 是&amp;quot;两个人&amp;quot;，避免&amp;quot;自己查自己&amp;quot;的盲区。&lt;/p&gt;
+&lt;h3 id=&#34;-archive-前的最终自检&#34;&gt;📦 archive 前的最终自检
+&lt;/h3&gt;&lt;p&gt;archive 之前我会跑一张&amp;quot;四问清单&amp;quot;：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;1. 测过没有？  → 跑一遍测试套件，看是否有新增失败。
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;2. 看过没有？  → 把 changes/xxx/ 下的 proposal/design/specs/tasks 全部 review 一遍。
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;3. 退路有没有？ → Git 上有 commit/tag 能回滚到 archive 前的状态吗？
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;4. 文档同步没？ → 如果有 README、CHANGELOG，archive 之前一并更新。
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;四个问题都&amp;quot;Yes&amp;quot;了，再 &lt;code&gt;/opsx:archive &amp;lt;name&amp;gt;&lt;/code&gt;，否则就是埋雷。&lt;/p&gt;
+&lt;p&gt;archive 的副作用要清楚——&lt;strong&gt;整个 changes/xxx/ 目录会被移到 changes/archive/，不再可编辑&lt;/strong&gt;。所以&amp;quot;还有想改的地方&amp;quot;就千万别 archive，要么补 spec 重新走，要么先不开 archive 命令。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-团队协作让-openspec-真正飞起来&#34;&gt;🤝 团队协作：让 OpenSpec 真正&amp;quot;飞起来&amp;quot;
+&lt;/h2&gt;&lt;p&gt;个人项目里 OpenSpec 是&amp;quot;自我约束&amp;quot;，团队项目里它是&amp;quot;协作协议&amp;quot;。两者用法差别很大。&lt;/p&gt;
+&lt;h3 id=&#34;-git-工作流配合&#34;&gt;🌿 Git 工作流配合
+&lt;/h3&gt;&lt;p&gt;团队里推荐的工作流：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;openspec/changes/xxx/  → 随 feature branch 一起提交
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ↓
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;PR review 阶段：重点 review changes/xxx/ 下的四份文档
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ↓
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;merge 到 main 后：跑 /opsx:archive
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ↓
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;changes/archive/ 目录也提交到 Git，作为变更历史
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;几个工程上的小技巧：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;把 &lt;code&gt;openspec/&lt;/code&gt; 整体加入 Git&lt;/strong&gt;——它是真相源，必须进版本控制。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;PR 模板里加一行&lt;/strong&gt;：&amp;ldquo;关联的 OpenSpec 变更：&lt;code&gt;changes/xxx/&lt;/code&gt;&amp;quot;——让 review 重点对齐。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;.gitignore&lt;/code&gt; 不要忽略 &lt;code&gt;openspec/changes/archive/&lt;/code&gt;&lt;/strong&gt;——归档历史是审计资产。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;敏感场景&lt;/strong&gt;：用 &lt;code&gt;.openspec.yaml&lt;/code&gt; 里的 &lt;code&gt;schema&lt;/code&gt; 字段限制该变更允许的 spec 范围。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-code-review-节奏&#34;&gt;👀 Code Review 节奏
+&lt;/h3&gt;&lt;p&gt;OpenSpec 改变了 Code Review 的&amp;quot;看什么&amp;rdquo;：&lt;/p&gt;
+&lt;table&gt;
+	&lt;thead&gt;
+			&lt;tr&gt;
+					&lt;th&gt;阶段&lt;/th&gt;
+					&lt;th&gt;Review 重点&lt;/th&gt;
+					&lt;th&gt;Reviewer&lt;/th&gt;
+			&lt;/tr&gt;
+	&lt;/thead&gt;
+	&lt;tbody&gt;
+			&lt;tr&gt;
+					&lt;td&gt;&lt;code&gt;propose&lt;/code&gt; 后&lt;/td&gt;
+					&lt;td&gt;&lt;code&gt;proposal.md&lt;/code&gt; 范围、&lt;code&gt;specs/&lt;/code&gt; 验收场景&lt;/td&gt;
+					&lt;td&gt;业务方 / PM&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;&lt;code&gt;apply&lt;/code&gt; 中&lt;/td&gt;
+					&lt;td&gt;关键任务的实现 + 测试&lt;/td&gt;
+					&lt;td&gt;同组工程师&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td&gt;&lt;code&gt;archive&lt;/code&gt; 前&lt;/td&gt;
+					&lt;td&gt;verify 报告 + 边界 case&lt;/td&gt;
+					&lt;td&gt;资深工程师 / Tech Lead&lt;/td&gt;
+			&lt;/tr&gt;
+	&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;strong&gt;别让 PM 看代码、让工程师看 proposal&lt;/strong&gt;——OpenSpec 最大的好处就是让两类人用&amp;quot;各自的语言&amp;quot;协作。&lt;/p&gt;
+&lt;h3 id=&#34;-多-agent-协作&#34;&gt;🐙 多 Agent 协作
+&lt;/h3&gt;&lt;p&gt;OpenSpec 最大的隐藏价值：&lt;strong&gt;它是一份跨 Agent 的真相源&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;我经常这样用：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Claude Code&lt;/strong&gt;：负责 propose 阶段（写文档它最稳）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Cursor&lt;/strong&gt;：负责 apply 阶段（diff 视角最直观）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Codex&lt;/strong&gt;：负责测试和 verify（命令行友好）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;由于 &lt;code&gt;specs/&lt;/code&gt; 是文件系统级的 Markdown，&lt;strong&gt;新开会话、新开 IDE、换工具，行为标准完全一致&lt;/strong&gt;。这是 OpenSpec 比&amp;quot;AI 工具原生规则&amp;quot;强的根本原因——&lt;strong&gt;你的规范不绑定任何 AI 工具&lt;/strong&gt;。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;一句话：&lt;strong&gt;OpenSpec 是 AI 工具之间的&amp;quot;通用语&amp;quot;&lt;/strong&gt;。换 Cursor 到 Claude Code，规范不动；换 Claude Code 到 Codex，规范不动。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-真实踩坑实录那些我犯过的错&#34;&gt;⚠️ 真实踩坑实录：那些我犯过的错
+&lt;/h2&gt;&lt;p&gt;经验如果不带血泪教训，就是空话。下面是我（和身边团队）真实踩过的坑，几乎每个 OpenSpec 新手都会撞上。&lt;/p&gt;
+&lt;h3 id=&#34;-需求膨胀spec-越改越长&#34;&gt;🐘 需求膨胀：spec 越改越长
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;症状&lt;/strong&gt;：一个本应 2 天的变更，3 周还没 archive，spec 已经从 200 行膨胀到 1500 行。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;根因&lt;/strong&gt;：propose 阶段没有锁边界。AI 在 &lt;code&gt;/opsx:apply&lt;/code&gt; 过程中，遇到&amp;quot;顺手能做的&amp;quot;就做掉了。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;避坑&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;proposal.md&lt;/code&gt; 里写死&amp;quot;不在本次范围内&amp;quot;的清单。&lt;/li&gt;
+&lt;li&gt;任务粒度拆到 2 小时内，超出 scope 的立刻打回。&lt;/li&gt;
+&lt;li&gt;养成习惯——&lt;strong&gt;&amp;ldquo;下个变更做&amp;quot;比&amp;quot;这次顺手做&amp;quot;健康得多&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-spec-变成伪代码&#34;&gt;📜 spec 变成伪代码
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;症状&lt;/strong&gt;：&lt;code&gt;specs/capability/spec.md&lt;/code&gt; 写成了&amp;quot;半代码半文档&amp;rdquo;，Requirement 里全是 &lt;code&gt;if/else/function&lt;/code&gt;。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;根因&lt;/strong&gt;：把&amp;quot;实现&amp;quot;误当&amp;quot;规范&amp;quot;。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;避坑&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Spec 只描述&lt;strong&gt;外部可观察行为&lt;/strong&gt;，不写实现细节。&lt;/li&gt;
+&lt;li&gt;Scenario 用&amp;quot;输入-输出&amp;quot;对，不用代码片段。&lt;/li&gt;
+&lt;li&gt;验收点用 &lt;code&gt;SHALL&lt;/code&gt; 不用 &lt;code&gt;def&lt;/code&gt;——这是&amp;quot;AI 看的合同&amp;quot;，不是&amp;quot;AI 抄的模板&amp;quot;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-多变更并行冲突&#34;&gt;💥 多变更并行冲突
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;症状&lt;/strong&gt;：两个 feature branch 同时改 &lt;code&gt;specs/auth/spec.md&lt;/code&gt;，merge 时冲突无法解决。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;根因&lt;/strong&gt;：把 &lt;code&gt;specs/&lt;/code&gt; 当作&amp;quot;多人编辑的共享文件&amp;quot;，但 archive 是单向的。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;避坑&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;同一能力下只允许一个活跃变更&lt;/strong&gt;——在 &lt;code&gt;.openspec.yaml&lt;/code&gt; 显式记录依赖。&lt;/li&gt;
+&lt;li&gt;跨能力的变更完全独立（因为 &lt;code&gt;specs/auth/&lt;/code&gt; 和 &lt;code&gt;specs/billing/&lt;/code&gt; 不冲突）。&lt;/li&gt;
+&lt;li&gt;实在有重叠，&lt;strong&gt;先 archive 一个，再开第二个&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-归档前漏掉-verify&#34;&gt;🪤 归档前漏掉 verify
+&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;症状&lt;/strong&gt;：直接 &lt;code&gt;/opsx:archive&lt;/code&gt;，一周后线上出问题，回查才发现某个 Scenario 从来没实现过。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;根因&lt;/strong&gt;：把 archive 当作&amp;quot;提交代码&amp;quot;，而不是&amp;quot;完成变更&amp;quot;。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;避坑&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;archive 命令前置 verify——在团队 wiki 里把它写死成&amp;quot;两步走&amp;quot;。&lt;/li&gt;
+&lt;li&gt;严肃项目里，archive 之前必须跑一遍测试套件，截图贴到 PR 描述里。&lt;/li&gt;
+&lt;li&gt;实在赶进度，&lt;strong&gt;宁可只 archive 一部分能力&lt;/strong&gt;（用 &lt;code&gt;partial-archive&lt;/code&gt; 子命令），也别整体放过。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-进阶技巧让-openspec-价值翻倍&#34;&gt;🚀 进阶技巧：让 OpenSpec 价值翻倍
+&lt;/h2&gt;&lt;p&gt;最后分享几个&amp;quot;用了就回不去&amp;quot;的进阶技巧。&lt;/p&gt;
+&lt;h3 id=&#34;-维护-artifact-一致性&#34;&gt;🔗 维护 Artifact 一致性
+&lt;/h3&gt;&lt;p&gt;这是 SDD 的铁律：永远先改文档，再改代码。如果你在实现过程中发现 design.md 的方案需要调整，不要直接改代码，而是：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;先更新 design.md&lt;/li&gt;
+&lt;li&gt;再更新 tasks.md、/specs等相关文档
+（1和2都可使用AI修改）&lt;/li&gt;
+&lt;li&gt;最后让 AI 按新的方案重新 apply&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这样才能保证文档和代码的一致性，也方便后续回溯。&lt;/p&gt;
+&lt;h3 id=&#34;-善用全局上下文&#34;&gt;🌍 善用全局上下文
+&lt;/h3&gt;&lt;p&gt;在 config.yaml 中把你的技术栈、编码规范、领域知识都写清楚。这些信息会在每次创建变更时自动注入，形成复利效应。&lt;/p&gt;
+&lt;h3 id=&#34;-定制-agentsmd&#34;&gt;🧬 定制 AGENTS.md
+&lt;/h3&gt;&lt;p&gt;&lt;code&gt;openspec init&lt;/code&gt; 会生成一份默认的 &lt;code&gt;AGENTS.md&lt;/code&gt;，但&lt;strong&gt;默认那版太短&lt;/strong&gt;。实战中我建议至少加这些内容：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;15
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;16
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;17
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;18
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-markdown&#34; data-lang=&#34;markdown&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gh&#34;&gt;# AGENTS.md（项目级 AI 协作规约）
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gu&#34;&gt;## 工作流
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;所有变更必须走 OpenSpec：propose → apply → archive。
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gu&#34;&gt;## 命名规范
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;-&lt;/span&gt; changes/ 下的目录名用动词开头：add-xxx、refactor-xxx、fix-xxx
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;-&lt;/span&gt; 不允许使用 personal-xxx、test-xxx 这种含糊命名
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gu&#34;&gt;## Spec 风格
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;-&lt;/span&gt; 每个 Requirement 必须有 SHALL 关键字
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;-&lt;/span&gt; Scenario 至少覆盖正常 + 异常两条路径
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;-&lt;/span&gt; Spec 不写实现细节，只写外部可观察行为
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gu&#34;&gt;## 必跑命令
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;-&lt;/span&gt; 提交前：npm test
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;-&lt;/span&gt; 归档前：openspec verify
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;-&lt;/span&gt; 归档后：git tag archive/&amp;lt;变更名&amp;gt;-&amp;lt;日期&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;AGENTS.md&lt;/code&gt; 是项目的&amp;quot;AI 宪法&amp;quot;&lt;/strong&gt;——花一下午写好它，后面所有 Agent 的行为都会更一致。&lt;/p&gt;
+&lt;h3 id=&#34;-自定义工作流&#34;&gt;🧩 自定义工作流
+&lt;/h3&gt;&lt;p&gt;Custom schema 是 OpenSpec 中对 workflow 的自定义描述。它定义一次 change 从创建到实施、sync、archive 的 artifact 结构和依赖关系。通过 custom schema，团队可以把不同研发场景拆成多种 workflow，而不是强制所有 change 都走同一条路径。&lt;/p&gt;
+&lt;p&gt;OpenSpec 的命令文件位于 &lt;code&gt;~/.claude/commands/opsx/&lt;/code&gt;（以 Claude Code 为例）。你可以&lt;strong&gt;自己加命令&lt;/strong&gt;：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-markdown&#34; data-lang=&#34;markdown&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&amp;lt;!-- ~/.claude/commands/opsx/review.md --&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gh&#34;&gt;# /opsx:review
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;读取当前 changes/ 下的所有 proposal/specs/design/tasks，
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;对照&amp;#34;四问清单&amp;#34;做一次自检，输出 PASS/FAIL 清单。
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gs&#34;&gt;**不修改任何文件**&lt;/span&gt;，只输出报告。
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;这样你就有了一个 &lt;code&gt;/opsx:review&lt;/code&gt;——专属于你们团队的自定义工作流命令。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-总结六字心诀&#34;&gt;📝 总结：六字心诀
+&lt;/h2&gt;&lt;p&gt;把整篇文章浓缩成六个字的 OpenSpec 心法：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;先慢后快、严进宽出&lt;/strong&gt;。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;先慢后快&lt;/strong&gt;：propose 阶段宁愿多花 1 小时，apply 阶段就能省 1 天。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;严进宽出&lt;/strong&gt;：spec 写得严（SHALL、Scenario），archive 之后才能宽（活文档复用）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;OpenSpec 的本质不是&amp;quot;AI 写代码&amp;quot;，而是&amp;quot;&lt;strong&gt;人用规范约束 AI、AI 用规范对齐人&lt;/strong&gt;&amp;ldquo;的双向协议。它和传统 SDD 最大的区别是：&lt;strong&gt;文件是 AI 真正在读的，而不是写给人看的&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;所以最后一条建议是：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;永远把 spec 写给 AI 读，不是写给人看&lt;/strong&gt;。人是兜底，AI 才是第一消费者。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;如果你也想开始用 OpenSpec，从下一篇&amp;quot;加个小功能&amp;quot;开始，按本文的 checklist 走一遍，30 分钟就能体会&amp;quot;spec 驱动&amp;quot;的爽感。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-参考资料&#34;&gt;📖 参考资料
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;OpenSpec 官方仓库：&lt;a class=&#34;link&#34; href=&#34;https://github.com/Fission-AI/OpenSpec&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;https://github.com/Fission-AI/OpenSpec&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;OpenSpec 官网：&lt;a class=&#34;link&#34; href=&#34;https://openspec.dev/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;https://openspec.dev/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;上一篇：&lt;a class=&#34;link&#34; href=&#34;../OpenSpec%e7%9a%84%e6%a6%82%e5%bf%b5%e4%b8%8e%e5%9f%ba%e6%9c%ac%e4%bd%bf%e7%94%a8/index.zh-cn.md&#34; &gt;OpenSpec 的概念与基本使用&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Spec Coding 系列：&lt;a class=&#34;link&#34; href=&#34;../Spec%20Coding%e7%9a%84%e8%b8%a9%e5%9d%91%e5%ae%9e%e5%bd%95/index.zh-cn.md&#34; &gt;Spec Coding 的踩坑实录&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;配合 Superpowers 使用：&lt;a class=&#34;link&#34; href=&#34;../Superpowers%e4%b8%8eOpenSpec%e7%9a%84%e9%85%8d%e5%90%88%e4%bd%bf%e7%94%a8/index.zh-cn.md&#34; &gt;Superpowers 与 OpenSpec 的配合使用&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        <item>
         <title>OpenSpec的概念与基本使用</title>
         <link>https://Tyritic.github.io/p/openspec%E7%9A%84%E6%A6%82%E5%BF%B5%E4%B8%8E%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8/</link>
         <pubDate>Sun, 28 Jun 2026 10:00:00 +0800</pubDate>
@@ -48,7 +630,7 @@
 			&lt;/tr&gt;
 	&lt;/tbody&gt;
 &lt;/table&gt;
-&lt;p&gt;（Spec-Driven Development，规范驱动开发）的核心思想很简单：先写规范，再写代码，用规范约束 AI 的行为边界。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Spec-Driven Development（规范驱动开发）&lt;/strong&gt; 的核心思想很简单：先写规范，再写代码，用规范约束 AI 的行为边界。&lt;/p&gt;
 &lt;p&gt;更具体地说，两者的差异可以总结为下面这张表：&lt;/p&gt;
 &lt;table&gt;
 	&lt;thead&gt;
@@ -259,8 +841,18 @@
 &lt;p&gt;新功能先在 &lt;code&gt;changes/&lt;/code&gt; 里起草，完工后通过 &lt;code&gt;/opsx:archive&lt;/code&gt; 合并到 &lt;code&gt;specs/&lt;/code&gt;，&lt;strong&gt;整个生命周期都有完整的文件留痕&lt;/strong&gt;。&lt;/p&gt;
 &lt;h3 id=&#34;-核心工件&#34;&gt;🧾 核心工件
 &lt;/h3&gt;&lt;p&gt;在 OpenSpec 工作流的语境中，Artifact（工件）是指在一个变更（Change）推进过程中，按步骤依次创建的结构化文档或文件。&lt;/p&gt;
-&lt;p&gt;每个变更包含 四个核心工件，我把它们比作&amp;quot;合同的四个章节&amp;quot;：四个文件各司其职：&lt;/p&gt;
-&lt;table&gt;
+&lt;p&gt;每个变更包含 四个核心工件，我把它们比作&amp;quot;合同的四个章节&amp;quot;：四个文件各司其职：形成一条 Artifact 依赖链，每个 artifact 都是前一个的细化：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;proposal.md → design.md → specs/*.md → tasks.md → 代码实现 → 归档
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   (为什么做)    (怎么做)     (做成什么样)   (分几步做)   (动手做)    (存档)
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;table&gt;
 	&lt;thead&gt;
 			&lt;tr&gt;
 					&lt;th style=&#34;text-align: left&#34;&gt;工件&lt;/th&gt;
@@ -299,8 +891,85 @@
 &lt;blockquote&gt;
 &lt;p&gt;一个常见的反模式是把 &lt;code&gt;proposal.md&lt;/code&gt; 写得很长、&lt;code&gt;spec.md&lt;/code&gt; 写得很短。事实上 &lt;strong&gt;&lt;code&gt;spec.md&lt;/code&gt;&lt;/strong&gt; &lt;strong&gt;才是 AI 实现时的&amp;quot;事实来源&amp;quot;&lt;/strong&gt;——它写得越具体，AI 跑偏的概率越低。&lt;/p&gt;
 &lt;/blockquote&gt;
+&lt;h4 id=&#34;-proposalmd提案&#34;&gt;📄 proposal.md：提案
+&lt;/h4&gt;&lt;p&gt;proposal.md 主要分为：why、what changes、Capabilities（New Capabilities、Modified Capabilities）新增/改进的功能、Impact（新增文件、修改文件、依赖等）。这里记录了以下内容：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;ai 对需求的理解，也就是为什么做这个需求。&lt;/li&gt;
+&lt;li&gt;增加这个需求，该模块等于是增加了什么能力。&lt;/li&gt;
+&lt;li&gt;需求的改动范围。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-designmd设计&#34;&gt;🎨 design.md：设计
+&lt;/h4&gt;&lt;p&gt;design.md 里面记录需求改动的上下文、目标和决策。这个文档能够体现在设计结构时 AI 采取的一些思路和理由，通常有一些学习价值。主要分为：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Context 上下文背景信息&lt;/li&gt;
+&lt;li&gt;Goals / Non-Goals 目标 / 非目标&lt;/li&gt;
+&lt;li&gt;Decisions 决策与理由&lt;/li&gt;
+&lt;li&gt;Risks / Trade-offs 风险与权衡取舍&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-tasksmd任务清单&#34;&gt;📑 tasks.md：任务清单
+&lt;/h4&gt;&lt;p&gt;tasks.md 面向执行，将 design 拆解为有序的具体任务（checkbox 格式），按层次排列：例如 1. API 类型定义 → 2. API 函数 → 3. 路由 → 4. 子组件 → 5. 列表组件 → 6. 页面容器。AI 执行时按此顺序逐项完成，勾选进度。&lt;/p&gt;
+&lt;h4 id=&#34;-specsmd行为规范&#34;&gt;📐 specs/*.md：行为规范
+&lt;/h4&gt;&lt;p&gt;spec.md 面向验收，用 &lt;code&gt;WHEN / THEN&lt;/code&gt; 格式描述每个功能点的预期行为：&lt;/p&gt;
 &lt;h3 id=&#34;-变更的delta思想&#34;&gt;➕ 变更的&amp;quot;delta&amp;quot;思想
-&lt;/h3&gt;&lt;p&gt;&lt;code&gt;specs/&lt;/code&gt; 下的子目录是按&amp;quot;能力（capability）&amp;ldquo;组织的，例如 &lt;code&gt;auth/spec.md&lt;/code&gt;、&lt;code&gt;billing/spec.md&lt;/code&gt;。一次新变更只会产生&amp;quot;差异（delta）&amp;quot;——只描述**新增（ADDED）、修改（MODIFIED）、删除（REMOVED）**的能力，不重写整个文件。&lt;/p&gt;
+&lt;/h3&gt;&lt;p&gt;传统规范系统的痛点在于：修改现有功能时，你需要阅读整个规范，然后搞清楚哪部分在变化。
+OpenSpec 引入了&amp;quot;增量规范&amp;quot;的概念：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;15
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;16
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;17
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;18
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;19
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;20
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;21
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;22
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-markdown&#34; data-lang=&#34;markdown&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gh&#34;&gt;# Delta for Auth
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gu&#34;&gt;## ADDED Requirements
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gu&#34;&gt;### Requirement: Two-Factor Authentication
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;The system MUST require a second factor during login.
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gu&#34;&gt;#### Scenario: OTP required
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;-&lt;/span&gt; GIVEN a user with 2FA enabled
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;-&lt;/span&gt; WHEN the user submits valid credentials
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;-&lt;/span&gt; THEN an OTP challenge is presented
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gu&#34;&gt;## MODIFIED Requirements
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gu&#34;&gt;### Requirement: Session Timeout
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;The system SHALL expire sessions after 30 minutes of inactivity.
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;(Previously: 60 minutes)
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gu&#34;&gt;## REMOVED Requirements
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;gu&#34;&gt;### Requirement: Remember Me
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;(Deprecated in favor of 2FA)
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;这种格式的好处是：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;清晰：一眼就能看出什么在变化&lt;/li&gt;
+&lt;li&gt;可合并：归档时自动合并到主规范&lt;/li&gt;
+&lt;li&gt;可追溯：历史变更保存在 archive 中&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;code&gt;specs/&lt;/code&gt; 下的子目录是按&amp;quot;能力（capability）&amp;ldquo;组织的，例如 &lt;code&gt;auth/spec.md&lt;/code&gt;、&lt;code&gt;billing/spec.md&lt;/code&gt;。一次新变更只会产生&amp;quot;差异（delta）&amp;quot;——只描述**新增（ADDED）、修改（MODIFIED）、删除（REMOVED）**的能力，不重写整个文件。&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
@@ -316,9 +985,214 @@
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
 &lt;/div&gt;&lt;p&gt;归档时 OpenSpec 会自动把这些 delta 合并到 &lt;code&gt;openspec/specs/auth/spec.md&lt;/code&gt;，&lt;strong&gt;形成活文档&lt;/strong&gt;。这样既保留了变更历史，又让 &lt;code&gt;specs/&lt;/code&gt; 始终是当前系统的真实写照。&lt;/p&gt;
-&lt;h2 id=&#34;-核心工作流propose--apply--archive&#34;&gt;🔄 核心工作流：Propose → Apply → Archive
-&lt;/h2&gt;&lt;h3 id=&#34;-三个核心命令&#34;&gt;⌨️ 三个核心命令
-&lt;/h3&gt;&lt;p&gt;OpenSpec 默认是 &lt;strong&gt;Core 模式&lt;/strong&gt;，只有三个核心命令：&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-关键指令&#34;&gt;💻 关键指令
+&lt;/h2&gt;&lt;p&gt;我按工作模式分为以下两类：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Core 模式&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;/opsx:explore&lt;/code&gt; 开发前梳理思路、调研方案、明确需求，只分析不实现&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/opsx:propose&lt;/code&gt; 一步创建变更并生成所有规划制品&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/opsx:apply&lt;/code&gt; 执行变更任务，编写代码实现功能&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/opsx:archive&lt;/code&gt; 归档已完成的变更，留存审计痕迹&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Expanded 模式&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;/opsx:new&lt;/code&gt; 初始化新变更的基础脚手架&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/opsx:continue&lt;/code&gt; 按依赖关系逐步生成下一个制品&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/opsx:ff&lt;/code&gt; 一键式快速创建变更&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/opsx:sync&lt;/code&gt; 增量规范合并到主规范&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/opsx:bulk-archive&lt;/code&gt; 批量归档多个变更&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/opsx:onboard&lt;/code&gt; 新手引导，引导新手快速上手&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-探索模式-opsxexplore&#34;&gt;🔍 探索模式 /opsx:explore
+&lt;/h3&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/opsx:explore &lt;span class=&#34;o&#34;&gt;[&lt;/span&gt;topic&lt;span class=&#34;o&#34;&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;/opsx:explore 是使用频率最高的指令。它的核心特点是：只思考、只分析，不产出任何代码或文件。无结构化的探索式对话，AI会调研代码库、对比多种实现方案、绘制可视化图表，帮你明确需求和技术方案，调研完成后可无缝过渡到/opsx:propose（默认）或/opsx:new（扩展工作流）。&lt;/p&gt;
+&lt;p&gt;适用场景：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;需求还比较模糊，想让 AI 帮忙梳理&lt;/li&gt;
+&lt;li&gt;技术方案不确定，想做可行性分析&lt;/li&gt;
+&lt;li&gt;想了解现有代码结构再动手&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-规划阶段&#34;&gt;🗺️ 规划阶段
+&lt;/h3&gt;&lt;p&gt;规划阶段有以下几个命令选择，其中：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;/opsx:new&lt;/code&gt; 初始化新变更的基础脚手架&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/opsx:ff&lt;/code&gt; 一键式快速创建变更&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/opsx:continue&lt;/code&gt; 按依赖关系逐步生成下一个制品&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/opsx:propose&lt;/code&gt; 是 &lt;code&gt;/opsx:new&lt;/code&gt; + &lt;code&gt;/opsx:ff&lt;/code&gt; 的组合&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-opsxnew-初始化新变更的基础脚手架&#34;&gt;🆕 /opsx:new 初始化新变更的基础脚手架
+&lt;/h4&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/opsx:new &amp;lt;change-name&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;只做一件事：创建 openspec/changes/&lt;change-name&gt;/ 目录，不生成任何文件。输出类似：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;openspec/changes/&amp;lt;change-name&amp;gt;/
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;单独用 /opsx:new 的场景很少，通常它是 /opsx:continue 或 /opsx:ff 的前置步骤。&lt;/p&gt;
+&lt;h4 id=&#34;-opsxff-一键式快速创建变更&#34;&gt;⚡ /opsx:ff 一键式快速创建变更
+&lt;/h4&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/opsx:ff &amp;lt;change-name&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;快进，一次生成所有 artifact。Fast-forward 的缩写。一口气把 proposal、specs、design、tasks 四个文件全部生成，中间不停顿：
+适合的场景：需求已经想得很清楚，或者这是个改动范围小、风险低的功能，不需要在每个 artifact 之间停下来审查。&lt;/p&gt;
+&lt;h4 id=&#34;-opsxcontinue-按依赖关系逐步生成下一个制品&#34;&gt;⏭️ /opsx:continue 按依赖关系逐步生成下一个制品
+&lt;/h4&gt;&lt;p&gt;按照proposal.md → design.md → specs/*.md → tasks.md的依赖关系，每次生成一个 artifact。每次调用只生成依赖链里下一个尚未创建的文件，然后停下来等你审查。第一次调用生成 proposal.md，你看完觉得没问题，再调用一次生成 specs/，依此类推：&lt;/p&gt;
+&lt;p&gt;用 /opsx:continue 的情况主要有三种。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;需求本身还模糊，想边写 proposal 边理清思路，看完再决定 specs 怎么写&lt;/li&gt;
+&lt;li&gt;改动涉及多个域或者架构层面，specs 写完之后需要认真确认行为约束没有遗漏，再让 AI 去写 design&lt;/li&gt;
+&lt;li&gt;团队协作场景，proposal 由产品侧写，specs 由开发审查后再继续，每个阶段需要人工介入和确认&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-opsxpropose-一键式创建变更&#34;&gt;🎁 /opsx:propose 一键式创建变更
+&lt;/h4&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/opsx:propose &amp;lt;change-name-or-description&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;核心功能：一步创建变更文件夹openspec/changes/&lt;change-name&gt;/，并生成实现前所需的所有规划制品（proposal.md、specs、design.md、tasks.md），生成完成后即可进入开发阶段。&lt;/p&gt;
+&lt;p&gt;执行完成后，openspec/changes/&lt;change-name&gt;/ 目录里会出现：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;7
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;openspec/changes/&amp;lt;change-name&amp;gt;/
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;├── proposal.md
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;├── specs/
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;│   └── &amp;lt;capability&amp;gt;/
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;│       └── spec.md       ← Delta Spec
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;├── design.md
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;└── tasks.md
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;这是端到端开发最快的方式。它等价于&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;依次执行 /opsx:new + /opsx:ff——先创建 change 文件夹，再快进生成全部 artifact&lt;/li&gt;
+&lt;li&gt;也可以用 /opsx:new + /opsx:continue 逐步生成，每次只创建一个文件，方便在中途审查和调整&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-实现阶段&#34;&gt;🔨 实现阶段
+&lt;/h3&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/opsx:apply &amp;lt;change-name&amp;gt; &lt;span class=&#34;c1&#34;&gt;#参数为非必填，上下文可推断时可省略。&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;/opsx:apply：执行变更任务，编写代码实现功能，读取变更文件夹中的tasks.md，识别未完成任务，逐个执行并编写代码、创建文件、运行测试，完成后会用[x]标记任务状态。&lt;/p&gt;
+&lt;h3 id=&#34;-验证阶段&#34;&gt;🔬 验证阶段
+&lt;/h3&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/opsx:verify &amp;lt;change-name&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;这个指令会从三个维度审计你的实现：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;完整性：tasks.md 中的任务是否全部完成、需求是否全部实现？&lt;/li&gt;
+&lt;li&gt;正确性：实现是否符合 specs/ 中的规范 ？&lt;/li&gt;
+&lt;li&gt;一致性：是否遵循 design 决策、代码风格是否统一？&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这个指令会生成包含 CRITICAL/WARNING/SUGGESTION 三级问题的验证报告。建议归档前必执行，可发现代码与制品的“漂移”问题，警告不影响归档但建议修复，避免技术债务。&lt;/p&gt;
+&lt;h3 id=&#34;-收尾阶段&#34;&gt;🏁 收尾阶段
+&lt;/h3&gt;&lt;h4 id=&#34;-opsxsync规格合并&#34;&gt;🔃 /opsx:sync：规格合并
+&lt;/h4&gt;&lt;p&gt;语法：/opsx:sync [change-name]
+参数为非必填，上下文可推断时可省略。&lt;/p&gt;
+&lt;p&gt;核心功能：读取变更文件夹中的增量规格，解析增/删/改/重命名内容，合并到主规格目录openspec/specs/，保留未提及的原有内容，合并后变更仍处于活跃状态（不归档）。&lt;/p&gt;
+&lt;p&gt;技巧：此命令为可选，归档时会自动提示同步，仅在长周期变更、多并行变更需要最新主规格、需要单独预览合并效果时手动执行。&lt;/p&gt;
+&lt;h4 id=&#34;-opsxarchive-归档变更&#34;&gt;📦 /opsx:archive 归档变更
+&lt;/h4&gt;&lt;p&gt;当功能开发完成并通过验证后，使用这个指令归档：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/opsx:archive &amp;lt;change-name&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;归档操作会做以下操作：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;检查制品和任务完成状态（任务未完成会警告但不阻塞），若增量规格未同步会提示同步&lt;/li&gt;
+&lt;li&gt;在你确认后，将未合并的增量规范 specs/ 合并到主规格库 specs/&lt;/li&gt;
+&lt;li&gt;将openspec/changes/&lt;change-name&gt;/ 整个目录移动到 openspec/changes/archive/YYYY-MM-DD-&lt;name&gt;/。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-opsxbulk-archive-批量归档变更&#34;&gt;🏷️ /opsx:bulk-archive 批量归档变更
+&lt;/h4&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/opsx:bulk-archive &amp;lt;change-name-list&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;列出所有已完成变更，验证每个变更的状态，检测跨变更的规格冲突（通过调研代码库解决），按创建时间顺序归档，解决冲突后会提示合并结果。通常团队协作、多并行变更时适用，冲突解决基于实际代码实现，归档前会主动提示确认，避免覆盖规格内容。&lt;/p&gt;
+&lt;h2 id=&#34;-常用工作流&#34;&gt;🔄 常用工作流
+&lt;/h2&gt;&lt;h3 id=&#34;-切换工作模式&#34;&gt;🎛️ 切换工作模式
+&lt;/h3&gt;&lt;p&gt;OpenSpec 提供两种工作模式：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Core 模式&lt;/strong&gt;（默认）：3 个核心命令够用，适合大多数项目。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Expanded 模式&lt;/strong&gt;：解锁更多细粒度命令（&lt;code&gt;/opsx:new&lt;/code&gt;、&lt;code&gt;/opsx:continue&lt;/code&gt;、&lt;code&gt;/opsx:ff&lt;/code&gt;、&lt;code&gt;/opsx:verify&lt;/code&gt;、&lt;code&gt;/opsx:bulk-archive&lt;/code&gt;、&lt;code&gt;/opsx:onboard&lt;/code&gt;）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;切换方法：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 查看当前配置&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;openspec config profile
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 选择 第一项：&amp;#34;Delivery and workflows&amp;#34;，按回车&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 勾选需要的命令（例如 new、continue、ff、verify、bulk-archive、onboard）&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 然后让 AI 重新识别&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;openspec update
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;strong&gt;经验之谈&lt;/strong&gt;：除非项目特别复杂，否则 &lt;strong&gt;Core 模式完全够用&lt;/strong&gt;。命令越多，记忆负担越大，反而拖慢节奏。&lt;/p&gt;
+&lt;h3 id=&#34;-core-工作流&#34;&gt;🥇 Core 工作流
+&lt;/h3&gt;&lt;p&gt;OpenSpec 默认是 &lt;strong&gt;Core 模式&lt;/strong&gt;，专为需求明确、范围可控的中小变更设计。它以“行动而非阶段”为核心理念，通过 5 个高频指令，实现从提案到归档的闭环操作。&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
@@ -332,23 +1206,27 @@
 &lt;li&gt;&lt;strong&gt;&lt;code&gt;/opsx:apply&lt;/code&gt;&lt;/strong&gt;：按 &lt;code&gt;tasks.md&lt;/code&gt; 逐项实现，每完成一项打勾。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;&lt;code&gt;/opsx:archive &amp;lt;name&amp;gt;&lt;/code&gt;&lt;/strong&gt;：把变更归档，delta 合并到 &lt;code&gt;specs/&lt;/code&gt;，整个目录从 &lt;code&gt;changes/&lt;/code&gt; 移除。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;三个命令的边界极其清楚：&lt;/p&gt;
+&lt;p&gt;命令的边界极其清楚：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;code&gt;propose&lt;/code&gt; 阶段只动 Markdown，不动代码。&lt;/li&gt;
 &lt;li&gt;&lt;code&gt;apply&lt;/code&gt; 阶段才真正写代码。&lt;/li&gt;
 &lt;li&gt;&lt;code&gt;archive&lt;/code&gt; 阶段关闭变更，留下审计痕迹。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;-探索模式-opsxexplore&#34;&gt;🔍 探索模式 /opsx:explore
-&lt;/h3&gt;&lt;p&gt;需求不清时还有 &lt;code&gt;/opsx:explore&lt;/code&gt; 兜底。它和 &lt;code&gt;propose&lt;/code&gt; 的区别是：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;propose&lt;/code&gt; 会&lt;strong&gt;生成正式文档&lt;/strong&gt;。&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;explore&lt;/code&gt; &lt;strong&gt;不产生产物&lt;/strong&gt;，只和 AI 一起梳理思路，把模糊意图问清楚。&lt;/li&gt;
-&lt;/ul&gt;
+&lt;h3 id=&#34;-探索性工作流&#34;&gt;🧭 探索性工作流
+&lt;/h3&gt;&lt;p&gt;在 Core 模式下，你可以选择探索性工作流：也就是在前面工作流的基础上，添加一个探索阶段。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/opsx:explore  →  /opsx:propose  →  /opsx:apply  →  /opsx:sync  →  /opsx:archive
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;&lt;strong&gt;&lt;code&gt;/opsx:explore&lt;/code&gt;&lt;/strong&gt;：只思考、只分析，不产出任何代码或文件。&lt;/p&gt;
 &lt;blockquote&gt;
 &lt;p&gt;实操经验：拿到一个不清晰的需求时，先 &lt;code&gt;/opsx:explore&lt;/code&gt; 把问题问透；等需求清晰、边界明确后，再 &lt;code&gt;/opsx:propose&lt;/code&gt; 生成正式规范。&lt;strong&gt;避免边探索边写规范，导致 spec 反复返工&lt;/strong&gt;。&lt;/p&gt;
 &lt;/blockquote&gt;
-&lt;h3 id=&#34;-完整生命周期&#34;&gt;🪞 完整生命周期
-&lt;/h3&gt;&lt;p&gt;一个 OpenSpec 变更的完整生命周期是这样的：&lt;/p&gt;
+&lt;p&gt;一个 OpenSpec 变更的完整生命周期是这样的：&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
@@ -388,70 +1266,17 @@
 &lt;/ol&gt;
 &lt;p&gt;跳过任何一个检查点，OpenSpec 就退化为&amp;quot;自动写代码的脚手架&amp;rdquo;，失去意义。&lt;/p&gt;
 &lt;hr&gt;
-&lt;h2 id=&#34;-安装与初始化&#34;&gt;💻 安装与初始化
-&lt;/h2&gt;&lt;h3 id=&#34;-前置要求&#34;&gt;📦 前置要求
-&lt;/h3&gt;&lt;p&gt;OpenSpec 的安装门槛非常低：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;Node.js 18+&lt;/li&gt;
-&lt;li&gt;任意一个支持的 AI 工具（Claude Code、Cursor、Codex、Copilot、Windsurf、Gemini CLI、Cline、Trae 等 25+ 工具）&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&#34;-项目初始化&#34;&gt;⚙️ 项目初始化
-&lt;/h3&gt;&lt;p&gt;在项目根目录运行：&lt;/p&gt;
+&lt;h3 id=&#34;-expanded-模式&#34;&gt;🌐 Expanded 模式
+&lt;/h3&gt;&lt;p&gt;OpenSpec 的 Expanded Workflow（扩展工作流） 是专为复杂项目或需要精细控制的开发任务而设计的进阶模式（相比于默认的 Core 自动挡模式，它更像“手动挡”）。该工作流包含 6 个专属命令，让你能够分步审查制品、验证质量，并进行并行与批量管理。&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
 &lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
 &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
 &lt;td class=&#34;lntd&#34;&gt;
-&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 全局安装&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;npm install -g @fission-ai/openspec
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 初始化（按提示选择 AI 工具）&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nb&#34;&gt;cd&lt;/span&gt; your-project
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;openspec init
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;/opsx:new(新建变更)  →  /opsx:continue(生成proposal.md)  →  完善/修正proposal.md  →  /opsx:continue(生成design.md)  →  完善/修正design.md  →  /opsx:continue(生成spec.md)  →  完善/修正spec.md  →  /opsx:continue(生成tasks.md)  →  完善/修正tasks.md  →  /opsx:apply(实现任务)  →  /opsx:verify(验证实现)  →  /opsx:sync(同步到主规格库)  →  /opsx:archive(归档变更)
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
-&lt;/div&gt;&lt;p&gt;&lt;code&gt;openspec init&lt;/code&gt; 会做三件事：&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;创建 &lt;code&gt;openspec/&lt;/code&gt; 目录。&lt;/li&gt;
-&lt;li&gt;在所选 AI 工具的配置目录（如 &lt;code&gt;.claude/commands/opsx/&lt;/code&gt;）写入斜杠命令定义。&lt;/li&gt;
-&lt;li&gt;生成一份默认的 &lt;code&gt;AGENTS.md&lt;/code&gt; 提示词（告诉 AI 如何使用 OpenSpec）。&lt;/li&gt;
-&lt;/ol&gt;
-&lt;blockquote&gt;
-&lt;p&gt;提示：如果想用非交互式初始化，可以直接指定工具：&lt;code&gt;openspec init --tools claude&lt;/code&gt;。&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;h3 id=&#34;-切换工作模式&#34;&gt;🎛️ 切换工作模式
-&lt;/h3&gt;&lt;p&gt;OpenSpec 提供两种工作模式：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Core 模式&lt;/strong&gt;（默认）：3 个核心命令够用，适合大多数项目。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Expanded 模式&lt;/strong&gt;：解锁更多细粒度命令（&lt;code&gt;/opsx:new&lt;/code&gt;、&lt;code&gt;/opsx:continue&lt;/code&gt;、&lt;code&gt;/opsx:ff&lt;/code&gt;、&lt;code&gt;/opsx:verify&lt;/code&gt;、&lt;code&gt;/opsx:bulk-archive&lt;/code&gt;、&lt;code&gt;/opsx:onboard&lt;/code&gt;）。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;切换方法：&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
-&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
-&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt;1
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;2
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;3
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;4
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;5
-&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;6
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
-&lt;td class=&#34;lntd&#34;&gt;
-&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 查看当前配置&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;openspec config profile
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 勾选需要的命令（例如 new、continue、ff、verify、bulk-archive、onboard）&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# 然后让 AI 重新识别&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;openspec update
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
-&lt;/div&gt;
-&lt;/div&gt;&lt;p&gt;&lt;strong&gt;经验之谈&lt;/strong&gt;：除非项目特别复杂，否则 &lt;strong&gt;Core 模式完全够用&lt;/strong&gt;。命令越多，记忆负担越大，反而拖慢节奏。&lt;/p&gt;
-&lt;hr&gt;
-&lt;h2 id=&#34;-基本使用一个最小例子&#34;&gt;🧪 基本使用：一个最小例子
+&lt;/div&gt;&lt;h2 id=&#34;-基本使用一个最小例子&#34;&gt;🧪 基本使用：一个最小例子
 &lt;/h2&gt;&lt;p&gt;下面用一个最小例子把整套流程跑通。需求是&amp;quot;做一个 CLI 工具，能把文本按行编号输出&amp;quot;。&lt;/p&gt;
 &lt;h3 id=&#34;-需求描述&#34;&gt;💡 需求描述
 &lt;/h3&gt;&lt;p&gt;在 Claude Code 对话框里输入：&lt;/p&gt;
@@ -678,16 +1503,8 @@
 &lt;li&gt;&lt;strong&gt;只有一两人的小项目&lt;/strong&gt;：维护 spec 的边际收益可能不够抵消写作成本。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;强实时性的项目&lt;/strong&gt;：spec 写完到代码合入有延迟，不适合需要快速响应的场景。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;-几条经验&#34;&gt;💎 几条经验
-&lt;/h3&gt;&lt;ol&gt;
-&lt;li&gt;&lt;strong&gt;propose 的输入质量决定产物质量&lt;/strong&gt;：需求描述越具体，生成的 spec 越准；模糊的输入会产生模糊的 spec。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;apply 之前一定要 review spec&lt;/strong&gt;：设计阶段返工成本低，实现阶段返工成本高 10 倍。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;archive 之前一定要 verify&lt;/strong&gt;：跑测试、对照 spec 逐条勾选验收条件，别让&amp;quot;看起来对&amp;quot;变成&amp;quot;实际对&amp;quot;。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;保持 spec 文件的精简&lt;/strong&gt;：每个 Scenario 描述一个具体行为，&lt;strong&gt;不要把 spec 写成&amp;quot;伪代码&amp;quot;&lt;/strong&gt;。&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;配合 TDD 纪律使用&lt;/strong&gt;：OpenSpec 管&amp;quot;做什么&amp;quot;，TDD 管&amp;quot;做得对不对&amp;quot;，两者缺一不可。&lt;/li&gt;
-&lt;/ol&gt;
 &lt;hr&gt;
-&lt;h3 id=&#34;-参考资料&#34;&gt;📖 参考资料
+&lt;h3 id=&#34;-参考资料&#34;&gt;🔗 参考资料
 &lt;/h3&gt;&lt;ul&gt;
 &lt;li&gt;OpenSpec 官方仓库：&lt;a class=&#34;link&#34; href=&#34;https://github.com/Fission-AI/OpenSpec&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
     &gt;https://github.com/Fission-AI/OpenSpec&lt;/a&gt;&lt;/li&gt;

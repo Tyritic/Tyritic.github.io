@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="在多个真实项目中沉淀下来的 OpenSpec 使用经验——从初始化到归档的六阶段最佳实践、常见踩坑与避坑指南，以及和 TDD、Claude Code 配合的进阶玩法。">
+<title>OpenSpec的使用经验和最佳实践</title>
+
+<link rel='canonical' href='https://Tyritic.github.io/p/openspec%E7%9A%84%E4%BD%BF%E7%94%A8%E7%BB%8F%E9%AA%8C%E5%92%8C%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/'>
+
+<link rel="stylesheet" href="/scss/style.min.cbd512f1ab381ec2ee22f919961cc92c7cd9fe892ef96c066f8877ab9872f162.css"><meta property='og:title' content="OpenSpec的使用经验和最佳实践">
+<meta property='og:description' content="在多个真实项目中沉淀下来的 OpenSpec 使用经验——从初始化到归档的六阶段最佳实践、常见踩坑与避坑指南，以及和 TDD、Claude Code 配合的进阶玩法。">
+<meta property='og:url' content='https://Tyritic.github.io/p/openspec%E7%9A%84%E4%BD%BF%E7%94%A8%E7%BB%8F%E9%AA%8C%E5%92%8C%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/'>
+<meta property='og:site_name' content='Tyritic'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='OpenSpec' /><meta property='article:tag' content='Spec Coding' /><meta property='article:published_time' content='2026-06-29T10:00:00&#43;08:00'/><meta property='article:modified_time' content='2026-06-29T16:33:26&#43;00:00'/>
+<meta name="twitter:title" content="OpenSpec的使用经验和最佳实践">
+<meta name="twitter:description" content="在多个真实项目中沉淀下来的 OpenSpec 使用经验——从初始化到归档的六阶段最佳实践、常见踩坑与避坑指南，以及和 TDD、Claude Code 配合的进阶玩法。">
+    <link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="切换菜单">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/icon_hu_691afbb6233f07b9.jpg" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">🍥</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">Tyritic</a></h1>
+            <h2 class="site-description">중요한것은꺾이지않는마음</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a 
+                        href='https://space.bilibili.com'
+                        target="_blank"
+                        title="Bilibili"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-brand-bilibili"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 10a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-6z" /><path d="M8 3l2 3" /><path d="M16 3l-2 3" /><path d="M9 13v-2" /><path d="M15 11v2" /></svg>
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://github.com/Tyritic/Tyritic.github.io.git'
+                        target="_blank"
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>主页</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%85%B3%E4%BA%8E/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="7" r="4" />
+  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+</svg>
+
+
+
+                
+                <span>关于</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/archives/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>归档</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/categories/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>分类</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>搜索</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/%E5%8F%8B%E6%83%85%E9%93%BE%E6%8E%A5/' >
+                
+                
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5" />
+  <path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5" />
+</svg>
+
+
+
+                
+                <span>友情链接</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+                    
+                        <li id="i18n-switch">  
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                            <select name="language" title="language" onchange="window.location.href = this.selectedOptions[0].value">
+                                
+                                    <option value="https://Tyritic.github.io/" selected>简体中文</option>
+                                
+                                    <option value="https://Tyritic.github.io/en/" >English</option>
+                                
+                            </select>
+                        </li>
+                    
+                
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>暗色模式</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">目录</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#-引言从会跑到跑得稳">🧭 引言：从&quot;会跑&quot;到&quot;跑得稳&quot;</a></li>
+    <li><a href="#-core-vs-expanded-模式选择">🎚️ Core vs Expanded 模式选择</a></li>
+    <li><a href="#-前期沟通优先先-explore-再动手">💬 前期沟通优先：先 explore 再动手</a></li>
+    <li><a href="#-propose-阶段把模糊意图压成可执行合同">🎯 propose 阶段：把&quot;模糊意图&quot;压成&quot;可执行合同&quot;</a>
+      <ol>
+        <li><a href="#-需求描述的黄金模板">📋 需求描述的&quot;黄金模板&quot;</a></li>
+        <li><a href="#-proposaldesignspecstasks-的权重">⚖️ proposal/design/specs/tasks 的权重</a></li>
+        <li><a href="#-提案-review-checklist">🔍 提案 review checklist</a></li>
+      </ol>
+    </li>
+    <li><a href="#-apply-阶段让-ai-真正按合同办事">🔧 apply 阶段：让 AI 真正&quot;按合同办事&quot;</a>
+      <ol>
+        <li><a href="#-任务粒度再小一点也不为过">📐 任务粒度：再小一点也不为过</a></li>
+        <li><a href="#-中途打断让-ai-慢下来">✋ 中途打断：让 AI 慢下来</a></li>
+        <li><a href="#-与-tdd-工具的配合">🧪 与 TDD 工具的配合</a></li>
+      </ol>
+    </li>
+    <li><a href="#-verify-与-archive-阶段把好最后一道关">✅ verify 与 archive 阶段：把好最后一道关</a>
+      <ol>
+        <li><a href="#-如何读懂-verify-报告">📊 如何读懂 verify 报告</a></li>
+        <li><a href="#-双保险验证机制">🛡️ 双保险验证机制</a></li>
+        <li><a href="#-archive-前的最终自检">📦 archive 前的最终自检</a></li>
+      </ol>
+    </li>
+    <li><a href="#-团队协作让-openspec-真正飞起来">🤝 团队协作：让 OpenSpec 真正&quot;飞起来&quot;</a>
+      <ol>
+        <li><a href="#-git-工作流配合">🌿 Git 工作流配合</a></li>
+        <li><a href="#-code-review-节奏">👀 Code Review 节奏</a></li>
+        <li><a href="#-多-agent-协作">🐙 多 Agent 协作</a></li>
+      </ol>
+    </li>
+    <li><a href="#-真实踩坑实录那些我犯过的错">⚠️ 真实踩坑实录：那些我犯过的错</a>
+      <ol>
+        <li><a href="#-需求膨胀spec-越改越长">🐘 需求膨胀：spec 越改越长</a></li>
+        <li><a href="#-spec-变成伪代码">📜 spec 变成伪代码</a></li>
+        <li><a href="#-多变更并行冲突">💥 多变更并行冲突</a></li>
+        <li><a href="#-归档前漏掉-verify">🪤 归档前漏掉 verify</a></li>
+      </ol>
+    </li>
+    <li><a href="#-进阶技巧让-openspec-价值翻倍">🚀 进阶技巧：让 OpenSpec 价值翻倍</a>
+      <ol>
+        <li><a href="#-维护-artifact-一致性">🔗 维护 Artifact 一致性</a></li>
+        <li><a href="#-善用全局上下文">🌍 善用全局上下文</a></li>
+        <li><a href="#-定制-agentsmd">🧬 定制 AGENTS.md</a></li>
+        <li><a href="#-自定义工作流">🧩 自定义工作流</a></li>
+      </ol>
+    </li>
+    <li><a href="#-总结六字心诀">📝 总结：六字心诀</a>
+      <ol>
+        <li><a href="#-参考资料">📖 参考资料</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/ai-coding/" style="background-color: #2a9d8f; color: #fff;">
+                AI Coding
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/openspec%E7%9A%84%E4%BD%BF%E7%94%A8%E7%BB%8F%E9%AA%8C%E5%92%8C%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/">OpenSpec的使用经验和最佳实践</a>
+        </h2>
+    
+        
+        <h3 class="article-subtitle">
+            在多个真实项目中沉淀下来的 OpenSpec 使用经验——从初始化到归档的六阶段最佳实践、常见踩坑与避坑指南，以及和 TDD、Claude Code 配合的进阶玩法。
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">2026-06-29</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    阅读时长: 13 分钟
+                </time>
+            </div>
+
+	 
+            <div>
+                <?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1730619279802" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4362" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M952.14117 923.480932v19.613477H12.341825V0H491.224469v78.453906H90.795731V864.640503H873.687263V567.143289h78.453907z" fill="#666666" p-id="4363"></path><path d="M890.526659 819.704802V698.538873h-82.614416v121.165929H686.746314v82.614415h121.165929v121.165929h82.614416v-121.165929h121.165929v-82.614415h-121.165929zM436.135117 543.686797c8.854259-9.128848 17.708518-13.692658 30.989293-22.822731 8.853033-9.128848 17.707292-13.692658 26.560325-22.822732 8.854259-4.563811 17.708518-13.692658 26.561551-22.821506 8.854259-9.128848 13.280775-18.257695 17.708517-27.386543 4.425291-9.130073 8.853033-22.822732 8.853033-41.080426 0-13.692658-4.426517-27.386543-8.853033-36.516616-4.427742-13.692658-13.280775-22.821506-22.135034-27.385317-8.854259-9.130073-17.707292-13.693884-30.989293-18.258921-13.27955-4.563811-22.133808-9.128848-35.414584-9.128847-17.707292 0-30.988067 4.565037-44.268842 9.128847-13.280775 4.565037-26.561551 13.692658-35.414584 27.386543-8.854259 9.128848-17.708518 22.822732-22.135034 36.516616-4.426517 13.692658-4.426517 18.257695-4.426517 36.51539h57.549618v-13.692659c0-9.130073 4.426517-13.693884 8.853033-22.822731 4.427742-4.565037 8.854259-13.693884 13.280776-18.258921 4.427742-4.563811 13.280775-4.563811 22.135034-4.563811 13.280775 0 22.133808 4.563811 30.989293 13.692658 8.853033 9.130073 13.27955 18.258921 13.279549 31.95158 0 9.128848 0 18.257695-4.426516 22.822731-4.427742 13.692658-13.280775 18.257695-17.708518 22.822732l-17.707292 18.257695c-8.853033 4.563811-17.707292 9.128848-22.133808 13.692658-13.280775 9.128848-26.561551 13.693884-35.414584 22.822732-13.282001 9.128848-22.135034 18.257695-30.989293 31.951579-8.854259 9.128848-13.280775 22.822732-17.707292 36.51539-4.427742 13.692658-8.854259 27.386543-8.854258 45.645464h212.491179v-54.774311H418.427825c4.426517-13.692658 8.854259-22.822732 17.707292-27.386543zM296.732332 621.282614V315.463158h-57.550844c0 9.128848-4.425291 22.822732-8.853033 31.951579l-17.708517 18.257695c-8.853033 4.563811-17.707292 9.128848-26.560325 9.128847-8.854259 0-13.280775 4.565037-22.135034 0v50.209275h75.256909v191.707023h57.549618v4.565037zM739.330045 621.282614c13.280775-4.565037 26.561551-9.128848 35.414584-18.257695 8.854259-9.128848 17.708518-18.257695 22.135034-31.951579 4.426517-13.692658 4.426517-27.386543 4.426516-45.644238 0-18.257695 0-27.387768-8.853033-41.080426-8.854259-13.692658-22.135034-18.257695-39.842326-22.822732 13.280775-4.563811 22.135034-13.692658 30.989293-22.822732 8.853033-9.128848 8.853033-22.821506 8.853033-36.51539 0-13.692658-4.426517-27.386543-8.854258-36.51539-4.426517-9.128848-13.280775-18.257695-22.133809-27.386543-8.854259-9.128848-17.708518-13.692658-30.989293-18.257695C717.196237 315.463158 708.341978 315.463158 695.061202 315.463158s-26.561551 4.565037-39.842326 9.128847c-13.280775 4.565037-22.135034 13.692658-30.989293 22.822732-8.853033 9.128848-17.706066 18.257695-22.133808 31.951579-4.426517 13.692658-8.853033 31.950353-8.853033 45.644238h57.549618c0-13.692658 4.426517-31.951579 8.853033-41.080427 8.854259-9.128848 17.708518-13.692658 35.414584-13.692658 8.855485 0 22.135034 4.563811 26.562776 9.128847 8.853033 4.563811 13.280775 18.257695 13.280776 27.385317 0 9.130073 0 13.693884-4.427743 18.258921l-13.280775 13.692658c-4.425291 4.565037-13.27955 4.565037-22.133809 4.565037h-22.135034v41.080427h26.561551c8.854259 0 13.280775 0 22.135034 4.56381 8.853033 4.565037 13.280775 9.128848 17.707292 13.693885 4.426517 4.565037 4.426517 13.692658 4.426517 27.386542 0 13.692658-4.425291 27.386543-13.280776 36.516616-8.853033 9.128848-22.133808 13.692658-35.414584 13.692658-8.854259 0-17.707292 0-22.135034-4.56381-4.426517-4.565037-13.280775-9.128848-17.707292-13.693885-4.426517-4.565037-8.854259-13.692658-8.854258-18.257695-4.425291-9.128848-4.425291-18.257695-4.425291-27.386542H584.388483c0 18.257695 0 36.51539 8.854259 50.209274 4.425291 13.692658 13.280775 22.821506 22.133808 31.950353 8.854259 9.128848 22.135034 18.257695 35.414584 22.822732 13.282001 4.563811 30.989293 4.563811 44.270068 4.563811 17.707292-4.563811 30.989293 0 44.268843-4.563811z" fill="#666666" p-id="4364"></path></svg>
+                <time class="article-words">
+                     字数统计：6406 字
+                </time>
+            </div>
+
+ 
+
+        
+    </footer>
+    
+
+    
+</div>
+
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="-引言从会跑到跑得稳">🧭 引言：从&quot;会跑&quot;到&quot;跑得稳&quot;
+</h2><p>在上一篇《<a class="link" href="../OpenSpec%e7%9a%84%e6%a6%82%e5%bf%b5%e4%b8%8e%e5%9f%ba%e6%9c%ac%e4%bd%bf%e7%94%a8/index.zh-cn.md" >OpenSpec 的概念与基本使用</a>》里，我们把 OpenSpec 的双文件夹模型、核心命令和最小流程跑通了一遍。但&quot;能跑&quot;和&quot;跑得稳&quot;之间，还隔着大量实战细节。</p>
+<p>这一篇是经验复盘：把过去几个月在多个真实项目里踩过的坑、验证过的做法，整理成一份&quot;避坑指南 + 最佳实践&quot;合集。读完它，你应该能避免 80% 的常见返工。</p>
+<p>整篇文章围绕 OpenSpec 生命周期的六个关键阶段展开：</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>阶段</th>
+					<th>关键词</th>
+					<th>核心目标</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>初始化</td>
+					<td>选工具、选模式</td>
+					<td>搭建最少够用的工作环境</td>
+			</tr>
+			<tr>
+					<td>提案</td>
+					<td>输入质量、权重分配</td>
+					<td>把模糊意图压缩成可执行合同</td>
+			</tr>
+			<tr>
+					<td>实现</td>
+					<td>任务粒度、节奏控制</td>
+					<td>让 AI 严格按合同办事</td>
+			</tr>
+			<tr>
+					<td>验证</td>
+					<td>报告解读、自检</td>
+					<td>关闭变更前最后一道关</td>
+			</tr>
+			<tr>
+					<td>归档</td>
+					<td>留痕、活文档</td>
+					<td>让 <code>specs/</code> 反映系统真实状态</td>
+			</tr>
+			<tr>
+					<td>协作</td>
+					<td>Git、Review</td>
+					<td>多人多 Agent 共享同一份真相源</td>
+			</tr>
+	</tbody>
+</table></div>
+<hr>
+<h2 id="-core-vs-expanded-模式选择">🎚️ Core vs Expanded 模式选择
+</h2><p>OpenSpec 有两种工作模式（用 <code>openspec config profile</code> 切换）：</p>
+<ul>
+<li><strong>Core 模式</strong>（默认）：<code>propose → apply → archive</code> 三个命令，够 80% 的项目用。</li>
+<li><strong>Expanded 模式</strong>：额外解锁 <code>new</code>、<code>continue</code>、<code>ff</code>、<code>verify</code>、<code>bulk-archive</code>、<code>onboard</code>。</li>
+</ul>
+<p>我的建议是：</p>
+<blockquote>
+<p><strong>默认 Core，复杂项目再 Expanded</strong>。</p>
+</blockquote>
+<p>理由很简单——命令越多，记忆负担越大，反而拖慢节奏。<code>verify</code> 和 <code>bulk-archive</code> 这两个命令看起来很香，但 <code>verify</code> 的输出经常和&quot;直接跑测试&quot;重复；<code>bulk-archive</code> 适合&quot;一次性交付多个 feature&quot;的场景，平时几乎用不上。</p>
+<p>如果你一定要切到 Expanded，<strong>至少先熟练 Core 一周再切</strong>。一来就上 10 个命令的团队，几乎都会出现&quot;忘了某个命令是干嘛的&quot;的问题。</p>
+<hr>
+<h2 id="-前期沟通优先先-explore-再动手">💬 前期沟通优先：先 explore 再动手
+</h2><p>这是我踩过最多坑后学到的教训。在创建变更前，一定要先用 explore 和 AI 对齐需求边界。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-markdown" data-lang="markdown"><span class="line"><span class="cl">❌ 错误做法：
+</span></span><span class="line"><span class="cl">&#34;/opsx/ff 给模型推理服务加个缓存&#34;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">✅ 正确做法：
+</span></span><span class="line"><span class="cl">&#34;/opsx/explore 我想给模型推理服务加缓存，你帮我分析一下：
+</span></span><span class="line"><span class="cl"><span class="k">1.</span> 缓存应该加在哪一层？
+</span></span><span class="line"><span class="cl"><span class="k">2.</span> 用 Redis 还是本地 LRU？
+</span></span><span class="line"><span class="cl"><span class="k">3.</span> 缓存 key 怎么设计？&#34;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>AI也会提出它认为还不够明确的地方，可以和AI进行多轮沟通，直到双方都充分理解需求并设计出具体的方案，再执行 /opsx:propose 或 /opsx:ff。</p>
+<hr>
+<h2 id="-propose-阶段把模糊意图压成可执行合同">🎯 propose 阶段：把&quot;模糊意图&quot;压成&quot;可执行合同&quot;
+</h2><p><code>/opsx:propose</code> 是 OpenSpec 流程的&quot;重头戏&quot;——它决定后续 80% 的工作量。这一阶段的核心矛盾是：<strong>人脑子里&quot;大概想要的东西&quot;</strong> 和 <strong>AI 需要的&quot;可执行合同&quot;</strong> 之间，存在巨大的表达差。</p>
+<h3 id="-需求描述的黄金模板">📋 需求描述的&quot;黄金模板&quot;
+</h3><p>我用得最多的需求描述模板（<strong>五段式</strong>）：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">1. 背景：为什么要做这个变更？（业务上下文）
+</span></span><span class="line"><span class="cl">2. 目标：完成什么之后可以认为&#34;做完了&#34;？（可衡量的成功标准）
+</span></span><span class="line"><span class="cl">3. 范围：包含什么 / 不包含什么？（边界）
+</span></span><span class="line"><span class="cl">4. 关键约束：性能、兼容性、API 风格、安全等硬性要求
+</span></span><span class="line"><span class="cl">5. 验收示例：给出 1~2 个具体的输入-输出对
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>举例——同样是&quot;加个用户头像上传功能&quot;，两种描述差很多：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">❌ 差：帮我加个用户头像上传。
+</span></span><span class="line"><span class="cl">✅ 好：
+</span></span><span class="line"><span class="cl">   - 背景：用户反馈个人主页没有头像，转化率低。
+</span></span><span class="line"><span class="cl">   - 目标：用户可在个人设置页上传 ≤2MB 的 jpg/png，刷新后生效。
+</span></span><span class="line"><span class="cl">   - 范围：仅做单头像上传，不做多头像、裁剪、特效。
+</span></span><span class="line"><span class="cl">   - 关键约束：必须 CDN 加速；老用户无头像时显示默认占位图。
+</span></span><span class="line"><span class="cl">   - 验收示例：上传 3MB 文件 → 弹错误提示；上传 1MB jpg → 主页立即显示。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>输入质量决定产物质量</strong>——这是 OpenSpec 的第一性原理。</p>
+<h3 id="-proposaldesignspecstasks-的权重">⚖️ proposal/design/specs/tasks 的权重
+</h3><p>很多人误以为&quot;四份文档权重一样&quot;。实战经验是<strong>严重不均</strong>的：</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>文档</th>
+					<th>重要度</th>
+					<th>阅读优先级</th>
+					<th>写不好的代价</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>proposal</code></td>
+					<td>⭐⭐</td>
+					<td>低（一次）</td>
+					<td>范围失控，AI 跑偏</td>
+			</tr>
+			<tr>
+					<td><code>design</code></td>
+					<td>⭐⭐⭐</td>
+					<td>中（一次）</td>
+					<td>方案返工，多走弯路</td>
+			</tr>
+			<tr>
+					<td><code>specs/</code></td>
+					<td>⭐⭐⭐⭐⭐</td>
+					<td>高（持续）</td>
+					<td>AI 实现时反复偏离，业务不达标</td>
+			</tr>
+			<tr>
+					<td><code>tasks</code></td>
+					<td>⭐⭐⭐⭐</td>
+					<td>高（持续）</td>
+					<td>任务粒度失控，apply 阶段失控</td>
+			</tr>
+	</tbody>
+</table></div>
+<blockquote>
+<p><strong>关键判断</strong>：<strong><code>specs/</code> 的 ROI 远高于其他三份</strong>。一个反模式是把 proposal 写得很长、spec 写得很短。Spec 才是 AI 在 apply 阶段&quot;读&quot;得最多的文件，验收场景越具体，AI 跑偏的概率越低。</p>
+</blockquote>
+<h3 id="-提案-review-checklist">🔍 提案 review checklist
+</h3><p><code>/opsx:propose</code> 跑完后，<strong>不要直接 <code>/opsx:apply</code></strong>。先用这张清单自检：</p>
+<ul>
+<li><input disabled="" type="checkbox"> <code>proposal.md</code> 的&quot;为什么&quot;是否清晰，团队成员能 30 秒内 get 到意图？</li>
+<li><input disabled="" type="checkbox"> <code>design.md</code> 的关键技术选型是否有 trade-off 记录？（不是只给一个方案）</li>
+<li><input disabled="" type="checkbox"> <code>specs/</code> 中每个 Requirement 是否都用 <code>SHALL</code> 写明确？</li>
+<li><input disabled="" type="checkbox"> 每个 Requirement 是否有 2 个以上 Scenario 覆盖正常/异常路径？</li>
+<li><input disabled="" type="checkbox"> <code>tasks.md</code> 的任务粒度是否在 30 分钟~2 小时可完成？（粗了失控，细了过度）</li>
+<li><input disabled="" type="checkbox"> 范围&quot;边界&quot;是否在 proposal 里写明（哪些明确不做）？</li>
+</ul>
+<p>这张清单过一遍，archive 阶段的返工率能下降一半。</p>
+<hr>
+<h2 id="-apply-阶段让-ai-真正按合同办事">🔧 apply 阶段：让 AI 真正&quot;按合同办事&quot;
+</h2><p><code>/opsx:apply</code> 是把 Markdown 变成代码的阶段。这一阶段最大的坑是<strong>让 AI 一次跑完整个 tasks.md</strong>——表面上高效，实际上埋雷无数。</p>
+<h3 id="-任务粒度再小一点也不为过">📐 任务粒度：再小一点也不为过
+</h3><p><strong>经验法则</strong>：一个任务如果不能在 30 分钟~2 小时内独立验证，<strong>就应该再拆</strong>。</p>
+<p>我常用的拆解方式：</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>任务粒度</th>
+					<th>适合什么</th>
+					<th>风险</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>30 分钟以内</td>
+					<td>单文件、单函数、配置项</td>
+					<td>几乎没风险，适合激进 AI</td>
+			</tr>
+			<tr>
+					<td>1~2 小时</td>
+					<td>单模块、单个 API 端点</td>
+					<td>风险低，主流粒度</td>
+			</tr>
+			<tr>
+					<td>半天以上</td>
+					<td>跨模块、跨服务</td>
+					<td>风险高，必须配合 review</td>
+			</tr>
+			<tr>
+					<td>跨两天以上</td>
+					<td>不应该作为一个任务存在</td>
+					<td>一定要拆</td>
+			</tr>
+	</tbody>
+</table></div>
+<p>举个例子，&ldquo;实现用户登录&quot;会被我拆成：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">1. 数据库 schema 调整（加 last_login_at 字段）
+</span></span><span class="line"><span class="cl">2. 登录 service 函数（含密码校验、失败次数）
+</span></span><span class="line"><span class="cl">3. 登录 API 路由（带 rate limit）
+</span></span><span class="line"><span class="cl">4. 错误响应统一封装
+</span></span><span class="line"><span class="cl">5. 日志埋点
+</span></span><span class="line"><span class="cl">6. 单元测试（覆盖 5 个边界 case）
+</span></span><span class="line"><span class="cl">7. 集成测试（从 HTTP 入口到 DB 落库）
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>7 个子任务，每个独立可验证。AI 在任何一个上跑偏，review 时都能快速定位。</p>
+<h3 id="-中途打断让-ai-慢下来">✋ 中途打断：让 AI 慢下来
+</h3><p><code>/opsx:apply</code> 的本质是&quot;AI 自动跑完整个 tasks.md&rdquo;。听起来很爽，但实战中<strong>必须主动打断</strong>。</p>
+<p>打断的三个黄金时机：</p>
+<ol>
+<li><strong>跨任务粒度切换时</strong>——比如从&quot;数据库层&quot;切到&quot;API 层&quot;时，要求 AI 先暂停，汇报当前进展。</li>
+<li><strong>遇到模糊点时</strong>——AI 主动提问&quot;这里用 try-catch 还是 Result 类型&quot;时，<strong>不要让它自己选</strong>。</li>
+<li><strong>发现 spec 有歧义时</strong>——立即停下来，先改 spec，再继续 apply。</li>
+</ol>
+<p>打断话术参考：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">&#34;先停一下。回顾一下当前 tasks 1~3 的完成情况，列出已经修改的文件和未覆盖的边界 case，
+</span></span><span class="line"><span class="cl">我们 review 完再继续 4~7。&#34;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这一招在长任务链里特别管用——AI 不会&quot;闷头走到黑&quot;，人在环路里始终能纠偏。</p>
+<h3 id="-与-tdd-工具的配合">🧪 与 TDD 工具的配合
+</h3><p>OpenSpec 管&quot;做什么&quot;，TDD 管&quot;做得对不对&quot;——两者缺一不可。</p>
+<p>推荐组合：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">OpenSpec /opsx:apply  →  按 tasks 推进
+</span></span><span class="line"><span class="cl">   ↓ 每个子任务完成后
+</span></span><span class="line"><span class="cl">Superpowers test-driven-development  →  强制走 红-绿-重构
+</span></span><span class="line"><span class="cl">   ↓
+</span></span><span class="line"><span class="cl">下一个子任务
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在 Claude Code 里的具体操作：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl"># 1. OpenSpec 提出 tasks
+</span></span><span class="line"><span class="cl">/opsx:apply
+</span></span><span class="line"><span class="cl"># 2. 切到 TDD 模式（强制红绿循环）
+</span></span><span class="line"><span class="cl">/superpowers:test-driven-development
+</span></span><span class="line"><span class="cl"># 3. AI 会先写失败测试，再写最小实现
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>实战中这个组合能把&quot;AI 自己写完然后发现测试挂了&quot;的情况消灭掉。<strong>AI 写测试 → AI 改实现 → 测试通过</strong>，是一个稳定的反馈环。</p>
+<hr>
+<h2 id="-verify-与-archive-阶段把好最后一道关">✅ verify 与 archive 阶段：把好最后一道关
+</h2><p>很多团队栽在&quot;看起来对就 archive&quot;这一步。<strong>verify + archive 才是 OpenSpec 真正产生价值的地方</strong>。</p>
+<h3 id="-如何读懂-verify-报告">📊 如何读懂 verify 报告
+</h3><p><code>/opsx:verify</code> 会输出 CRITICAL / WARNING / SUGGESTION 三级问题。我的处理策略：</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>级别</th>
+					<th>含义</th>
+					<th>处理方式</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>CRITICAL</td>
+					<td>spec 强制约束被违反</td>
+					<td><strong>必须修复</strong>，否则不进 archive</td>
+			</tr>
+			<tr>
+					<td>WARNING</td>
+					<td>实现偏离但未触底</td>
+					<td>评估偏离原因，必要时回滚或调整 spec</td>
+			</tr>
+			<tr>
+					<td>SUGGESTION</td>
+					<td>风格/可读性建议</td>
+					<td>记录到 backlog，不阻塞 archive</td>
+			</tr>
+	</tbody>
+</table></div>
+<p>实战经验：</p>
+<ul>
+<li><strong>CRITICAL 数量 ≠ 实现质量</strong>——一个变更 0 CRITICAL 不代表完美，可能只是 spec 写得太松。</li>
+<li><strong>WARNING 集中在同一模块时</strong>，往往是设计本身有问题，应该改 <code>design.md</code> 而不是改代码。</li>
+<li><strong>SUGGESTION 数量特别多时</strong>，说明这个项目的 spec 风格没沉淀下来，应该在归档后顺手补一个 <code>AGENTS.md</code> 模板。</li>
+</ul>
+<h3 id="-双保险验证机制">🛡️ 双保险验证机制
+</h3><p>强烈建议：新开一个 Agent 窗口专门执行 verify 指令。原因很简单——让写代码的 AI 和检查代码的 AI 是&quot;两个人&quot;，避免&quot;自己查自己&quot;的盲区。</p>
+<h3 id="-archive-前的最终自检">📦 archive 前的最终自检
+</h3><p>archive 之前我会跑一张&quot;四问清单&quot;：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">1. 测过没有？  → 跑一遍测试套件，看是否有新增失败。
+</span></span><span class="line"><span class="cl">2. 看过没有？  → 把 changes/xxx/ 下的 proposal/design/specs/tasks 全部 review 一遍。
+</span></span><span class="line"><span class="cl">3. 退路有没有？ → Git 上有 commit/tag 能回滚到 archive 前的状态吗？
+</span></span><span class="line"><span class="cl">4. 文档同步没？ → 如果有 README、CHANGELOG，archive 之前一并更新。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>四个问题都&quot;Yes&quot;了，再 <code>/opsx:archive &lt;name&gt;</code>，否则就是埋雷。</p>
+<p>archive 的副作用要清楚——<strong>整个 changes/xxx/ 目录会被移到 changes/archive/，不再可编辑</strong>。所以&quot;还有想改的地方&quot;就千万别 archive，要么补 spec 重新走，要么先不开 archive 命令。</p>
+<hr>
+<h2 id="-团队协作让-openspec-真正飞起来">🤝 团队协作：让 OpenSpec 真正&quot;飞起来&quot;
+</h2><p>个人项目里 OpenSpec 是&quot;自我约束&quot;，团队项目里它是&quot;协作协议&quot;。两者用法差别很大。</p>
+<h3 id="-git-工作流配合">🌿 Git 工作流配合
+</h3><p>团队里推荐的工作流：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">openspec/changes/xxx/  → 随 feature branch 一起提交
+</span></span><span class="line"><span class="cl">        ↓
+</span></span><span class="line"><span class="cl">PR review 阶段：重点 review changes/xxx/ 下的四份文档
+</span></span><span class="line"><span class="cl">        ↓
+</span></span><span class="line"><span class="cl">merge 到 main 后：跑 /opsx:archive
+</span></span><span class="line"><span class="cl">        ↓
+</span></span><span class="line"><span class="cl">changes/archive/ 目录也提交到 Git，作为变更历史
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>几个工程上的小技巧：</p>
+<ul>
+<li><strong>把 <code>openspec/</code> 整体加入 Git</strong>——它是真相源，必须进版本控制。</li>
+<li><strong>PR 模板里加一行</strong>：&ldquo;关联的 OpenSpec 变更：<code>changes/xxx/</code>&quot;——让 review 重点对齐。</li>
+<li><strong><code>.gitignore</code> 不要忽略 <code>openspec/changes/archive/</code></strong>——归档历史是审计资产。</li>
+<li><strong>敏感场景</strong>：用 <code>.openspec.yaml</code> 里的 <code>schema</code> 字段限制该变更允许的 spec 范围。</li>
+</ul>
+<h3 id="-code-review-节奏">👀 Code Review 节奏
+</h3><p>OpenSpec 改变了 Code Review 的&quot;看什么&rdquo;：</p>
+<div class="table-wrapper"><table>
+	<thead>
+			<tr>
+					<th>阶段</th>
+					<th>Review 重点</th>
+					<th>Reviewer</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>propose</code> 后</td>
+					<td><code>proposal.md</code> 范围、<code>specs/</code> 验收场景</td>
+					<td>业务方 / PM</td>
+			</tr>
+			<tr>
+					<td><code>apply</code> 中</td>
+					<td>关键任务的实现 + 测试</td>
+					<td>同组工程师</td>
+			</tr>
+			<tr>
+					<td><code>archive</code> 前</td>
+					<td>verify 报告 + 边界 case</td>
+					<td>资深工程师 / Tech Lead</td>
+			</tr>
+	</tbody>
+</table></div>
+<p><strong>别让 PM 看代码、让工程师看 proposal</strong>——OpenSpec 最大的好处就是让两类人用&quot;各自的语言&quot;协作。</p>
+<h3 id="-多-agent-协作">🐙 多 Agent 协作
+</h3><p>OpenSpec 最大的隐藏价值：<strong>它是一份跨 Agent 的真相源</strong>。</p>
+<p>我经常这样用：</p>
+<ul>
+<li><strong>Claude Code</strong>：负责 propose 阶段（写文档它最稳）。</li>
+<li><strong>Cursor</strong>：负责 apply 阶段（diff 视角最直观）。</li>
+<li><strong>Codex</strong>：负责测试和 verify（命令行友好）。</li>
+</ul>
+<p>由于 <code>specs/</code> 是文件系统级的 Markdown，<strong>新开会话、新开 IDE、换工具，行为标准完全一致</strong>。这是 OpenSpec 比&quot;AI 工具原生规则&quot;强的根本原因——<strong>你的规范不绑定任何 AI 工具</strong>。</p>
+<blockquote>
+<p>一句话：<strong>OpenSpec 是 AI 工具之间的&quot;通用语&quot;</strong>。换 Cursor 到 Claude Code，规范不动；换 Claude Code 到 Codex，规范不动。</p>
+</blockquote>
+<hr>
+<h2 id="-真实踩坑实录那些我犯过的错">⚠️ 真实踩坑实录：那些我犯过的错
+</h2><p>经验如果不带血泪教训，就是空话。下面是我（和身边团队）真实踩过的坑，几乎每个 OpenSpec 新手都会撞上。</p>
+<h3 id="-需求膨胀spec-越改越长">🐘 需求膨胀：spec 越改越长
+</h3><p><strong>症状</strong>：一个本应 2 天的变更，3 周还没 archive，spec 已经从 200 行膨胀到 1500 行。</p>
+<p><strong>根因</strong>：propose 阶段没有锁边界。AI 在 <code>/opsx:apply</code> 过程中，遇到&quot;顺手能做的&quot;就做掉了。</p>
+<p><strong>避坑</strong>：</p>
+<ul>
+<li><code>proposal.md</code> 里写死&quot;不在本次范围内&quot;的清单。</li>
+<li>任务粒度拆到 2 小时内，超出 scope 的立刻打回。</li>
+<li>养成习惯——<strong>&ldquo;下个变更做&quot;比&quot;这次顺手做&quot;健康得多</strong>。</li>
+</ul>
+<h3 id="-spec-变成伪代码">📜 spec 变成伪代码
+</h3><p><strong>症状</strong>：<code>specs/capability/spec.md</code> 写成了&quot;半代码半文档&rdquo;，Requirement 里全是 <code>if/else/function</code>。</p>
+<p><strong>根因</strong>：把&quot;实现&quot;误当&quot;规范&quot;。</p>
+<p><strong>避坑</strong>：</p>
+<ul>
+<li>Spec 只描述<strong>外部可观察行为</strong>，不写实现细节。</li>
+<li>Scenario 用&quot;输入-输出&quot;对，不用代码片段。</li>
+<li>验收点用 <code>SHALL</code> 不用 <code>def</code>——这是&quot;AI 看的合同&quot;，不是&quot;AI 抄的模板&quot;。</li>
+</ul>
+<h3 id="-多变更并行冲突">💥 多变更并行冲突
+</h3><p><strong>症状</strong>：两个 feature branch 同时改 <code>specs/auth/spec.md</code>，merge 时冲突无法解决。</p>
+<p><strong>根因</strong>：把 <code>specs/</code> 当作&quot;多人编辑的共享文件&quot;，但 archive 是单向的。</p>
+<p><strong>避坑</strong>：</p>
+<ul>
+<li><strong>同一能力下只允许一个活跃变更</strong>——在 <code>.openspec.yaml</code> 显式记录依赖。</li>
+<li>跨能力的变更完全独立（因为 <code>specs/auth/</code> 和 <code>specs/billing/</code> 不冲突）。</li>
+<li>实在有重叠，<strong>先 archive 一个，再开第二个</strong>。</li>
+</ul>
+<h3 id="-归档前漏掉-verify">🪤 归档前漏掉 verify
+</h3><p><strong>症状</strong>：直接 <code>/opsx:archive</code>，一周后线上出问题，回查才发现某个 Scenario 从来没实现过。</p>
+<p><strong>根因</strong>：把 archive 当作&quot;提交代码&quot;，而不是&quot;完成变更&quot;。</p>
+<p><strong>避坑</strong>：</p>
+<ul>
+<li>archive 命令前置 verify——在团队 wiki 里把它写死成&quot;两步走&quot;。</li>
+<li>严肃项目里，archive 之前必须跑一遍测试套件，截图贴到 PR 描述里。</li>
+<li>实在赶进度，<strong>宁可只 archive 一部分能力</strong>（用 <code>partial-archive</code> 子命令），也别整体放过。</li>
+</ul>
+<hr>
+<h2 id="-进阶技巧让-openspec-价值翻倍">🚀 进阶技巧：让 OpenSpec 价值翻倍
+</h2><p>最后分享几个&quot;用了就回不去&quot;的进阶技巧。</p>
+<h3 id="-维护-artifact-一致性">🔗 维护 Artifact 一致性
+</h3><p>这是 SDD 的铁律：永远先改文档，再改代码。如果你在实现过程中发现 design.md 的方案需要调整，不要直接改代码，而是：</p>
+<ul>
+<li>先更新 design.md</li>
+<li>再更新 tasks.md、/specs等相关文档
+（1和2都可使用AI修改）</li>
+<li>最后让 AI 按新的方案重新 apply</li>
+</ul>
+<p>这样才能保证文档和代码的一致性，也方便后续回溯。</p>
+<h3 id="-善用全局上下文">🌍 善用全局上下文
+</h3><p>在 config.yaml 中把你的技术栈、编码规范、领域知识都写清楚。这些信息会在每次创建变更时自动注入，形成复利效应。</p>
+<h3 id="-定制-agentsmd">🧬 定制 AGENTS.md
+</h3><p><code>openspec init</code> 会生成一份默认的 <code>AGENTS.md</code>，但<strong>默认那版太短</strong>。实战中我建议至少加这些内容：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-markdown" data-lang="markdown"><span class="line"><span class="cl"><span class="gh"># AGENTS.md（项目级 AI 协作规约）
+</span></span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="gu">## 工作流
+</span></span></span><span class="line"><span class="cl">所有变更必须走 OpenSpec：propose → apply → archive。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="gu">## 命名规范
+</span></span></span><span class="line"><span class="cl"><span class="k">-</span> changes/ 下的目录名用动词开头：add-xxx、refactor-xxx、fix-xxx
+</span></span><span class="line"><span class="cl"><span class="k">-</span> 不允许使用 personal-xxx、test-xxx 这种含糊命名
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="gu">## Spec 风格
+</span></span></span><span class="line"><span class="cl"><span class="k">-</span> 每个 Requirement 必须有 SHALL 关键字
+</span></span><span class="line"><span class="cl"><span class="k">-</span> Scenario 至少覆盖正常 + 异常两条路径
+</span></span><span class="line"><span class="cl"><span class="k">-</span> Spec 不写实现细节，只写外部可观察行为
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="gu">## 必跑命令
+</span></span></span><span class="line"><span class="cl"><span class="k">-</span> 提交前：npm test
+</span></span><span class="line"><span class="cl"><span class="k">-</span> 归档前：openspec verify
+</span></span><span class="line"><span class="cl"><span class="k">-</span> 归档后：git tag archive/&lt;变更名&gt;-&lt;日期&gt;
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong><code>AGENTS.md</code> 是项目的&quot;AI 宪法&quot;</strong>——花一下午写好它，后面所有 Agent 的行为都会更一致。</p>
+<h3 id="-自定义工作流">🧩 自定义工作流
+</h3><p>Custom schema 是 OpenSpec 中对 workflow 的自定义描述。它定义一次 change 从创建到实施、sync、archive 的 artifact 结构和依赖关系。通过 custom schema，团队可以把不同研发场景拆成多种 workflow，而不是强制所有 change 都走同一条路径。</p>
+<p>OpenSpec 的命令文件位于 <code>~/.claude/commands/opsx/</code>（以 Claude Code 为例）。你可以<strong>自己加命令</strong>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-markdown" data-lang="markdown"><span class="line"><span class="cl">&lt;!-- ~/.claude/commands/opsx/review.md --&gt;
+</span></span><span class="line"><span class="cl"><span class="gh"># /opsx:review
+</span></span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">读取当前 changes/ 下的所有 proposal/specs/design/tasks，
+</span></span><span class="line"><span class="cl">对照&#34;四问清单&#34;做一次自检，输出 PASS/FAIL 清单。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="gs">**不修改任何文件**</span>，只输出报告。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这样你就有了一个 <code>/opsx:review</code>——专属于你们团队的自定义工作流命令。</p>
+<hr>
+<h2 id="-总结六字心诀">📝 总结：六字心诀
+</h2><p>把整篇文章浓缩成六个字的 OpenSpec 心法：</p>
+<blockquote>
+<p><strong>先慢后快、严进宽出</strong>。</p>
+</blockquote>
+<ul>
+<li><strong>先慢后快</strong>：propose 阶段宁愿多花 1 小时，apply 阶段就能省 1 天。</li>
+<li><strong>严进宽出</strong>：spec 写得严（SHALL、Scenario），archive 之后才能宽（活文档复用）。</li>
+</ul>
+<p>OpenSpec 的本质不是&quot;AI 写代码&quot;，而是&quot;<strong>人用规范约束 AI、AI 用规范对齐人</strong>&ldquo;的双向协议。它和传统 SDD 最大的区别是：<strong>文件是 AI 真正在读的，而不是写给人看的</strong>。</p>
+<p>所以最后一条建议是：</p>
+<blockquote>
+<p><strong>永远把 spec 写给 AI 读，不是写给人看</strong>。人是兜底，AI 才是第一消费者。</p>
+</blockquote>
+<p>如果你也想开始用 OpenSpec，从下一篇&quot;加个小功能&quot;开始，按本文的 checklist 走一遍，30 分钟就能体会&quot;spec 驱动&quot;的爽感。</p>
+<hr>
+<h3 id="-参考资料">📖 参考资料
+</h3><ul>
+<li>OpenSpec 官方仓库：<a class="link" href="https://github.com/Fission-AI/OpenSpec"  target="_blank" rel="noopener"
+    >https://github.com/Fission-AI/OpenSpec</a></li>
+<li>OpenSpec 官网：<a class="link" href="https://openspec.dev/"  target="_blank" rel="noopener"
+    >https://openspec.dev/</a></li>
+<li>上一篇：<a class="link" href="../OpenSpec%e7%9a%84%e6%a6%82%e5%bf%b5%e4%b8%8e%e5%9f%ba%e6%9c%ac%e4%bd%bf%e7%94%a8/index.zh-cn.md" >OpenSpec 的概念与基本使用</a></li>
+<li>Spec Coding 系列：<a class="link" href="../Spec%20Coding%e7%9a%84%e8%b8%a9%e5%9d%91%e5%ae%9e%e5%bd%95/index.zh-cn.md" >Spec Coding 的踩坑实录</a></li>
+<li>配合 Superpowers 使用：<a class="link" href="../Superpowers%e4%b8%8eOpenSpec%e7%9a%84%e9%85%8d%e5%90%88%e4%bd%bf%e7%94%a8/index.zh-cn.md" >Superpowers 与 OpenSpec 的配合使用</a></li>
+</ul>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/openspec/">OpenSpec</a>
+        
+            <a href="/tags/spec-coding/">Spec Coding</a>
+        
+    </section>
+
+
+    <section class="article-lastmod">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+        <span>
+            最后更新于 2026-06-29 16:33 UTC
+        </span>
+    </section></footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside class="related-content--wrapper">
+    <h2 class="section-title">相关文章</h2>
+    <div class="related-content">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/openspec%E7%9A%84%E6%A6%82%E5%BF%B5%E4%B8%8E%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">OpenSpec的概念与基本使用</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/spec-coding%E7%9A%84%E8%B8%A9%E5%9D%91%E5%AE%9E%E5%BD%95/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Spec Coding的踩坑实录</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/spec-coding-%E7%9A%84%E5%AE%9E%E8%B7%B5%E6%8C%87%E5%8D%97/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Spec Coding 的实践指南</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/spec-coding-%E7%9A%84%E5%AE%9A%E4%B9%89/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Spec Coding 的定义</h2>
+        </div>
+    </a>
+</article>
+
+            
+                
+<article class="">
+    <a href="/p/claude-code-%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">Claude Code 最佳实践</h2>
+        </div>
+    </a>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <script src='//unpkg.com/@waline/client@v2/dist/waline.js'></script>
+<link href='//unpkg.com/@waline/client@v2/dist/waline.css' rel='stylesheet'/>
+<div id="waline" class="waline-container"></div>
+<style>
+    .waline-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+        --waline-font-size: var(--article-font-size);
+    }
+    .waline-container .wl-count {
+        color: var(--card-text-color-main);
+    }
+</style><script>
+    
+    Waline.init({"dark":"html[data-scheme=\"dark\"]","el":"#waline","emoji":["https://unpkg.com/@waline/emojis@1.0.1/weibo"],"lang":"zh-CN","locale":{"admin":"Admin","placeholder":"Leave your comment here"},"requiredMeta":["name","email","url"],"serverURL":"https://waline-blog-gamma.vercel.app/"});
+</script>
+
+    
+
+    <footer class="site-footer">
+  <section class="copyright">
+    &copy;  2022 -  2026 Tyritic
+  </section>
+
+  <section class="powerby">
+     그 경기 끝나고 좀 멍하기 있었는데 여러분 이제 살면서 여러가 <br />
+    使用 <a
+      href="https://gohugo.io/"
+      target="_blank"
+      rel="noopener"
+      >Hugo</a
+    > 构建
+    <br />
+    主题 <b
+      ><a
+        href="https://github.com/CaiJimmy/hugo-theme-stack"
+        target="_blank"
+        rel="noopener"
+        data-version="3.29.0"
+        >Stack</a
+      ></b
+    > 由 <a
+      href="https://jimmycai.com"
+      target="_blank"
+      rel="noopener"
+      >Jimmy</a
+    > 设计
+  </section>
+</footer>
+
+<script>
+  (function (u, c) {
+    var d = document,
+      t = "script",
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) {
+      o.addEventListener("load", function (e) {
+        c(e);
+      });
+    }
+    s.parentNode.insertBefore(o, s);
+  })("//cdn.bootcss.com/pangu/4.0.7/pangu.min.js", function () {
+    pangu.spacingPage();
+  });
+</script>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css"crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css"crossorigin="anonymous"
+            >
+
+            </main>
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js"integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z&#43;KMkF24hUW8WePSA9HM="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.93ec85291de2934df13aa4307b756a6eb93dd4ff935a9810e787a938c351043f.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
