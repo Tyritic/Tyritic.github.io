@@ -7,7 +7,427 @@
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
         <copyright>Tyritic</copyright>
-        <lastBuildDate>Mon, 29 Jun 2026 16:33:26 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/spec-coding/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Tue, 30 Jun 2026 16:28:01 +0000</lastBuildDate><atom:link href="https://Tyritic.github.io/tags/spec-coding/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>Superpowers的概念和基本使用</title>
+        <link>https://Tyritic.github.io/p/superpowers%E7%9A%84%E6%A6%82%E5%BF%B5%E5%92%8C%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8/</link>
+        <pubDate>Tue, 30 Jun 2026 10:00:00 +0800</pubDate>
+        
+        <guid>https://Tyritic.github.io/p/superpowers%E7%9A%84%E6%A6%82%E5%BF%B5%E5%92%8C%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8/</guid>
+        <description>&lt;h2 id=&#34;-写在前面ai-编程为什么需要流程纪律&#34;&gt;🧠 写在前面：AI 编程为什么需要&amp;quot;流程纪律&amp;quot;
+&lt;/h2&gt;&lt;p&gt;这两年 AI 编码助手的能力突飞猛进——几百行代码随手就能写出来。但只要真正把 Claude Code、Cursor、Codex 之类工具放进真实项目里，你大概率会撞上这几面墙：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;需求漂移&lt;/strong&gt;：你说&amp;quot;做个登录功能&amp;quot;，AI 心领神会地写出一整套 OAuth；你要的其实只是手机号 + 验证码。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;缺乏流程&lt;/strong&gt;：AI 不会主动问&amp;quot;为什么&amp;quot;，拿到需求就开干，写完也不知道它按什么逻辑写的。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;质量不稳&lt;/strong&gt;：今天生成的好，明天生成的差；改一个 Bug 引入三个新 Bug。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;不可追溯&lt;/strong&gt;：改了很多版，没人记得为什么改；后来人不敢动这段代码。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这些问题背后都有一个共同点：&lt;strong&gt;AI 默认模式是&amp;quot;尽力完成当前指令&amp;quot;，而不是&amp;quot;遵循一套严谨的工程流程&amp;quot;&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;社区给出的答案之一，就是 &lt;a class=&#34;link&#34; href=&#34;https://github.com/obra/superpowers&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;Superpowers&lt;/a&gt;——一个&lt;strong&gt;专门给 AI 编码助手装上&amp;quot;工程化大脑&amp;quot;&lt;/strong&gt; 的 Skills 框架。本文聚焦 Superpowers 本身：它是什么、它如何重塑 AI 的工作流、如何独立使用它，以及和同类工具的差异。&lt;strong&gt;和 OpenSpec 的配合使用&lt;/strong&gt; 会在另一篇专门讲。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-superpowers-是什么&#34;&gt;📖 Superpowers 是什么
+&lt;/h2&gt;&lt;p&gt;&lt;a class=&#34;link&#34; href=&#34;https://github.com/obra/superpowers&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;Superpowers&lt;/a&gt; 是由 &lt;a class=&#34;link&#34; href=&#34;https://blog.fsck.com&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;Jesse Vincent&lt;/a&gt; 在 &lt;a class=&#34;link&#34; href=&#34;https://primeradiant.com&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;Prime Radiant&lt;/a&gt; 开源的一个 &lt;strong&gt;AI 编码助手 Skills 框架 + 软件开发方法论&lt;/strong&gt;。它的官方定义是：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;A complete software development workflow for your coding agents, built on top of a set of composable &amp;ldquo;skills&amp;rdquo; and some initial instructions that make sure your agent uses them.&lt;/strong&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;翻译过来就是：&lt;strong&gt;一套为 AI 编码助手量身打造的完整软件开发工作流，建立在一组可组合的&amp;quot;技能（Skills）&amp;ldquo;之上，并通过初始指令确保你的 agent 真正用上它们&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;它的形态非常&amp;quot;软&amp;rdquo;——和 OpenSpec 那套结构化文档不同，Superpowers 几乎&lt;strong&gt;全部由 Markdown 格式的&lt;/strong&gt; &lt;strong&gt;&lt;code&gt;SKILL.md&lt;/code&gt;&lt;/strong&gt; &lt;strong&gt;文件组成&lt;/strong&gt;。这些文件被 Claude Code、Cursor、Codex 等 AI 工具加载后，会在合适的时机&lt;strong&gt;自动触发&lt;/strong&gt;，强制 AI 走完&amp;quot;需求分析 → 制定计划 → TDD → 代码审查 → 验证&amp;quot;的工程流程。&lt;/p&gt;
+&lt;p&gt;一句话总结：&lt;strong&gt;它不做&amp;quot;加什么功能&amp;quot;，它专门管&amp;quot;AI 应该在什么时候、用什么方式写代码&amp;quot;&lt;/strong&gt;。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-设计哲学纪律先于速度&#34;&gt;🧭 设计哲学：纪律先于速度
+&lt;/h2&gt;&lt;p&gt;Superpowers 反复强调的设计哲学，可以浓缩为一句话：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;Not &amp;ldquo;make AI write more code&amp;rdquo;, but &amp;ldquo;make AI write less code at the wrong time&amp;rdquo;.&lt;/strong&gt;
+（不是让 AI 多写代码，而是尽量让它少在错误的时机写代码。）&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;围绕这句话，它把四条原则刻进了每个 Skill 的设计里：&lt;/p&gt;
+&lt;table&gt;
+	&lt;thead&gt;
+			&lt;tr&gt;
+					&lt;th style=&#34;text-align: left&#34;&gt;原则&lt;/th&gt;
+					&lt;th style=&#34;text-align: left&#34;&gt;含义&lt;/th&gt;
+			&lt;/tr&gt;
+	&lt;/thead&gt;
+	&lt;tbody&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;strong&gt;Test-Driven Development&lt;/strong&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;永远先写测试；TDD 不是建议，是纪律。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;strong&gt;Systematic over ad-hoc&lt;/strong&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;系统化流程优先于临场发挥；过程比灵感重要。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;strong&gt;Complexity reduction&lt;/strong&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;简单是首要目标；YAGNI（You Aren&amp;rsquo;t Gonna Need It）。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;strong&gt;Evidence over claims&lt;/strong&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;证据优先于声明；验证完成前不宣布成功。&lt;/td&gt;
+			&lt;/tr&gt;
+	&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;这四条原则对应到 AI 工作流里，就变成了几条&amp;quot;硬约束&amp;quot;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;写代码前必须 &lt;code&gt;brainstorming&lt;/code&gt;，把模糊需求问透。&lt;/li&gt;
+&lt;li&gt;设计批准后才能 &lt;code&gt;using-git-worktrees&lt;/code&gt; 建工作区。&lt;/li&gt;
+&lt;li&gt;计划必须细到 2-5 分钟一个任务，每步都有&amp;quot;如何知道做对了&amp;quot;的验证步骤。&lt;/li&gt;
+&lt;li&gt;实现过程中强制 &lt;code&gt;test-driven-development&lt;/code&gt;：先写失败测试，再写最小代码让它通过，再重构。&lt;/li&gt;
+&lt;li&gt;任务之间必须 &lt;code&gt;requesting-code-review&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;收尾必须 &lt;code&gt;verification-before-completion&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;写代码不再是一蹴而就的事情，而是一连串必须走完的关卡&lt;/strong&gt;。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-核心机制可组合的-skills&#34;&gt;🏗️ 核心机制：可组合的 Skills
+&lt;/h2&gt;&lt;h3 id=&#34;-核心skill&#34;&gt;🪜 核心Skill
+&lt;/h3&gt;&lt;p&gt;下面这张表汇总了 Superpowers 的 所有Skills，及其触发方式与典型适用场景。&lt;/p&gt;
+&lt;table&gt;
+	&lt;thead&gt;
+			&lt;tr&gt;
+					&lt;th style=&#34;text-align: left&#34;&gt;技能&lt;/th&gt;
+					&lt;th style=&#34;text-align: left&#34;&gt;触发方式&lt;/th&gt;
+					&lt;th style=&#34;text-align: left&#34;&gt;核心动作&lt;/th&gt;
+			&lt;/tr&gt;
+	&lt;/thead&gt;
+	&lt;tbody&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;brainstorming&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;/superpowers:brainstorming&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;苏格拉底式追问，写代码前进行需求澄清、方案比较、设计确认和设计文档沉淀。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;using-git-worktrees&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;/superpowers:using-git-worktrees&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;创建隔离的开发环境，在执行实现前建立或识别隔离工作区&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;writing-plans&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;/superpowers:writing-plans&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;将需求转化为详细的实现计划，把大任务拆成 2-5 分钟的小步骤，每步含完整代码与验证&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;executing-plans&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;/superpowers:executing-plans&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;执行已有实现计划，无法或不适合用子代理时，按计划在当前会话内执行。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;subagent-driven-development&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;/superpowers:subagent-driven-development&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;执行已有实现计划，用子代理按任务实现、评审、修复和记录进度。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;test-driven-development&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;/superpowers:test-driven-development&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;TDD 开发流程，强制 RED-GREEN-REFACTOR；先写失败测试再写实现&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;systematic-debugging&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;/superpowers:systematic-debugging&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;系统化调试问题，4 步根因诊断法，杜绝&amp;quot;猜一猜&amp;quot;式调试&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;requesting-code-review&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;/superpowers:requesting-code-review&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;完成任务或合并前请求代码评审。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;receiving-code-review&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;/superpowers:receiving-code-review&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;接收评审反馈时先理解、验证、评估，再修改。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;verification-before-completion&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;/superpowers:verification-before-completion&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;完工前进行验证&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;dispatching-parallel-agents&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;/superpowers:dispatching-parallel-agents&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;多个独立问题并行分派给子代理。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;finishing-a-development-branch&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;/superpowers:finishing-a-development-branch&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;验证、识别 worktree 状态、给出 merge/PR/保留/丢弃选项。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;writing-skills&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&lt;code&gt;/superpowers:writing-skills&lt;/code&gt;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;创建和验证新技能，把技能写作也按 TDD 思路处理。&lt;/td&gt;
+			&lt;/tr&gt;
+	&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;在 Claude Code 中触发技能非常简单：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;方法1：直接命令触发
+&lt;ul&gt;
+&lt;li&gt;例如：&lt;code&gt;/superpowers:brainstorming&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;方法2：通过上下文自动触发
+&lt;ul&gt;
+&lt;li&gt;Superpowers 会&lt;strong&gt;根据上下文自动调用&lt;/strong&gt;对应 Skill。你不需要每次都手动敲命令，agent 会自己判断。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-架构设计&#34;&gt;🧩 架构设计
+&lt;/h3&gt;&lt;p&gt;所有的 skill 可以分为以下几类：&lt;/p&gt;
+&lt;h4 id=&#34;-工作流骨架-skills&#34;&gt;🏛️ 工作流骨架 Skills
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;using-superpowers&lt;/strong&gt;：这是整个系统的引导层，它在每次会话开始时激活，建立 skill 发现和调用机制，要求 agent 在任何回应（包括澄清性问题）之前都先检查是否有适用的 skill。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;brainstorming&lt;/strong&gt;：在写任何代码之前激活。通过提问逐步提炼粗糙的想法，探索替代方案，将设计以短小可读的段落呈现供用户验证，最终保存设计文档。最新版本还增加了可视化伴侣（在浏览器侧窗口展示 mockup 和图表），以及对超大型项目的拆分评估机制。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;using-git-worktrees&lt;/strong&gt;：在设计获批后激活。在新分支上创建隔离的工作区，运行项目初始化，验证干净的测试基线。这样多个特性可以并行开发而不互相污染。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;writing-plans&lt;/strong&gt;：使用已批准的设计，生成实施计划。目标读者是&amp;quot;一个对代码库一无所知、品味有限、不擅长测试设计的热心初级工程师&amp;quot;——每个任务包含精确的文件路径、完整代码、验证步骤，粒度为 2-5 分钟一个任务。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;subagent-driven-development / executing-plans&lt;/strong&gt;：有了计划之后激活。为每个任务派发独立的子 agent，进行两阶段代码审查（先检查是否符合规格，再检查代码质量）；或以批次执行并设置人工检查点。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;finishing-a-development-branch&lt;/strong&gt;：所有任务完成时激活。验证测试，向用户提供选项（merge/PR/保留/丢弃），清理 worktree。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-测试与实现-skills&#34;&gt;🧪 测试与实现 Skills
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;test-driven-development&lt;/strong&gt;：在实现阶段激活，强制执行 RED-GREEN-REFACTOR 循环：先写会失败的测试，看着它失败，再写最少的代码让它通过，提交。框架中还内置了一份 anti-patterns 参考，防止 agent 走捷径。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;async-testing-patterns&lt;/strong&gt;：当测试中存在竞态条件、时序依赖，或测试结果不稳定时触发。专门处理异步代码的测试问题，替代用 setTimeout/sleep 敷衍了事的做法。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;verification-before-completion&lt;/strong&gt;：在声称工作完成之前强制触发，确认修复或实现真正生效，防止&amp;quot;看起来好了&amp;quot;的假完成。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-调试-skills&#34;&gt;🔍 调试 Skills
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;systematic-debugging&lt;/strong&gt;：核心原则：在尝试任何修复之前，必须找到根本原因。症状修复即失败。强制完成 Phase 1（证据收集、错误分析、数据流追踪）后才能提出修复方案。如果连续三次修复失败，必须停下来质疑架构设计。该 skill 内置三个子技术：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;root-cause-tracing&lt;/strong&gt;：沿调用栈向后追踪 bug，定位触发问题的源头。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;condition-based-waiting&lt;/strong&gt;：用条件轮询替代任意超时。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;defense-in-depth&lt;/strong&gt;：找到根因后，在多个层次添加校验。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-meta-skills&#34;&gt;⚙️ Meta Skills
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;writing-skills&lt;/strong&gt;：用于创建新 skill，本身也遵循 TDD 方法论——先写测试场景，用子 agent 验证当前行为失败，再写 skill 文档，最后验证 agent 能正确遵从。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;dispatching-parallel-agents&lt;/strong&gt;：管理并发子 agent 的分配策略，适用于多个独立任务可以同时推进的场景。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;remembering-conversations&lt;/strong&gt;：将对话内容向量化存入 SQLite 数据库，使用 Claude Haiku 生成摘要，并提供命令行搜索工具。为避免无效搜索污染上下文，该 skill 使用子 agent 做搜索。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;requesting-code-review&lt;/strong&gt;：提供代码审查前的预检清单，并以严重程度分级的方式报告问题。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-常见工作流&#34;&gt;🔄 常见工作流
+&lt;/h2&gt;&lt;h3 id=&#34;-基础工作流八步闭环&#34;&gt;🎯 基础工作流：八步闭环
+&lt;/h3&gt;&lt;p&gt;Superpowers 的核心工作流可以浓缩为八步。下面用一张图展示全貌：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;15
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;16
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;17
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;18
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;19
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;20
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;21
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;22
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;23
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;24
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;25
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[1]  🔍 brainstorming
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  产出：设计文档（design.md）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[2]  🌳 using-git-worktrees
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  产出：独立分支 + 工作区
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[3]  📝 writing-plans
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  产出：实现计划（plan.md），2-5 分钟/任务
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[4]  🤖 subagent-driven-development
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │       or
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  ⚙️ executing-plans
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  产出：每任务含两阶段审查（规范符合 + 代码质量）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[5]  🧪 test-driven-development
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  每步循环：写失败测试 → 写最小实现 → 重构
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[6]  🔎 requesting-code-review
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  每任务结束：按严重程度分级报告
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[7]  ✅ verification-before-completion
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  产出：代码审查报告（review.md）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[8]  🏁 finishing-a-development-branch
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  产出：测试全绿 + merge/PR/keep/discard 决策
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;hr&gt;
+&lt;h3 id=&#34;-bug-修复工作流&#34;&gt;🐛 Bug 修复工作流
+&lt;/h3&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;15
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;16
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;17
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[1]  🔍 发现 Bug
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[2]  🐛 systematic-debugging（系统化调试）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[3]  📝 writing-plans（修复计划）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[4]  ⚙️ executing-plans（执行修复）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[5]  🧪 verification-before-completion（验证修复）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[6]  🏁 finishing-a-development-branch
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  产出：测试全绿 + merge/PR/keep/discard 决策
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;hr&gt;
+&lt;h3 id=&#34;-重构工作流&#34;&gt;🔧 重构工作流
+&lt;/h3&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
+&lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code&gt;&lt;span class=&#34;lnt&#34;&gt; 1
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 2
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 3
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 4
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 5
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 6
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 7
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 8
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt; 9
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;10
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;11
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;12
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;13
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;14
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;15
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;16
+&lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;17
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class=&#34;lntd&#34;&gt;
+&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-text&#34; data-lang=&#34;text&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[1]  🔍 发现代码问题
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[2]  💡 brainstorming（重构方案）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[3]  🧪 test-driven-development（TDD 重构）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[4]  ✨ code-simplifier（代码优化）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[5]  🎯 verification-before-completion（验证重构）
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        ▼
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;[6]  🏁 finishing-a-development-branch
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        │  产出：测试全绿 + merge/PR/keep/discard 决策
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;hr&gt;
+&lt;h2 id=&#34;-适用场景与局限&#34;&gt;⚠️ 适用场景与局限
+&lt;/h2&gt;&lt;h3 id=&#34;-适合用-superpowers-的场景&#34;&gt;👍 适合用 Superpowers 的场景
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;长期维护的项目&lt;/strong&gt;：Skills 强制每步走流程，避免技术债务堆积。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;多人协作的团队&lt;/strong&gt;：所有 AI 行为规则统一存在 Skills 里，新人 onboarding 只需读 SKILL.md。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;质量要求高的代码&lt;/strong&gt;：TDD + code review + verification 是一道硬关卡。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;复杂功能开发&lt;/strong&gt;：需要多任务并行、子代理协作的场景，&lt;code&gt;subagent-driven-development&lt;/code&gt; 非常合适。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-不适合用-superpowers-的场景&#34;&gt;❌ 不适合用 Superpowers 的场景
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;一次性脚本或小修小补&lt;/strong&gt;：强制走完 brainstorm + plan + TDD 流程成本太高。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;探索性 PoC&lt;/strong&gt;：需求还没定型时，brainstorming 会问太多问题拖慢节奏。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;不支持多 agent 的平台&lt;/strong&gt;：&lt;code&gt;subagent-driven-development&lt;/code&gt; 在某些平台上不可用，需要回退到 &lt;code&gt;executing-plans&lt;/code&gt; 的人工检查点模式。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;追求&amp;quot;零摩擦&amp;quot;的小项目&lt;/strong&gt;：Skills 的纪律反而是负担。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-常见误区&#34;&gt;❗ 常见误区
+&lt;/h3&gt;&lt;table&gt;
+	&lt;thead&gt;
+			&lt;tr&gt;
+					&lt;th style=&#34;text-align: left&#34;&gt;误区&lt;/th&gt;
+					&lt;th style=&#34;text-align: left&#34;&gt;真相&lt;/th&gt;
+			&lt;/tr&gt;
+	&lt;/thead&gt;
+	&lt;tbody&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&amp;ldquo;装了 Superpowers AI 就变强了&amp;rdquo;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;Superpowers 只管&amp;quot;流程纪律&amp;quot;，不管&amp;quot;模型能力&amp;quot;。弱模型 + Superpowers 仍可能产出低质量代码。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&amp;ldquo;Skills 越多越好&amp;rdquo;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;Skills 越多，agent 切换上下文越频繁，反而拖慢节奏。&lt;strong&gt;只装用得到的&lt;/strong&gt;。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&amp;ldquo;TDD 是浪费时间&amp;rdquo;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;TDD 在需求清晰时极快，在需求模糊时确实慢。先 &lt;code&gt;brainstorming&lt;/code&gt; 把需求问透，TDD 就不慢。&lt;/td&gt;
+			&lt;/tr&gt;
+			&lt;tr&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;&amp;ldquo;自动触发就是全自动&amp;rdquo;&lt;/td&gt;
+					&lt;td style=&#34;text-align: left&#34;&gt;关键决策点（设计批准、Critical 修复）&lt;strong&gt;仍然需要人在环路&lt;/strong&gt;。&lt;/td&gt;
+			&lt;/tr&gt;
+	&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;-总结&#34;&gt;📝 总结
+&lt;/h2&gt;&lt;p&gt;Superpowers 不是一个&amp;quot;AI 增强插件&amp;quot;，它是一种 &lt;strong&gt;&amp;ldquo;AI 工程化方法论&amp;rdquo;&lt;/strong&gt;。它把&amp;quot;高级工程师应该怎么做&amp;quot;提炼成一组可组合的 Skills，再用强制流程保证 AI 真的照做。&lt;/p&gt;
+&lt;p&gt;它的核心价值是：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;纪律先于速度&lt;/strong&gt;：强制 TDD、强制 review、强制 verify。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;流程可组合&lt;/strong&gt;：8 个核心 Skill 串成一条完整链路。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;平台无关&lt;/strong&gt;：同一套 Skills 在 Claude Code / Cursor / Codex 等多平台通用。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;人仍在环路&lt;/strong&gt;：关键决策点（设计批准、Critical 修复）必须人工确认。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;如果和 OpenSpec 配合使用（详见&lt;a class=&#34;link&#34; href=&#34;../Superpowers%e4%b8%8eOpenSpec%e7%9a%84%e9%85%8d%e5%90%88%e4%bd%bf%e7%94%a8/index.zh-cn.md&#34; &gt;《Superpowers与OpenSpec的配合使用》&lt;/a&gt;），还可以叠加一层&amp;quot;规范可追溯&amp;quot;的能力——&lt;strong&gt;Superpowers 管纪律，OpenSpec 管契约&lt;/strong&gt;。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;一句话记忆：&lt;strong&gt;OpenSpec 让 AI 先签合同再干活，Superpowers 让 AI 按工艺把活干完&lt;/strong&gt;。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;hr&gt;
+&lt;h3 id=&#34;-参考资料&#34;&gt;🔗 参考资料
+&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Superpowers 官方仓库：&lt;a class=&#34;link&#34; href=&#34;https://github.com/obra/superpowers&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;https://github.com/obra/superpowers&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Jesse Vincent 的博客：&lt;a class=&#34;link&#34; href=&#34;https://blog.fsck.com/2025/10/09/superpowers/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;https://blog.fsck.com/2025/10/09/superpowers/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Prime Radiant：&lt;a class=&#34;link&#34; href=&#34;https://primeradiant.com/&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;https://primeradiant.com/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Claude Code 插件市场：&lt;a class=&#34;link&#34; href=&#34;https://claude.com/plugins/superpowers&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;https://claude.com/plugins/superpowers&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Superpowers Discord 社区：&lt;a class=&#34;link&#34; href=&#34;https://discord.gg/35wsABTejz&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;https://discord.gg/35wsABTejz&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;OpenSpec 官方仓库：&lt;a class=&#34;link&#34; href=&#34;https://github.com/Fission-AI/OpenSpec&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;https://github.com/Fission-AI/OpenSpec&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;配套阅读：&lt;a class=&#34;link&#34; href=&#34;../Superpowers%e4%b8%8eOpenSpec%e7%9a%84%e9%85%8d%e5%90%88%e4%bd%bf%e7%94%a8/index.zh-cn.md&#34; &gt;《Superpowers与OpenSpec的配合使用》&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        </item>
+        <item>
         <title>OpenSpec的使用经验和最佳实践</title>
         <link>https://Tyritic.github.io/p/openspec%E7%9A%84%E4%BD%BF%E7%94%A8%E7%BB%8F%E9%AA%8C%E5%92%8C%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/</link>
         <pubDate>Mon, 29 Jun 2026 10:00:00 +0800</pubDate>
